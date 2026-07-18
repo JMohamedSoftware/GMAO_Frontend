@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { useGmao } from '../hooks/useGmao';
-import { Equipment as EqType, Incident as IncType } from '../types/gmao';
-import { MainLayout } from '../layouts/MainLayout';
-import { IncidentModalProvider } from '../context/IncidentModalContext';
-import { Login } from '../features/auth/pages/Login';
-import { Dashboard } from '../features/dashboard/pages/Dashboard';
-import { Equipment } from '../features/equipments/pages/EquipmentPage';
-import { Preventive } from '../features/preventive/pages/Preventive';
-import { Corrective } from '../features/corrective/pages/Corrective';
-import { WorkOrders } from '../features/workOrders/pages/WorkOrdersPage';
-import { Inventory } from '../features/inventory/pages/Inventory';
-import { Reports } from '../features/reports/pages/Reports';
-import { Suppliers } from '../features/suppliers/pages/Suppliers';
-import { Admin } from '../features/admin/pages/Admin';
-import { SuperAdmin } from '../features/admin/pages/SuperAdminPage';
-import { AccessGuard } from '../components/AccessGuard';
+import { useGmao } from '@/shared/hooks/useGmao';
+import { Equipment as EqType, Incident as IncType } from '@/shared/types/gmao';
+import { MainLayout } from '@/shared/layouts/MainLayout';
+import { IncidentModalProvider } from '@/context/IncidentModalContext';
+import { Login } from '@/features/auth/pages/Login';
+import { Dashboard } from '@/features/company/dashboard/pages/Dashboard';
+import { Equipment } from '@/features/company/equipments/pages/EquipmentPage';
+import { Preventive } from '@/features/company/preventive/pages/Preventive';
+import { Corrective } from '@/features/company/incidents/pages/Corrective';
+import { WorkOrders } from '@/features/company/workOrders/pages/WorkOrdersPage';
+import { Inventory } from '@/features/company/inventory/pages/Inventory';
+import { Reports } from '@/features/company/reports/pages/Reports';
+import { Suppliers } from '@/features/company/suppliers/pages/Suppliers';
+import { Admin } from '@/features/company/settings/Admin';
+import { SuperAdmin } from '@/features/superAdmin/dashboard/SuperAdminPage';
+import { AccessGuard } from '@/shared/components/AccessGuard';
 
 function AppContent() {
   const { currentUser, equipments, impersonatedTenantId } = useGmao();

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useGmao } from '../../../hooks/useGmao';
-import { User } from '../../../types/gmao';
+import { useGmao } from '@/shared/hooks/useGmao';
+import { User } from '@/shared/types/gmao';
 import { UserCircle2, KeyRound, ArrowRight, ShieldCheck, Bug } from 'lucide-react';
+import logoIcon from '@/shared/assets/icons/images.jpeg';
+import bgImage from '@/shared/assets/images/tomate.jpg';
 
 interface LoginProps {
   onLoginSuccess: () => void;
@@ -64,7 +66,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       {/* Background Image - Left Side Full Bleed */}
       <div 
         className="absolute inset-0 w-[60%] lg:w-[65%] h-full bg-cover bg-center bg-no-repeat transition-transform duration-[10s] hover:scale-105" 
-        style={{ backgroundImage: "url('/tomate.jpg')" }}
+        style={{ backgroundImage: `url(${bgImage})` }}
       >
         <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent" />
       </div>
@@ -88,7 +90,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             <div className="flex items-center gap-4 mb-4">
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-rose-500 to-red-700 p-1 shadow-lg shadow-rose-500/30">
                 <img 
-                  src="/tomate-rouge-juteuse-gouttes-eau_191095-79653.avif" 
+                  src={logoIcon} 
                   alt="Logo" 
                   className="w-full h-full object-cover rounded-full border-2 border-white/50"
                 />

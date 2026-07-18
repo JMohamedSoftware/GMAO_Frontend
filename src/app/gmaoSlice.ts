@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Tenant, User, Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount } from '../types/gmao';
-import { AppRole, AppModule, DataScope, RoleDefinition, DEFAULT_ROLE_PERMISSIONS } from '../config/permissions';
-import { initialSuppliers, initialParts, initialTechnicians, initialUsers, initialEquipments, initialIncidents, initialWorkOrders, initialCampaigns } from '../data/mockData';
+import { Tenant, User, Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount } from '@/shared/types/gmao';
+import { AppRole, AppModule, DataScope, RoleDefinition, DEFAULT_ROLE_PERMISSIONS } from '@/shared/permissions/permissions';
+import { initialSuppliers, initialParts, initialTechnicians, initialUsers, initialEquipments, initialIncidents, initialWorkOrders, initialCampaigns } from '@/data/mockData';
 
 interface GmaoState {
   tenants: Tenant[];

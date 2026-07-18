@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { AlertCircle, CheckCircle2, X } from 'lucide-react';
-import { useGmao } from '../hooks/useGmao';
+import { useGmao } from '@/shared/hooks/useGmao';
 
 interface IncidentModalContextType {
   openIncidentModal: (equipmentId?: string) => void;

@@ -1,4 +1,4 @@
-import { Supplier, SparePart, Technician, UserAccount, Equipment, Incident, WorkOrder, Campaign } from '../types/gmao';
+import { Supplier, SparePart, Technician, UserAccount, Equipment, Incident, WorkOrder, Campaign } from '@/shared/types/gmao';
 
 
 const initialSuppliers: Supplier[] = [
