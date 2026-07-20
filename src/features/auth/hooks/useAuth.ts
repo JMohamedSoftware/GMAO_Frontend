@@ -69,30 +69,7 @@ export function useAuth() {
   const login = useCallback(async (credentials: LoginRequest): Promise<boolean> => {
     setLoading();
     try {
-      if (IS_DEV) {
-        // Mode développement : pas de backend, on utilise les données mockées
-        const mockUser = mockLogin(credentials.email);
-        if (!mockUser) {
-          setError('Identifiant ou mot de passe incorrect.');
-          return false;
-        }
-        const fakeToken = btoa(
-          JSON.stringify({
-            sub: mockUser.id,
-            email: mockUser.email,
-            role: mockUser.role,
-            tenantId: mockUser.tenantId,
-            iat: Math.floor(Date.now() / 1000),
-            exp: Math.floor(Date.now() / 1000) + 3600,
-          })
-        );
-        const session = buildSession(fakeToken, fakeToken, mockUser);
-        saveSession(session);
-        setState({ status: 'authenticated', session, error: null });
-        return true;
-      }
-
-      // Mode production : appel réel au backend
+      // Appel réel au backend
       const response = await loginApi(credentials);
       const session = buildSession(
         response.accessToken,
@@ -105,14 +82,14 @@ export function useAuth() {
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Une erreur est survenue.';
-      setError(message);
+      setState({ status: 'unauthenticated', session: null, error: message });
       return false;
     }
   }, []);
 
   // ── Logout ───────────────────────────────────────────
   const logout = useCallback(async () => {
-    if (state.session?.accessToken && !IS_DEV) {
+    if (state.session?.accessToken) {
       try {
         await logoutApi(state.session.accessToken);
       } catch {

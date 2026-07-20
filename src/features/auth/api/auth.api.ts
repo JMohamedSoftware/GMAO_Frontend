@@ -11,7 +11,7 @@ import type {
 } from '../types/auth.types';
 
 /** Base URL du Backend — à changer via variable d'environnement en prod */
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api';
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:5151/api';
 
 // ---------- Helpers ----------
 

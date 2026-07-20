@@ -35,7 +35,7 @@ export const useGmao = () => {
     campaigns: activeTenant ? activeTenant.campaigns : [],
 
     // Actions
-    login: (email: string, password?: string, tenantId?: string, quickRole?: User['role']) => {
+    login: (email: string, password?: string, tenantId?: string, quickRole?: User['role'], forcedName?: string) => {
       // Logic for login simulation as it was
       // But we need to keep it simple or implement the same logic. 
       // For migration, we just let it succeed using the existing superAdmin check
@@ -52,7 +52,7 @@ export const useGmao = () => {
       if (!tenant || tenant.status !== 'Active') return false;
 
       let role = quickRole || 'CompanyAdmin';
-      let name = 'Utilisateur';
+      let name = forcedName || 'Utilisateur';
       let avatar = 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80';
 
       if (tenant.users) {

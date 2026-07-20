@@ -4,6 +4,7 @@
 
 import React, { useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { useGmao } from '@/shared/hooks/useGmao';
 import { LoginForm } from '../components/LoginForm';
 import { DevQuickLogin } from '../components/DevQuickLogin';
 import logoIcon from '@/shared/assets/icons/images.jpeg';
@@ -15,6 +16,7 @@ interface LoginPageProps {
 
 export const Login: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const { login, isLoading, error, isAuthenticated } = useAuth();
+  const { login: reduxLogin } = useGmao();
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -34,19 +36,43 @@ export const Login: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     };
 
     const email = autoLoginMap[param.toLowerCase()];
-    if (email) login({ email, password: '' }).then((ok) => { if (ok) onLoginSuccess(); });
+    if (email) {
+      login({ email, password: '' }).then((ok) => { 
+        if (ok) {
+          reduxLogin(email, '', 'tenant-midi');
+          onLoginSuccess(); 
+        }
+      });
+    }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Quick login handler (dev mode) ───────────────────
   const handleQuickLogin = async (email: string) => {
     const ok = await login({ email, password: '' });
-    if (ok) onLoginSuccess();
+    if (ok) {
+      reduxLogin(email, '', 'tenant-midi');
+      onLoginSuccess();
+    }
   };
 
   // ── Form submit ──────────────────────────────────────
   const handleSubmit = async (credentials: { email: string; password: string }) => {
     const ok = await login(credentials);
-    if (ok) onLoginSuccess();
+    if (ok) {
+      // Read the newly saved session from localStorage to get the real tenantId
+      const sessionStr = localStorage.getItem('gmao_session');
+      if (sessionStr) {
+        try {
+          const session = JSON.parse(sessionStr);
+          reduxLogin(credentials.email, credentials.password, session.user?.tenantId || 'tenant-midi', session.user?.role as any, session.user?.name);
+        } catch {
+          reduxLogin(credentials.email, credentials.password, 'tenant-midi');
+        }
+      } else {
+        reduxLogin(credentials.email, credentials.password, 'tenant-midi');
+      }
+      onLoginSuccess();
+    }
     return ok;
   };
 

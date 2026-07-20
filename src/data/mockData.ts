@@ -25,12 +25,7 @@ const initialTechnicians: Technician[] = [
   { id: 'TECH-004', name: 'Nour Belhadj', role: 'Électricien industriel', qualification: 'Niveau II', skills: ['Armoires électriques', 'VFD', 'Éclairage'], status: 'Disponible', hourlyRate: 38, avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&auto=format&fit=crop&q=80' }
 ];
 
-const initialUsers: UserAccount[] = [
-  { id: 'USR-01', name: 'Karim Gherbi', email: 'k.gherbi@tomate-industrie.com', role: 'Responsable Maintenance', status: 'Actif', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80', phone: '+216 22 123 456', department: 'Maintenance', lastConnection: 'Aujourd\'hui', createdAt: '2025-01-15' },
-  { id: 'USR-02', name: 'Jérôme Bricole', email: 'j.bricole@midi.com', role: "Chef d'équipe", status: 'Actif', avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80', phone: '+216 55 987 654', department: 'Maintenance', lastConnection: 'Hier', createdAt: '2025-02-20' },
-  { id: 'USR-03', name: 'Ahmed Bensaid', email: 'a.bensaid@midi.com', role: 'Technicien', status: 'Actif', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80', phone: '+216 98 111 222', department: 'Intervention', lastConnection: 'Aujourd\'hui', createdAt: '2025-03-10' },
-  { id: 'USR-04', name: 'Youssef Mansouri', email: 'y.mansouri@midi.com', role: 'Production', status: 'Inactif', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80', phone: '+216 23 444 555', department: 'Production', lastConnection: 'Il y a 3 jours', createdAt: '2025-06-05' }
-];
+const initialUsers: UserAccount[] = [];
 
 const initialEquipments: Equipment[] = [
   {

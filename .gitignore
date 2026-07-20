@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment variables (ne jamais pousser sur GitHub!)
+.env
+.env.local
+.env.production
