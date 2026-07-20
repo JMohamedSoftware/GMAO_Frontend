@@ -15,28 +15,47 @@ const API_BASE = import.meta.env.VITE_API_URL || 'https://gmao-backend-a6r2.onre
 
 // ---------- Helpers ----------
 
+// ── Request helper with 60s timeout + 1 retry (for Render cold start) ────────
 async function request<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  retries = 1
 ): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 60_000); // 60s timeout
 
-  const response = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-    ...options,
-  });
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      signal: controller.signal,
+      ...options,
+    });
 
-  if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({}));
-    const message: string =
-      errorBody?.message ?? `HTTP Error ${response.status}`;
-    throw new Error(message);
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({}));
+      const message: string =
+        errorBody?.message ?? `HTTP Error ${response.status}`;
+      throw new Error(message);
+    }
+
+    return response.json() as Promise<T>;
+  } catch (err: unknown) {
+    clearTimeout(timeoutId);
+    const isAbort = err instanceof DOMException && err.name === 'AbortError';
+    if (retries > 0 && isAbort) {
+      // Backend was sleeping (cold start) — retry once after wakeup
+      console.warn('Backend timeout — retrying after cold start...');
+      return request<T>(endpoint, options, retries - 1);
+    }
+    if (isAbort) throw new Error('Le serveur met trop de temps à répondre. Réessayez dans quelques secondes.');
+    throw err;
   }
-
-  return response.json() as Promise<T>;
 }
 
 function withAuth(token: string): HeadersInit {
