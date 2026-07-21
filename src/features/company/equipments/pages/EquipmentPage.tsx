@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useGmao } from '@/shared/hooks/useGmao';
+import { useEquipements } from '@/shared/hooks/useEquipements';
 import { Equipment as EquipmentType } from '@/shared/types/gmao';
 import { usePermissions } from '@/shared/hooks/usePermissions';
 import { Settings2, Plus } from 'lucide-react';
@@ -16,7 +17,8 @@ interface EquipmentProps {
 export const Equipment: React.FC<EquipmentProps> = ({ 
   selectedEqFromDash, 
 }) => {
-  const { equipments, suppliers, deleteEquipment, deleteEquipmentsByLocation, deleteEquipmentsByCategory } = useGmao();
+  const { suppliers, deleteEquipmentsByLocation, deleteEquipmentsByCategory } = useGmao();
+  const { equipments, loading, deleteEquipment } = useEquipements();
   const { canDo } = usePermissions();
   
   const [search, setSearch] = useState('');
