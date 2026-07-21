@@ -36,12 +36,15 @@ export const useGmao = () => {
 
     // Actions
     login: (email: string, password?: string, tenantId?: string, quickRole?: User['role'], forcedName?: string) => {
-      // Logic for login simulation as it was
-      // But we need to keep it simple or implement the same logic. 
-      // For migration, we just let it succeed using the existing superAdmin check
-      if (email.toLowerCase() === 'admin@gmao-saas.com') {
+      // ── SuperAdmin: handle any user with SuperAdmin role (not just hardcoded email) ──
+      if (quickRole === 'SuperAdmin' || email.toLowerCase() === 'admin@gmao-saas.com') {
         dispatch(actions.login({
-          user: { name: 'Alexandre Legrand', email, role: 'SuperAdmin', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80' },
+          user: {
+            name: forcedName || 'Super Administrateur',
+            email,
+            role: 'SuperAdmin',
+            avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
+          },
           tenantId: null
         }));
         return true;
