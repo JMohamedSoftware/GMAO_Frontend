@@ -10,6 +10,7 @@ import { UserManagement } from '../users/UserManagement';
 import { RoleSettings } from './RoleSettings';
 import { AdminSettings } from './AdminSettings';
 import { AdminModals } from '../users/AdminModals';
+import { usersApi } from '../users/api/users.api';
 
 export const Admin: React.FC = () => {
   const { tenants, currentTenantId, addUser, rolePermissions, updateRolePermission } = useGmao();
@@ -46,16 +47,61 @@ export const Admin: React.FC = () => {
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'Technicien', phone: '', department: '', status: 'Actif', avatar: '' });
 
-  const handleAddUser = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    addUser({ 
-      ...newUser, 
-      status: newUser.status as "Actif" | "Inactif", 
-      avatar: newUser.avatar || 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=150&auto=format&fit=crop&q=80',
-      createdAt: new Date().toISOString().split('T')[0]
-    });
-    setIsAddUserOpen(false);
-    setNewUser({ name: '', email: '', password: '', role: 'Technicien', phone: '', department: '', status: 'Actif', avatar: '' });
+    setIsSubmitting(true);
+    try {
+      // Map role to backend RoleId
+      const roleMapping: Record<string, number> = {
+        'Administrateur': 1,
+        'CompanyAdmin': 1,
+        'Responsable Maintenance': 2,
+        'Chef d\'équipe': 3,
+        'Technicien': 4,
+        'Production': 5,
+        'Magasinier': 6,
+        'SuperAdmin': 7
+      };
+
+      const parts = newUser.name.trim().split(' ');
+      const prenom = parts[0] || 'Prénom';
+      const nom = parts.slice(1).join(' ') || 'Nom';
+      
+      const roleId = roleMapping[newUser.role] || 4; // Default to Technicien
+
+      await usersApi.createUser({
+        user: {
+          nom,
+          prenom,
+          email: newUser.email,
+          telephone: newUser.phone || '',
+          roleId,
+          societeId: 1,
+          isActive: newUser.status === 'Actif',
+        },
+        password: newUser.password
+      });
+
+      // Update local Redux state for instant UI update
+      addUser({ 
+        ...newUser, 
+        status: newUser.status as "Actif" | "Inactif", 
+        avatar: newUser.avatar || 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=150&auto=format&fit=crop&q=80',
+        createdAt: new Date().toISOString().split('T')[0]
+      });
+
+      setIsAddUserOpen(false);
+      setNewUser({ name: '', email: '', password: '', role: 'Technicien', phone: '', department: '', status: 'Actif', avatar: '' });
+      setSuccessSaved(true);
+      setTimeout(() => setSuccessSaved(false), 2500);
+    } catch (err) {
+      console.error('Error creating user:', err);
+      alert('Erreur lors de la création de l\'utilisateur.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleEditUser = (e: React.FormEvent) => {
