@@ -26,18 +26,91 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle errors (like 401 Unauthorized)
+// To prevent infinite refresh loops
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (value?: unknown) => void;
+  reject: (reason?: unknown) => void;
+}> = [];
+
+const processQueue = (error: Error | null, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
+// Response interceptor to handle errors (like 401 Unauthorized or 403 Forbidden)
 apiClient.interceptors.response.use(
   (response) => {
     return response;
   },
   async (error) => {
-    // You can implement token refresh logic here if needed
-    if (error.response?.status === 401) {
-      // e.g. logout user, clear storage, redirect to login
-      console.warn("Unauthorized access. Token might be expired.");
-      // Optional: Add logic to redirect to login
+    const originalRequest = error.config;
+
+    if ((error.response?.status === 401 || error.response?.status === 403) && !originalRequest._retry) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return apiClient(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const refreshToken = localStorage.getItem('gmao_refresh_token');
+        if (!refreshToken) {
+          throw new Error('No refresh token available');
+        }
+
+        // Import dynamically to avoid circular dependencies
+        const { refreshTokenApi } = await import('@/features/auth/api/auth.api');
+        const { store } = await import('@/app/store');
+        const { login, logout } = await import('@/app/gmaoSlice');
+
+        const data = await refreshTokenApi({ refreshToken });
+
+        localStorage.setItem('gmao_access_token', data.accessToken);
+        localStorage.setItem('gmao_refresh_token', data.refreshToken);
+
+        // Update Redux state with new user object containing fresh permissions
+        store.dispatch(login({
+          user: data.user,
+          accessToken: data.accessToken,
+          refreshToken: data.refreshToken
+        }));
+
+        processQueue(null, data.accessToken);
+        originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
+        
+        return apiClient(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError as Error, null);
+        
+        const { store } = await import('@/app/store');
+        const { logout } = await import('@/app/gmaoSlice');
+        
+        // Only force logout on 401 (expired/invalid refresh token), not necessarily 403 (genuinely forbidden)
+        if (error.response?.status === 401) {
+          store.dispatch(logout());
+        }
+        
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
     }
+    
     return Promise.reject(error);
   }
 );

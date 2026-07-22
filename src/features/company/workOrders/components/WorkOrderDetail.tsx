@@ -392,7 +392,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
                 </span>
               </div>
             )}
-            {activeOt.status === 'Affecté' && (
+            {can(PERMISSIONS.WORKORDER_UPDATE) && activeOt.status === 'Affecté' && (
               <button
                 onClick={() => updateWorkOrderStatus(activeOt.id, 'En cours')}
                 className="w-full py-2 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-lg shadow-sm flex items-center justify-center gap-2"
@@ -402,7 +402,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
               </button>
             )}
 
-            {activeOt.status === 'En cours' && (
+            {can(PERMISSIONS.WORKORDER_UPDATE) && activeOt.status === 'En cours' && (
               <div className="flex gap-2 mt-1">
                 <button
                   onClick={() => updateWorkOrderStatus(activeOt.id, 'Suspendu')}
@@ -422,7 +422,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
               </div>
             )}
 
-            {activeOt.status === 'Suspendu' && (
+            {can(PERMISSIONS.WORKORDER_UPDATE) && activeOt.status === 'Suspendu' && (
               <button
                 onClick={() => updateWorkOrderStatus(activeOt.id, 'En cours')}
                 className="w-full py-2 bg-primary hover:bg-primary/95 text-white font-bold rounded-lg shadow-sm"
@@ -468,7 +468,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
               </div>
             )}
 
-            {activeOt.status === 'En cours' && (
+            {can(PERMISSIONS.WORKORDER_UPDATE) && activeOt.status === 'En cours' && (
               <div className="flex gap-2 items-end">
                 <div className="flex-1">
                   <label className="text-[9px] text-slate-450 font-bold block mb-1">Pièce de Rechange</label>
@@ -508,7 +508,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
         )}
 
         {/* Diagnostic reporting sheet & validation pad */}
-        {activeOt.status === 'En cours' && (
+        {can(PERMISSIONS.WORKORDER_UPDATE) && activeOt.status === 'En cours' && (
           <div className="bg-white dark:bg-slate-850 p-4 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col gap-4">
             <h4 className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">
               Rapport de Résolution Diagnostic

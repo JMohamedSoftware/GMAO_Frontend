@@ -20,7 +20,7 @@ export function usePermissions() {
     const userPermissions = authUser?.permissions || currentUser?.permissions;
     
     if (userPermissions && userPermissions.length > 0) {
-      if (role === ROLES.SUPER_ADMIN) return true; 
+      if (role === ROLES.SUPER_ADMIN || role === ROLES.COMPANY_ADMIN) return true; 
       return userPermissions.includes(permission);
     }
     

@@ -139,14 +139,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
 
         {/* ROW 2: Arborescence (left 8 cols) + Quick-peek panel (right 4 cols) */}
         <div className="lg:col-span-8 flex flex-col gap-6">
-          <DashboardTree 
-            factoryTree={factoryTree}
-            equipments={equipments}
-            selectedDashboardEq={selectedDashboardEq}
-            setSelectedDashboardEq={setSelectedDashboardEq}
-            onNavigate={onNavigate}
-            onSelectEquipmentToNavigate={onSelectEquipment}
-          />
+          {can(PERMISSIONS.EQUIPMENT_VIEW) && (
+            <DashboardTree 
+              factoryTree={factoryTree}
+              equipments={equipments}
+              selectedDashboardEq={selectedDashboardEq}
+              setSelectedDashboardEq={setSelectedDashboardEq}
+              onNavigate={onNavigate}
+              onSelectEquipmentToNavigate={onSelectEquipment}
+            />
+          )}
         </div>
 
         {/* ROW 2 RIGHT: Demande d'intervention Form & Unassigned OTs (Col-span 4) */}

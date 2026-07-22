@@ -1,4 +1,6 @@
 import React from 'react';
+import { usePermissions } from '@/shared/hooks/usePermissions';
+import { PERMISSIONS } from '@/shared/permissions';
 
 interface DashboardStatsProps {
   diATraiter: number;
@@ -13,9 +15,12 @@ interface DashboardStatsProps {
 export const DashboardStats: React.FC<DashboardStatsProps> = ({
   diATraiter, diEnCours, diRealise, btAFaire, btEnCours, btFait, onNavigate
 }) => {
+  const { can } = usePermissions();
+
   return (
     <>
       {/* DI status grid (Mes infos DI) - clickable */}
+      {can(PERMISSIONS.INCIDENT_VIEW) && (
       <div className="glass-panel rounded-custom-lg border border-white/40 dark:border-slate-850 p-5 shadow-sm">
         <h3 className="text-xs font-bold text-slate-450 uppercase tracking-wider mb-3">
           Mes infos DI (Demandes d'Intervention)
@@ -36,8 +41,10 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({
           </button>
         </div>
       </div>
+      )}
 
       {/* BT status grid (Les infos BT) - clickable */}
+      {can(PERMISSIONS.WORKORDER_VIEW) && (
       <div className="glass-panel rounded-custom-lg border border-white/40 dark:border-slate-850 p-5 shadow-sm">
         <h3 className="text-xs font-bold text-slate-450 uppercase tracking-wider mb-3">
           Les infos OT (Order de Travail)
@@ -58,6 +65,7 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({
           </button>
         </div>
       </div>
+      )}
     </>
   );
 };
