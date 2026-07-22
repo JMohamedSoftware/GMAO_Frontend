@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FileCheck, AlertTriangle, Clock3, Trash2, CheckCircle, X, Calendar, Check } from 'lucide-react';
 import { WorkOrder, Equipment, Technician, SparePart } from '@/shared/types/gmao';
 import { usePermissions } from '@/shared/hooks/usePermissions';
+import { PERMISSIONS } from '@/shared/permissions';
 
 interface WorkOrderDetailProps {
   activeOt: WorkOrder | undefined;
@@ -24,7 +25,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
   onClearSelectedOt,
   updateWorkOrderStatus
 }) => {
-  const { canDo } = usePermissions();
+  const { can } = usePermissions();
 
   const [diagText, setDiagText] = useState('');
   const [solText, setSolText] = useState('');
@@ -336,7 +337,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
             Affectation Personnel & Actionneur
           </h4>
 
-          {canDo('workorders', 'assigner') && (
+          {can(PERMISSIONS.WORKORDER_ASSIGN) && (
           <div className="flex items-center gap-3">
             <div className="flex-1">
               <label className="text-slate-400 block mb-1">Technicien Référent</label>
@@ -354,7 +355,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
               </select>
             </div>
             
-            {canDo('workorders', 'modifier') && (
+            {can(PERMISSIONS.WORKORDER_UPDATE) && (
             <div className="flex-1">
               <label className="text-slate-400 block mb-1">Priorité d'intervention</label>
               <select 

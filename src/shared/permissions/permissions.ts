@@ -1,61 +1,68 @@
-export type AppRole =
-  | 'SuperAdmin'
-  | 'CompanyAdmin'
-  | 'Responsable Maintenance'
-  | "Chef d'équipe"
-  | 'Technicien'
-  | 'Production';
+// src/shared/permissions/permissions.ts
+export const PERMISSIONS = {
+  // WORKORDERS
+  WORKORDER_VIEW: 'WORKORDER_VIEW',
+  WORKORDER_CREATE: 'WORKORDER_CREATE',
+  WORKORDER_UPDATE: 'WORKORDER_UPDATE',
+  WORKORDER_DELETE: 'WORKORDER_DELETE',
+  WORKORDER_ASSIGN: 'WORKORDER_ASSIGN',
+  WORKORDER_CLOSE: 'WORKORDER_CLOSE',
+  WORKORDER_START: 'WORKORDER_START',
+  WORKORDER_SUSPEND: 'WORKORDER_SUSPEND',
+  WORKORDER_FINISH: 'WORKORDER_FINISH',
+  WORKORDER_EXECUTE: 'WORKORDER_EXECUTE',
+  WORKORDER_EXPORT: 'WORKORDER_EXPORT',
 
-export type DataScope = 'mes_donnees' | 'mon_equipe' | 'toute_usine';
+  // EQUIPMENTS
+  EQUIPMENT_VIEW: 'EQUIPMENT_VIEW',
+  EQUIPMENT_CREATE: 'EQUIPMENT_CREATE',
+  EQUIPMENT_UPDATE: 'EQUIPMENT_UPDATE',
+  EQUIPMENT_DELETE: 'EQUIPMENT_DELETE',
+  EQUIPMENT_IMPORT: 'EQUIPMENT_IMPORT',
+  EQUIPMENT_EXPORT: 'EQUIPMENT_EXPORT',
 
-export type AppModule = 
-  | 'dashboard' 
-  | 'equipment' 
-  | 'preventive' 
-  | 'corrective' 
-  | 'workorders' 
-  | 'inventory' 
-  | 'suppliers' 
-  | 'reports' 
-  | 'admin';
+  // USERS
+  USER_VIEW: 'USER_VIEW',
+  USER_CREATE: 'USER_CREATE',
+  USER_UPDATE: 'USER_UPDATE',
+  USER_DELETE: 'USER_DELETE',
 
-export interface ModulePermissions {
-  actions: string[];
-  scope: DataScope;
-}
+  // PREVENTIVE
+  PREVENTIVE_VIEW: 'PREVENTIVE_VIEW',
+  PREVENTIVE_CREATE: 'PREVENTIVE_CREATE',
+  PREVENTIVE_UPDATE: 'PREVENTIVE_UPDATE',
+  PREVENTIVE_DELETE: 'PREVENTIVE_DELETE',
+  PREVENTIVE_EXECUTE: 'PREVENTIVE_EXECUTE',
+  
+  // INCIDENTS (Corrective)
+  INCIDENT_VIEW: 'INCIDENT_VIEW',
+  INCIDENT_CREATE: 'INCIDENT_CREATE',
+  INCIDENT_UPDATE: 'INCIDENT_UPDATE',
+  INCIDENT_DELETE: 'INCIDENT_DELETE',
+  INCIDENT_VALIDATE: 'INCIDENT_VALIDATE',
+  
+  // SUPPLIERS
+  SUPPLIER_VIEW: 'SUPPLIER_VIEW',
+  SUPPLIER_CREATE: 'SUPPLIER_CREATE',
+  SUPPLIER_UPDATE: 'SUPPLIER_UPDATE',
+  SUPPLIER_DELETE: 'SUPPLIER_DELETE',
 
-export type RoleDefinition = Partial<Record<AppModule, ModulePermissions>>;
+  // INVENTORY
+  INVENTORY_VIEW: 'INVENTORY_VIEW',
+  INVENTORY_CREATE: 'INVENTORY_CREATE',
+  INVENTORY_UPDATE: 'INVENTORY_UPDATE',
+  INVENTORY_DELETE: 'INVENTORY_DELETE',
+  INVENTORY_MOVE: 'INVENTORY_MOVE', // Entrée/Sortie
+  
+  // DASHBOARD
+  DASHBOARD_VIEW: 'DASHBOARD_VIEW',
 
-export const DEFAULT_ROLE_PERMISSIONS: Partial<Record<AppRole, RoleDefinition>> = {
-  'Responsable Maintenance': {
-    dashboard: { actions: ['voir'], scope: 'toute_usine' },
-    equipment: { actions: ['voir', 'creer', 'modifier', 'importer', 'exporter'], scope: 'toute_usine' },
-    preventive: { actions: ['voir', 'creer', 'modifier', 'lancer', 'suspendre', 'approuver'], scope: 'toute_usine' },
-    corrective: { actions: ['voir', 'creer', 'modifier', 'valider', 'rejeter', 'planifier', 'creer_ot'], scope: 'toute_usine' },
-    workorders: { actions: ['voir', 'creer', 'modifier', 'assigner', 'demarrer', 'suspendre', 'terminer', 'cloturer', 'exporter'], scope: 'toute_usine' },
-    inventory: { actions: ['voir', 'creer', 'modifier', 'entree', 'sortie', 'inventaire'], scope: 'toute_usine' },
-    suppliers: { actions: ['voir', 'creer', 'modifier'], scope: 'toute_usine' },
-    reports: { actions: ['voir', 'exporter_pdf', 'exporter_excel', 'creer_rapport'], scope: 'toute_usine' }
-  },
-  "Chef d'équipe": {
-    dashboard: { actions: ['voir'], scope: 'mon_equipe' },
-    equipment: { actions: ['voir', 'modifier'], scope: 'toute_usine' },
-    preventive: { actions: ['voir', 'creer', 'modifier', 'lancer', 'suspendre'], scope: 'mon_equipe' },
-    corrective: { actions: ['voir', 'creer', 'valider', 'creer_ot'], scope: 'mon_equipe' },
-    workorders: { actions: ['voir', 'creer', 'modifier', 'assigner', 'cloturer'], scope: 'mon_equipe' },
-    inventory: { actions: ['voir', 'entree', 'sortie'], scope: 'toute_usine' },
-    reports: { actions: ['voir', 'exporter_pdf', 'exporter_excel'], scope: 'mon_equipe' }
-  },
-  'Technicien': {
-    dashboard: { actions: ['voir'], scope: 'mes_donnees' },
-    equipment: { actions: ['voir'], scope: 'toute_usine' },
-    preventive: { actions: ['voir', 'executer'], scope: 'mes_donnees' },
-    corrective: { actions: ['voir', 'creer'], scope: 'mes_donnees' },
-    workorders: { actions: ['voir', 'demarrer', 'suspendre', 'terminer'], scope: 'mes_donnees' },
-    inventory: { actions: ['voir'], scope: 'toute_usine' }
-  },
-  'Production': {
-    dashboard: { actions: ['voir'], scope: 'mes_donnees' },
-    corrective: { actions: ['voir', 'creer'], scope: 'mes_donnees' }
-  }
-};
+  // REPORTS
+  REPORT_VIEW: 'REPORT_VIEW',
+  REPORT_CREATE: 'REPORT_CREATE',
+  REPORT_EXPORT_PDF: 'REPORT_EXPORT_PDF',
+  REPORT_EXPORT_EXCEL: 'REPORT_EXPORT_EXCEL',
+  REPORT_EXPORT: 'REPORT_EXPORT',
+} as const;
+
+export type Permission = keyof typeof PERMISSIONS;

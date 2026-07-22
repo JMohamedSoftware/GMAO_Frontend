@@ -1,6 +1,6 @@
 import { useAppSelector, useAppDispatch } from '@/app/hooks';
 import * as actions from '@/app/gmaoSlice';
-import { AppRole, AppModule, DataScope } from '@/shared/permissions/permissions';
+import { AppRole } from '@/shared/permissions';
 import { Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount, User, Tenant } from '@/shared/types/gmao';
 import { useEffect } from 'react';
 
@@ -76,7 +76,7 @@ export const useGmao = () => {
     logout: () => dispatch(actions.logout()),
     toggleDarkMode: () => dispatch(actions.toggleDarkMode()),
     setSelectedCampaign: (camp: string) => dispatch(actions.setSelectedCampaign(camp)),
-    updateRolePermission: (role: AppRole, module: AppModule, actionName: string, scope: DataScope, isChecked: boolean) => 
+    updateRolePermission: (role: any, module: any, actionName: string, scope: any, isChecked: boolean) => 
       dispatch(actions.updateRolePermission({role, module, act: actionName, scope, isChecked})),
     
     // CRUD

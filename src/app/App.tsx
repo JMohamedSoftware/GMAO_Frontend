@@ -15,6 +15,7 @@ import { Suppliers } from '@/features/company/suppliers/pages/Suppliers';
 import { Admin } from '@/features/company/settings/Admin';
 import { SuperAdmin } from '@/features/superAdmin/dashboard/SuperAdminPage';
 import { AccessGuard } from '@/shared/components/AccessGuard';
+import { PERMISSIONS } from '@/shared/permissions';
 
 function AppContent() {
   const { currentUser, equipments, impersonatedTenantId } = useGmao();
@@ -73,7 +74,7 @@ function AppContent() {
   return (
     <MainLayout currentScreen={currentScreen} onNavigate={handleNavigate}>
       {currentScreen === 'dashboard' && (
-        <AccessGuard page="dashboard">
+        <AccessGuard permission={PERMISSIONS.DASHBOARD_VIEW}>
           <Dashboard 
             onNavigate={handleNavigate}
             onSelectEquipment={(eq) => {
@@ -85,7 +86,7 @@ function AppContent() {
       )}
 
       {currentScreen === 'equipment' && (
-        <AccessGuard page="equipment">
+        <AccessGuard permission={PERMISSIONS.EQUIPMENT_VIEW}>
           <Equipment 
             selectedEqFromDash={selectedEqFromDash}
             onClearSelectedEq={() => setSelectedEqFromDash(null)}
@@ -95,13 +96,13 @@ function AppContent() {
       )}
 
       {currentScreen === 'preventive' && (
-        <AccessGuard page="preventive">
+        <AccessGuard permission={PERMISSIONS.PREVENTIVE_VIEW}>
           <Preventive onNavigate={handleNavigate} />
         </AccessGuard>
       )}
 
       {currentScreen === 'corrective' && (
-        <AccessGuard page="corrective">
+        <AccessGuard permission={PERMISSIONS.INCIDENT_VIEW}>
           <Corrective 
             onNavigate={handleNavigate}
             onOpenCreateOtWithIncident={(inc) => {
@@ -113,7 +114,7 @@ function AppContent() {
       )}
 
       {currentScreen === 'workorders' && (
-        <AccessGuard page="workorders">
+        <AccessGuard permission={PERMISSIONS.WORKORDER_VIEW}>
           <WorkOrders 
             selectedOtFromUrl={selectedOtFromUrl}
             onClearSelectedOt={() => setSelectedOtFromUrl(null)}
@@ -124,25 +125,25 @@ function AppContent() {
       )}
 
       {currentScreen === 'inventory' && (
-        <AccessGuard page="inventory">
+        <AccessGuard permission={PERMISSIONS.INVENTORY_VIEW}>
           <Inventory onNavigate={setCurrentScreen} />
         </AccessGuard>
       )}
 
       {currentScreen === 'suppliers' && (
-        <AccessGuard page="suppliers">
+        <AccessGuard permission={PERMISSIONS.SUPPLIER_VIEW}>
           <Suppliers />
         </AccessGuard>
       )}
 
       {currentScreen === 'reports' && (
-        <AccessGuard page="reports">
+        <AccessGuard permission={PERMISSIONS.REPORT_VIEW}>
           <Reports />
         </AccessGuard>
       )}
 
       {currentScreen === 'admin' && (
-        <AccessGuard page="admin">
+        <AccessGuard permission={PERMISSIONS.USER_VIEW}>
           <Admin />
         </AccessGuard>
       )}

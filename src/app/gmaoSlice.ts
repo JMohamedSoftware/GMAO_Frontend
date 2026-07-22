@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { Tenant, User, Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount } from '@/shared/types/gmao';
-import { AppRole, AppModule, DataScope, RoleDefinition, DEFAULT_ROLE_PERMISSIONS } from '@/shared/permissions/permissions';
+import { AppRole } from '@/shared/permissions';
 import { initialSuppliers, initialParts, initialTechnicians, initialUsers, initialEquipments, initialIncidents, initialWorkOrders, initialCampaigns } from '@/data/mockData';
 
 interface GmaoState {
@@ -10,7 +10,7 @@ interface GmaoState {
   currentUser: User | null;
   darkMode: boolean;
   selectedCampaign: string;
-  rolePermissions: Partial<Record<AppRole, RoleDefinition>>;
+  rolePermissions: Record<string, any>;
   notifications: Notification[];
 }
 
@@ -48,7 +48,7 @@ const initialState: GmaoState = {
   currentUser: localStorage.getItem('gmao_current_user') ? JSON.parse(localStorage.getItem('gmao_current_user') as string) : null,
   darkMode: localStorage.getItem('gmao_dark_mode') ? JSON.parse(localStorage.getItem('gmao_dark_mode') as string) : false,
   selectedCampaign: 'Campagne 2026',
-  rolePermissions: DEFAULT_ROLE_PERMISSIONS,
+  rolePermissions: {},
   notifications: []
 };
 
@@ -86,7 +86,7 @@ export const gmaoSlice = createSlice({
     setSelectedCampaign: (state, action: PayloadAction<string>) => {
       state.selectedCampaign = action.payload;
     },
-    updateRolePermission: (state, action: PayloadAction<{role: AppRole, module: AppModule, act: string, scope: DataScope, isChecked: boolean}>) => {
+    updateRolePermission: (state, action: PayloadAction<{role: any, module: any, act: string, scope: any, isChecked: boolean}>) => {
       const { role, module, act, scope, isChecked } = action.payload;
       if (!state.rolePermissions[role]) state.rolePermissions[role] = {} as any;
       const roleDef = state.rolePermissions[role] as any;

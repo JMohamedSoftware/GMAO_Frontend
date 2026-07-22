@@ -1,4 +1,4 @@
-import { AppRole, AppModule, DataScope, RoleDefinition } from '@/shared/permissions/permissions';
+import { AppRole } from '@/shared/permissions';
 
 
 export interface DocumentInfo {
@@ -157,6 +157,7 @@ export interface User {
   role: 'SuperAdmin' | 'CompanyAdmin' | 'Responsable Maintenance' | 'Chef d\'équipe' | 'Technicien' | 'Production' | 'Read-Only User';
   avatar: string;
   tenantId?: string;
+  permissions?: string[];
 }
 
 export interface UserAccount {

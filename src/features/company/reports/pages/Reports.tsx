@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useGmao } from '@/shared/hooks/useGmao';
 import { usePermissions } from '@/shared/hooks/usePermissions';
+import { PERMISSIONS } from '@/shared/permissions';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import domtoimage from 'dom-to-image';
@@ -25,7 +26,7 @@ import {
 
 export const Reports: React.FC = () => {
   const { selectedCampaign, workOrders, equipments, incidents, currentUser } = useGmao();
-  const { isChefEquipe, getScope, canDo } = usePermissions();
+  const { isChefEquipe, can } = usePermissions();
   
   const [exporting, setExporting] = useState<string | null>(null);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
@@ -116,7 +117,7 @@ export const Reports: React.FC = () => {
 
 
   
-  const scope = getScope('reports');
+  const scope = isChefEquipe ? 'mon_equipe' : 'toute_usine';
   
   // Filter WorkOrders based on scope
   const filteredWorkOrders = workOrders.filter(ot => {
@@ -249,7 +250,7 @@ export const Reports: React.FC = () => {
             </div>
           )}
 
-          {canDo('reports', 'exporter_pdf') && (
+          {can(PERMISSIONS.REPORT_EXPORT_PDF) && (
             <button
               onClick={() => handleExport('pdf')}
               disabled={!!exporting}
@@ -264,7 +265,7 @@ export const Reports: React.FC = () => {
             </button>
           )}
 
-          {canDo('reports', 'exporter_excel') && (
+          {can(PERMISSIONS.REPORT_EXPORT_EXCEL) && (
             <button
               onClick={() => handleExport('excel')}
               disabled={!!exporting}

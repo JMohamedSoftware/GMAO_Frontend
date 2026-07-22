@@ -2,7 +2,7 @@
 // src/features/auth/types/auth.types.ts
 // ================================================
 
-import { AppRole } from '@/shared/permissions/permissions';
+import { AppRole } from '@/shared/permissions';
 
 // ---------- Request / Response DTOs ----------
 
@@ -39,6 +39,7 @@ export interface AuthUser {
   isActive: boolean;
   lastLogin?: string;      // ISO date string
   createdAt: string;
+  permissions?: string[];
 }
 
 export interface AuthSession {

@@ -1,12 +1,13 @@
 import React from 'react';
 import { Calendar as CalendarIcon, X, CheckCircle } from 'lucide-react';
+import { PERMISSIONS } from '@/shared/permissions';
 
 interface PreventiveDrawerProps {
   selectedPlanDetails: any | null;
   setSelectedPlanDetails: (v: any | null) => void;
   setActivePlanToDrag: (v: any | null) => void;
   equipments: any[];
-  canDo: (m: any, a: string) => boolean;
+  can: (permission: any) => boolean;
   handleTriggerPlan: (rule: any) => void;
 }
 
@@ -15,7 +16,7 @@ export const PreventiveDrawer: React.FC<PreventiveDrawerProps> = ({
   setSelectedPlanDetails,
   setActivePlanToDrag,
   equipments,
-  canDo,
+  can,
   handleTriggerPlan
 }) => {
   if (!selectedPlanDetails) return null;
@@ -106,12 +107,12 @@ export const PreventiveDrawer: React.FC<PreventiveDrawerProps> = ({
       </div>
       
       <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex gap-3 bg-slate-50 dark:bg-slate-800/50">
-         {canDo('preventive', 'modifier') && (
+         {can(PERMISSIONS.PREVENTIVE_UPDATE) && (
            <button className="flex-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 py-2.5 rounded-lg text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-50 transition-colors shadow-sm cursor-pointer">
              Modifier
            </button>
          )}
-         {canDo('preventive', 'lancer') && (
+         {can(PERMISSIONS.PREVENTIVE_EXECUTE) && (
            <button 
               onClick={() => {
                 handleTriggerPlan(selectedPlanDetails);

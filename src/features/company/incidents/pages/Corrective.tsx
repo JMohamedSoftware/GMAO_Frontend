@@ -14,7 +14,7 @@ interface CorrectiveProps {
 
 export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreateOtWithIncident }) => {
   const { incidents, equipments, currentUser, addIncident, updateIncidentStatus } = useGmao();
-  const { canDo, isProduction, isTechnicien } = usePermissions();
+  const { can, isProduction, isTechnicien } = usePermissions();
   const [search, setSearch] = useState('');
   const [filterUrgency, setFilterUrgency] = useState<string>('Toutes');
   
@@ -149,7 +149,7 @@ export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreate
         getColumnIncidents={getColumnIncidents}
         equipments={equipments}
         getUrgencyColor={getUrgencyColor}
-        canDo={canDo}
+        can={can}
         isProduction={isProduction}
         isTechnicien={isTechnicien}
         updateIncidentStatus={updateIncidentStatus}

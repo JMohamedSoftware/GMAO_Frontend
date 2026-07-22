@@ -1,13 +1,14 @@
 import React from 'react';
 import { Incident, Equipment } from '@/shared/types/gmao';
 import { AlertCircle, User, Clock, Check, X, ArrowRight, FileText } from 'lucide-react';
+import { PERMISSIONS } from '@/shared/permissions';
 
 interface IncidentListProps {
   columns: { id: Incident['status']; label: string; color: string }[];
   getColumnIncidents: (status: Incident['status']) => Incident[];
   equipments: Equipment[];
   getUrgencyColor: (urgency: Incident['urgency']) => string;
-  canDo: (m: any, a: string) => boolean;
+  can: (permission: any) => boolean;
   isProduction: boolean;
   isTechnicien: boolean;
   updateIncidentStatus: (id: string, status: Incident['status']) => void;
@@ -16,7 +17,7 @@ interface IncidentListProps {
 }
 
 export const IncidentList: React.FC<IncidentListProps> = ({
-  columns, getColumnIncidents, equipments, getUrgencyColor, canDo,
+  columns, getColumnIncidents, equipments, getUrgencyColor, can,
   isProduction, isTechnicien, updateIncidentStatus, onOpenCreateOtWithIncident,
   onNavigate
 }) => {
@@ -131,7 +132,7 @@ export const IncidentList: React.FC<IncidentListProps> = ({
 
                       {/* Interactive transitions block inside card */}
                       <div className="flex gap-1.5 mt-1 z-10">
-                        {canDo('corrective', 'valider') && inc.status === 'Nouveau' && (
+                        {can(PERMISSIONS.INCIDENT_UPDATE) && inc.status === 'Nouveau' && (
                           <>
                             <button
                               title="Valider cet incident"
@@ -151,7 +152,7 @@ export const IncidentList: React.FC<IncidentListProps> = ({
                           </>
                         )}
 
-                        {canDo('corrective', 'valider') && inc.status === 'Validé' && (
+                        {can(PERMISSIONS.INCIDENT_UPDATE) && inc.status === 'Validé' && (
                           <button
                             onClick={() => onOpenCreateOtWithIncident(inc)}
                             className="w-full py-1 rounded bg-primary text-white hover:bg-primary/95 transition text-[9px] font-bold flex items-center justify-center gap-1 shadow-sm cursor-pointer"
@@ -162,7 +163,7 @@ export const IncidentList: React.FC<IncidentListProps> = ({
                         )}
 
                         {/* Production/Technicien: see status only */}
-                        {!canDo('corrective', 'valider') && (isProduction || isTechnicien) && (
+                        {!can(PERMISSIONS.INCIDENT_UPDATE) && (isProduction || isTechnicien) && (
                           <div className={`w-full py-1 rounded text-[9px] font-bold text-center border ${
                             inc.status === 'Nouveau' ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-900/20 dark:border-rose-900/30' :
                             inc.status === 'Validé' ? 'bg-amber-50 text-amber-600 border-amber-200' :

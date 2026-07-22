@@ -2,18 +2,18 @@ import React, { useState } from 'react';
 import { useGmao } from '@/shared/hooks/useGmao';
 import { UserAccount } from '@/shared/types/gmao';
 import { usePermissions } from '@/shared/hooks/usePermissions';
-import { AppRole } from '@/shared/permissions/permissions';
+import { AppRole } from '@/shared/permissions';
 import { CheckCircle2 } from 'lucide-react';
 
 import { AdminDashboardStats } from './AdminDashboardStats';
 import { UserManagement } from '../users/UserManagement';
-import { RoleManagement } from '../users/RoleManagement';
+import { RoleSettings } from './RoleSettings';
 import { AdminSettings } from './AdminSettings';
 import { AdminModals } from '../users/AdminModals';
 
 export const Admin: React.FC = () => {
   const { tenants, currentTenantId, addUser, rolePermissions, updateRolePermission } = useGmao();
-  const { canDo } = usePermissions();
+  const { can } = usePermissions();
   
   const [successSaved, setSuccessSaved] = useState(false);
   const [language, setLanguage] = useState<'fr' | 'en'>('fr');
@@ -96,18 +96,13 @@ export const Admin: React.FC = () => {
         <div className="lg:col-span-2 flex flex-col gap-6">
           <UserManagement 
             users={users} 
-            canDo={canDo} 
+            can={can} 
             setIsAddUserOpen={setIsAddUserOpen} 
             setEditingUser={setEditingUser} 
             setIsEditUserOpen={setIsEditUserOpen} 
           />
 
-          <RoleManagement 
-            rolePermissions={rolePermissions as any}
-            updateRolePermission={updateRolePermission}
-            selectedRole={selectedRole}
-            setSelectedRole={setSelectedRole}
-          />
+          <RoleSettings />
         </div>
 
         {/* Right: System Settings & Preference Appearance */}
@@ -118,7 +113,7 @@ export const Admin: React.FC = () => {
             emailAlerts={emailAlerts}
             setEmailAlerts={setEmailAlerts}
             handleSaveSettings={handleSaveSettings}
-            canDo={canDo}
+            can={can}
           />
         </div>
       </div>

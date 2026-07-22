@@ -3,7 +3,7 @@
 // ================================================
 
 import React from 'react';
-import type { AppRole } from '@/shared/permissions/permissions';
+import { AppRole } from '@/shared/permissions';
 import type { AuthUser } from '../types/auth.types';
 
 interface ProtectedRouteProps {

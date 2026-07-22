@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useGmao } from '@/shared/hooks/useGmao';
 import { SparePart } from '@/shared/types/gmao';
 import { usePermissions } from '@/shared/hooks/usePermissions';
+import { PERMISSIONS } from '@/shared/permissions';
 import { Plus, Boxes } from 'lucide-react';
 
 import { InventoryStats } from '../components/InventoryStats';
@@ -28,7 +29,7 @@ const CATEGORY_ICONS: Record<string, string> = {
 
 export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
   const { parts, suppliers, addPartMovement, updatePart } = useGmao();
-  const { canDo } = usePermissions();
+  const { can } = usePermissions();
 
   // 3-column navigation state
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -196,7 +197,7 @@ export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
             </p>
           </div>
         </div>
-        {canDo('inventory', 'creer') && (
+        {can(PERMISSIONS.INVENTORY_CREATE) && (
           <button
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/95 text-white font-bold text-xs rounded-custom-sm shadow-md hover-lift cursor-pointer"
@@ -235,7 +236,7 @@ export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
           activePart={activePart}
           suppliers={suppliers}
           CATEGORY_ICONS={CATEGORY_ICONS}
-          canDo={canDo}
+          can={can}
           onNavigate={onNavigate}
           handleOpenMovement={handleOpenMovement}
           activeTab={activeTab}

@@ -24,7 +24,7 @@ interface PreventiveRule {
 
 export const Preventive: React.FC<PreventiveProps> = ({ onNavigate }) => {
   const { equipments, technicians, workOrders, addWorkOrder } = useGmao();
-  const { canDo } = usePermissions();
+  const { can } = usePermissions();
   
   const [currentMonth, setCurrentMonth] = useState(new Date(2026, 6, 1)); // Juillet 2026
   const [selectedPlanDetails, setSelectedPlanDetails] = useState<PreventiveRule | null>(null);
@@ -259,7 +259,7 @@ export const Preventive: React.FC<PreventiveProps> = ({ onNavigate }) => {
           setFilterPrio={setFilterPrio}
           equipments={equipments}
           technicians={technicians}
-          canDo={canDo}
+          can={can}
         />
       </div>
 
@@ -269,7 +269,7 @@ export const Preventive: React.FC<PreventiveProps> = ({ onNavigate }) => {
         setSelectedPlanDetails={setSelectedPlanDetails}
         setActivePlanToDrag={setActivePlanToDrag}
         equipments={equipments}
-        canDo={canDo}
+        can={can}
         handleTriggerPlan={handleTriggerPlan}
       />
     </div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { PlusSquare, MinusSquare, Settings2, Package, PlusCircle, Trash2, Search } from 'lucide-react';
 import { usePermissions } from '@/shared/hooks/usePermissions';
+import { PERMISSIONS } from '@/shared/permissions';
 import { Equipment as EquipmentType } from '@/shared/types/gmao';
 import { GeoNode } from './GeoTree';
 
@@ -46,7 +47,7 @@ export const EqTree: React.FC<EqTreeProps> = ({
   onAddNewFromEq,
   onDeleteEqNode
 }) => {
-  const { canDo } = usePermissions();
+  const { can } = usePermissions();
 
   const renderNodes = (nodes: EqNode[], level = 0) => {
     return nodes.map(node => {
@@ -84,7 +85,7 @@ export const EqTree: React.FC<EqTreeProps> = ({
             </div>
 
             <div className={`flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity`}>
-                {canDo('equipment', 'creer') && (
+                {can(PERMISSIONS.EQUIPMENT_CREATE) && (
                 <button 
                 onClick={(e) => onAddNewFromEq(node, e)}
                 className={`p-1 rounded ${isSelected ? 'text-white hover:bg-white/20' : 'text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:text-primary shadow-sm'} shrink-0`}
@@ -93,7 +94,7 @@ export const EqTree: React.FC<EqTreeProps> = ({
                 <PlusCircle className="w-3 h-3" />
                 </button>
                 )}
-                {canDo('equipment', 'supprimer') && (
+                {can(PERMISSIONS.EQUIPMENT_DELETE) && (
                 <button 
                 onClick={(e) => onDeleteEqNode(node, e)}
                 className={`p-1 rounded ${isSelected ? 'text-white hover:bg-rose-500/80' : 'text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:text-rose-500 shadow-sm'} shrink-0`}

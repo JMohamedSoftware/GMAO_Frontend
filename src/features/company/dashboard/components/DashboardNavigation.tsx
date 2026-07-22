@@ -1,5 +1,6 @@
 import React from 'react';
 import { usePermissions } from '@/shared/hooks/usePermissions';
+import { PERMISSIONS } from '@/shared/permissions';
 import { 
   Plus, 
   AlertTriangle, 
@@ -16,7 +17,7 @@ interface DashboardNavigationProps {
 }
 
 export const DashboardNavigation: React.FC<DashboardNavigationProps> = ({ onNavigate }) => {
-  const { canDo } = usePermissions();
+  const { can } = usePermissions();
 
   return (
     <div className="glass-panel rounded-custom-lg border border-white/40 dark:border-slate-850 p-5 shadow-sm">
@@ -65,7 +66,7 @@ export const DashboardNavigation: React.FC<DashboardNavigationProps> = ({ onNavi
         </button>
 
         {/* Indigo Gammes */}
-        {canDo('admin', 'voir') && (
+        {can(PERMISSIONS.USER_VIEW) && (
         <button 
           onClick={() => onNavigate('admin')}
           className="aspect-video bg-gradient-to-br from-indigo-500 to-slate-700 rounded-custom-sm p-3.5 flex flex-col justify-between items-start text-left shadow-md hover:shadow-indigo-200 dark:hover:shadow-indigo-900/40 hover:scale-[1.03] active:scale-[0.98] transition-all cursor-pointer border border-indigo-400/30"
@@ -85,7 +86,7 @@ export const DashboardNavigation: React.FC<DashboardNavigationProps> = ({ onNavi
         </button>
 
         {/* Violet Partenaires */}
-        {canDo('suppliers', 'voir') && (
+        {can(PERMISSIONS.SUPPLIER_VIEW) && (
         <button 
           onClick={() => onNavigate('suppliers')}
           className="aspect-video bg-gradient-to-br from-violet-400 to-purple-700 rounded-custom-sm p-3.5 flex flex-col justify-between items-start text-left shadow-md hover:shadow-violet-200 dark:hover:shadow-violet-900/40 hover:scale-[1.03] active:scale-[0.98] transition-all cursor-pointer border border-violet-300/30"
@@ -96,7 +97,7 @@ export const DashboardNavigation: React.FC<DashboardNavigationProps> = ({ onNavi
         )}
 
         {/* Yellow Contrats */}
-        {canDo('reports', 'voir') && (
+        {can(PERMISSIONS.REPORT_VIEW) && (
         <button 
           onClick={() => onNavigate('reports')}
           className="aspect-video bg-gradient-to-br from-yellow-300 to-amber-500 text-slate-800 rounded-custom-sm p-3.5 flex flex-col justify-between items-start text-left shadow-md hover:shadow-yellow-200 dark:hover:shadow-yellow-900/40 hover:scale-[1.03] active:scale-[0.98] transition-all cursor-pointer border border-yellow-300/30"

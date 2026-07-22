@@ -1,6 +1,7 @@
 import React from 'react';
 import { useGmao } from '@/shared/hooks/useGmao';
 import { usePermissions } from '@/shared/hooks/usePermissions';
+import { PERMISSIONS } from '@/shared/permissions';
 import logoIcon from '@/shared/assets/icons/images.jpeg';
 import { 
   LayoutDashboard, 
@@ -44,7 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate }) =
     impersonateTenant
   } = useGmao();
 
-  const { canAccess } = usePermissions();
+  const { can } = usePermissions();
 
   const isSuperAdmin = currentUser?.role === 'SuperAdmin';
   const isImpersonating = isSuperAdmin && !!impersonatedTenantId;
@@ -53,19 +54,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate }) =
 
   // All CMMS menus — will be filtered by role
   const allMenuItems = [
-    { id: 'dashboard', label: 'Tableau de Bord', icon: LayoutDashboard },
-    { id: 'equipment', label: 'Équipements', icon: Wrench },
-    { id: 'preventive', label: 'Préventif', icon: CalendarRange },
-    { id: 'corrective', label: 'Incidents', icon: KanbanSquare },
-    { id: 'workorders', label: 'OTs', icon: FileCheck },
-    { id: 'inventory', label: 'Stock', icon: Boxes },
-    { id: 'suppliers', label: 'Fournisseurs', icon: Truck },
-    { id: 'reports', label: 'Rapports', icon: BarChart3 },
-    { id: 'admin', label: 'Admin', icon: Settings2 }
+    { id: 'dashboard', label: 'Tableau de Bord', icon: LayoutDashboard, permission: PERMISSIONS.DASHBOARD_VIEW },
+    { id: 'equipment', label: 'Équipements', icon: Wrench, permission: PERMISSIONS.EQUIPMENT_VIEW },
+    { id: 'preventive', label: 'Préventif', icon: CalendarRange, permission: PERMISSIONS.PREVENTIVE_VIEW },
+    { id: 'corrective', label: 'Incidents', icon: KanbanSquare, permission: PERMISSIONS.INCIDENT_VIEW },
+    { id: 'workorders', label: 'OTs', icon: FileCheck, permission: PERMISSIONS.WORKORDER_VIEW },
+    { id: 'inventory', label: 'Stock', icon: Boxes, permission: PERMISSIONS.INVENTORY_VIEW },
+    { id: 'suppliers', label: 'Fournisseurs', icon: Truck, permission: PERMISSIONS.SUPPLIER_VIEW },
+    { id: 'reports', label: 'Rapports', icon: BarChart3, permission: PERMISSIONS.REPORT_VIEW },
+    { id: 'admin', label: 'Admin', icon: Settings2, permission: PERMISSIONS.USER_VIEW }
   ];
 
   // Filter menu items based on user role
-  const menuItems = allMenuItems.filter(item => canAccess(item.id));
+  const menuItems = allMenuItems.filter(item => can(item.permission));
 
   // Super Admin global menus
   const superAdminMenuItems = [

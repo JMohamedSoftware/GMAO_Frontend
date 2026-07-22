@@ -1,5 +1,6 @@
 import React from 'react';
 import { Filter, Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { PERMISSIONS } from '@/shared/permissions';
 
 interface PreventiveCalendarProps {
   currentMonth: Date;
@@ -23,14 +24,14 @@ interface PreventiveCalendarProps {
   setFilterPrio: (v: string) => void;
   equipments: any[];
   technicians: any[];
-  canDo: (m: any, a: string) => boolean;
+  can: (permission: any) => boolean;
 }
 
 export const PreventiveCalendar: React.FC<PreventiveCalendarProps> = ({
   currentMonth, goToPrevMonth, goToNextMonth, goToToday, capitalizedMonthLabel,
   calendarCells, getEventsForDay, getPriorityColor, handleDropOnDay, activePlanToDrag,
   todayDateStr, filterEq, setFilterEq, filterFam, setFilterFam, filterTech, setFilterTech,
-  filterPrio, setFilterPrio, equipments, technicians, canDo
+  filterPrio, setFilterPrio, equipments, technicians, can
 }) => {
   return (
     <div className="lg:col-span-3 flex flex-col gap-4">
@@ -67,7 +68,7 @@ export const PreventiveCalendar: React.FC<PreventiveCalendarProps> = ({
 
         <div className="flex-1"></div>
 
-        {canDo('preventive', 'creer') && (
+        {can(PERMISSIONS.PREVENTIVE_CREATE) && (
         <button className="flex items-center gap-1.5 bg-primary hover:bg-primary/90 text-white font-bold text-xs px-4 py-2 rounded-lg shadow-sm transition-all">
           <Plus className="w-4 h-4" />
           Nouveau Plan Préventif

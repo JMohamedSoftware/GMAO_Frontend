@@ -1,6 +1,7 @@
 import React from 'react';
 import { Settings2, Wrench, Save, Edit, Plus, Info, History, Calendar, Link, FileText, ClipboardList } from 'lucide-react';
 import { usePermissions } from '@/shared/hooks/usePermissions';
+import { PERMISSIONS } from '@/shared/permissions';
 import { Equipment as EquipmentType } from '@/shared/types/gmao';
 
 interface EquipmentDetailsProps {
@@ -28,7 +29,7 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
   onSetIsEditing,
   onSave
 }) => {
-  const { canDo } = usePermissions();
+  const { can } = usePermissions();
 
   if (!activeEquipment && !isAdding) {
     return (
@@ -53,7 +54,7 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
               <Save className="w-3.5 h-3.5" /> Enregistrer
             </button>
           ) : (
-            canDo('equipment', 'modifier') && (
+            can(PERMISSIONS.EQUIPMENT_UPDATE) && (
             <button onClick={() => { onSetIsEditing(true); onSetFormData(activeEquipment || {}); }} className="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white text-xs font-bold rounded flex items-center gap-1.5 hover:bg-slate-300">
               <Edit className="w-3.5 h-3.5" /> Modifier
             </button>

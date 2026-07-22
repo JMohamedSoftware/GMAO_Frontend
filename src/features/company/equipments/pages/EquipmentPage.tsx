@@ -3,6 +3,7 @@ import { useGmao } from '@/shared/hooks/useGmao';
 import { useEquipements } from '@/shared/hooks/useEquipements';
 import { Equipment as EquipmentType } from '@/shared/types/gmao';
 import { usePermissions } from '@/shared/hooks/usePermissions';
+import { PERMISSIONS } from '@/shared/permissions';
 import { Settings2, Plus } from 'lucide-react';
 import { GeoTree, GeoNode } from '../components/GeoTree';
 import { EqTree, EqNode } from '../components/EqTree';
@@ -19,7 +20,7 @@ export const Equipment: React.FC<EquipmentProps> = ({
 }) => {
   const { suppliers, deleteEquipmentsByLocation, deleteEquipmentsByCategory } = useGmao();
   const { equipments, loading, deleteEquipment } = useEquipements();
-  const { canDo } = usePermissions();
+  const { can } = usePermissions();
   
   const [search, setSearch] = useState('');
   
@@ -365,7 +366,7 @@ export const Equipment: React.FC<EquipmentProps> = ({
             </p>
           </div>
         </div>
-        {canDo('equipment', 'creer') && (
+        {can(PERMISSIONS.EQUIPMENT_CREATE) && (
         <button 
           onClick={handleAddNew}
           className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/95 text-white font-bold text-xs rounded-custom-sm shadow-md hover-lift"

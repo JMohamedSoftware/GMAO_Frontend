@@ -1,5 +1,6 @@
 import React from 'react';
-import { PlusSquare, MinusSquare, FolderOpen, Folder, PlusCircle, Trash2, MapPin, Plus } from 'lucide-react';
+import { ChevronRight, ChevronDown, MapPin, Building2, Layers, DoorOpen, Trash2, Plus, PlusSquare, MinusSquare, FolderOpen, Folder, PlusCircle } from 'lucide-react';
+import { PERMISSIONS } from '@/shared/permissions';
 import { usePermissions } from '@/shared/hooks/usePermissions';
 
 export type GeoNode = {
@@ -32,7 +33,7 @@ export const GeoTree: React.FC<GeoTreeProps> = ({
   onAddNewFromGeo,
   onDeleteGeoNode
 }) => {
-  const { canDo } = usePermissions();
+  const { can } = usePermissions();
 
   const renderNodes = (nodes: GeoNode[], level = 0) => {
     return nodes.map(node => {
@@ -60,7 +61,7 @@ export const GeoTree: React.FC<GeoTreeProps> = ({
             </div>
             
             <div className={`flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity`}>
-                {canDo('equipment', 'creer') && node.type !== 'room' && (
+                {can(PERMISSIONS.EQUIPMENT_CREATE) && node.type !== 'room' && (
                     <button 
                     onClick={(e) => onAddNewFromGeo(node, e)}
                     className={`p-1 rounded ${isSelected ? 'text-primary hover:bg-primary/20' : 'text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:text-primary shadow-sm'} shrink-0`}
@@ -69,7 +70,7 @@ export const GeoTree: React.FC<GeoTreeProps> = ({
                     <PlusCircle className="w-3 h-3" />
                     </button>
                 )}
-                {canDo('equipment', 'supprimer') && (
+                {can(PERMISSIONS.EQUIPMENT_DELETE) && (
                 <button 
                 onClick={(e) => onDeleteGeoNode(node, e)}
                 className={`p-1 rounded ${isSelected ? 'text-rose-500 hover:bg-rose-500/20' : 'text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:text-rose-500 shadow-sm'} shrink-0`}

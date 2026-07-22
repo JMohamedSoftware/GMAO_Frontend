@@ -1,5 +1,6 @@
 import React from 'react';
-import { Settings, Globe, Bell, Save } from 'lucide-react';
+import { Settings, Globe, Save, Bell } from 'lucide-react';
+import { PERMISSIONS } from '@/shared/permissions';
 
 interface AdminSettingsProps {
   language: 'fr' | 'en';
@@ -7,7 +8,7 @@ interface AdminSettingsProps {
   emailAlerts: boolean;
   setEmailAlerts: (val: boolean) => void;
   handleSaveSettings: (e: React.FormEvent) => void;
-  canDo: (module: any, action: string) => boolean;
+  can: (permission: any) => boolean;
 }
 
 export const AdminSettings: React.FC<AdminSettingsProps> = ({
@@ -16,7 +17,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
   emailAlerts,
   setEmailAlerts,
   handleSaveSettings,
-  canDo
+  can
 }) => {
   return (
     <div className="glass-panel p-5 rounded-custom-lg border border-white/40 dark:border-slate-800/40 shadow-sm">
@@ -78,7 +79,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
 
         <button
           type="submit"
-          disabled={!canDo('admin', 'parametres')}
+          disabled={!can(PERMISSIONS.USER_UPDATE)}
           className="w-full py-2 bg-primary hover:bg-primary/95 text-white font-bold rounded-lg shadow flex items-center justify-center gap-1.5 hover-lift mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Save className="w-4 h-4" />

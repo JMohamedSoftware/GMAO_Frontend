@@ -1,12 +1,13 @@
 import React from 'react';
 import { Package, BarChart2, MapPin, User, ArrowDown, ArrowUp, ClipboardList, ShoppingCart, Activity, FileText, QrCode } from 'lucide-react';
+import { PERMISSIONS } from '@/shared/permissions';
 import { SparePart, Supplier } from '@/shared/types/gmao';
 
 interface InventoryDetailProps {
   activePart: SparePart | undefined;
   suppliers: Supplier[];
   CATEGORY_ICONS: Record<string, string>;
-  canDo: (module: any, action: string) => boolean;
+  can: (permission: any) => boolean;
   onNavigate: (screen: string) => void;
   handleOpenMovement: (partRef: string, type: 'in' | 'out', e: React.MouseEvent) => void;
   activeTab: 'historique' | 'ots' | 'docs';
@@ -15,7 +16,7 @@ interface InventoryDetailProps {
 }
 
 export const InventoryDetail: React.FC<InventoryDetailProps> = ({
-  activePart, suppliers, CATEGORY_ICONS, canDo, onNavigate, handleOpenMovement,
+  activePart, suppliers, CATEGORY_ICONS, can, onNavigate, handleOpenMovement,
   activeTab, setActiveTab, movementLogs
 }) => {
   if (!activePart) {
@@ -103,7 +104,7 @@ export const InventoryDetail: React.FC<InventoryDetailProps> = ({
 
           {/* Stock actions */}
           <div className="flex gap-2">
-            {canDo('inventory', 'entree') && (
+            {can(PERMISSIONS.INVENTORY_UPDATE) && (
               <button
                 onClick={e => handleOpenMovement(activePart.ref, 'in', e)}
                 className="flex-1 flex flex-col items-center justify-center gap-1 py-2 bg-emerald-500/10 text-emerald-600 border border-emerald-200 rounded-xl font-bold text-xs hover:bg-emerald-500 hover:text-white hover:border-emerald-500 transition-all cursor-pointer"
@@ -111,7 +112,7 @@ export const InventoryDetail: React.FC<InventoryDetailProps> = ({
                 <ArrowDown className="w-5 h-5" /> Entrée
               </button>
             )}
-            {canDo('inventory', 'sortie') && (
+            {can(PERMISSIONS.INVENTORY_UPDATE) && (
               <button
                 onClick={e => handleOpenMovement(activePart.ref, 'out', e)}
                 className="flex-1 flex flex-col items-center justify-center gap-1 py-2 bg-rose-500/10 text-rose-600 border border-rose-200 rounded-xl font-bold text-xs hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-all cursor-pointer"
@@ -119,7 +120,7 @@ export const InventoryDetail: React.FC<InventoryDetailProps> = ({
                 <ArrowUp className="w-5 h-5" /> Sortie
               </button>
             )}
-            {canDo('inventory', 'inventaire') && (
+            {can(PERMISSIONS.INVENTORY_UPDATE) && (
               <button
                 className="flex-1 flex flex-col items-center justify-center gap-1 py-2 bg-amber-500/10 text-amber-600 border border-amber-200 rounded-xl font-bold text-xs hover:bg-amber-500 hover:text-white hover:border-amber-500 transition-all cursor-pointer"
               >
@@ -129,7 +130,7 @@ export const InventoryDetail: React.FC<InventoryDetailProps> = ({
           </div>
 
           {/* Commander button */}
-          {canDo('suppliers', 'voir') && (
+          {can(PERMISSIONS.SUPPLIER_VIEW) && (
             <button
               onClick={() => onNavigate('suppliers')}
               className="w-full flex items-center justify-center gap-2 py-2.5 bg-primary/10 text-primary border border-primary/25 rounded-xl font-bold text-xs hover:bg-primary hover:text-white hover:border-primary transition-all cursor-pointer"

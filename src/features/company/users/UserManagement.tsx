@@ -1,10 +1,11 @@
 import React from 'react';
 import { Users, UserPlus, Phone, Briefcase, Calendar, Clock, Edit2 } from 'lucide-react';
+import { PERMISSIONS } from '@/shared/permissions';
 import { UserAccount } from '@/shared/types/gmao';
 
 interface UserManagementProps {
   users: UserAccount[];
-  canDo: (module: any, action: string) => boolean;
+  can: (permission: any) => boolean;
   setIsAddUserOpen: (open: boolean) => void;
   setEditingUser: (user: UserAccount | null) => void;
   setIsEditUserOpen: (open: boolean) => void;
@@ -12,7 +13,7 @@ interface UserManagementProps {
 
 export const UserManagement: React.FC<UserManagementProps> = ({
   users,
-  canDo,
+  can,
   setIsAddUserOpen,
   setEditingUser,
   setIsEditUserOpen
@@ -24,7 +25,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({
           <Users className="w-4.5 h-4.5 text-primary" />
           Répertoire des Utilisateurs
         </h3>
-        {canDo('admin', 'gerer_utilisateurs') && (
+        {can(PERMISSIONS.USER_CREATE) && (
         <button
           onClick={() => setIsAddUserOpen(true)}
           className="text-[10px] flex items-center gap-1.5 bg-primary hover:bg-primary/90 text-white font-bold py-1.5 px-3 rounded-lg transition-colors cursor-pointer"

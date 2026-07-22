@@ -1,55 +1,41 @@
 import { useGmao } from '@/shared/hooks/useGmao';
-import { AppRole, AppModule, DataScope } from '@/shared/permissions/permissions';
+import { Permission, can as canGuard, ROLES } from '@/shared/permissions';
+import { useAuth } from '@/features/auth';
 
 export function usePermissions() {
-  const { currentUser, rolePermissions } = useGmao();
+  const { currentUser } = useGmao();
+  
+  const auth = useAuth();
+  const authUser = auth.currentUser;
   
   // Provide a safe fallback if currentUser or role is undefined
-  const rawRole = currentUser?.role ?? 'Technicien';
+  const role = authUser?.role ?? currentUser?.role ?? ROLES.TECHNICIEN;
   
-  // If user is SuperAdmin, they get a full pass. But SuperAdmin is not in rolePermissions.
-  // We'll treat SuperAdmin as having full access here.
-  const role = rawRole as AppRole | 'SuperAdmin' | 'Read-Only User';
-  
-  // Get the dynamic role definition from context, or fallback to an empty object
-  const roleDef = rolePermissions[role as AppRole] || {};
-
   /**
-   * Can the current user access this module?
+   * Can the current user perform a specific action?
+   * Usage: can(PERMISSIONS.WORKORDER_CREATE)
    */
-  const canAccess = (moduleName: string): boolean => {
-    if (role === 'SuperAdmin' || role === 'CompanyAdmin') return true;
-    return !!(roleDef as any)[moduleName];
-  };
-
-  /**
-   * Can the current user perform a specific action in a module?
-   * Usage: canDo('workorders', 'creer')
-   */
-  const canDo = (moduleName: AppModule, action: string): boolean => {
-    if (role === 'SuperAdmin' || role === 'CompanyAdmin') return true;
-    const mod = (roleDef as any)[moduleName];
-    if (!mod) return false;
-    return mod.actions.includes(action);
-  };
-
-  /**
-   * Get the data scope for a module
-   */
-  const getScope = (moduleName: AppModule): DataScope => {
-    if (role === 'SuperAdmin' || role === 'CompanyAdmin') return 'toute_usine';
-    const mod = (roleDef as any)[moduleName];
-    return mod ? mod.scope : 'mes_donnees';
+  const can = (permission: Permission): boolean => {
+    // If dynamic permissions are loaded from backend, use them!
+    const userPermissions = authUser?.permissions || currentUser?.permissions;
+    
+    if (userPermissions && userPermissions.length > 0) {
+      if (role === ROLES.SUPER_ADMIN) return true; 
+      return userPermissions.includes(permission);
+    }
+    
+    // Fallback to static mapping if dynamic permissions are missing
+    return canGuard(role, permission);
   };
 
   /**
    * Role checkers — convenience shortcuts
    */
-  const isAdmin = role === 'CompanyAdmin' || role === 'SuperAdmin';
-  const isResponsable = role === 'Responsable Maintenance';
-  const isChefEquipe = role === "Chef d'équipe";
-  const isTechnicien = role === 'Technicien';
-  const isProduction = role === 'Production';
+  const isAdmin = role === ROLES.COMPANY_ADMIN || role === ROLES.SUPER_ADMIN;
+  const isResponsable = role === ROLES.RESPONSABLE;
+  const isChefEquipe = role === ROLES.CHEF_EQUIPE;
+  const isTechnicien = role === ROLES.TECHNICIEN;
+  const isProduction = role === ROLES.PRODUCTION;
   
   /** Admins + Responsable only */
   const isManagerLevel = isAdmin || isResponsable;
@@ -59,9 +45,7 @@ export function usePermissions() {
 
   return {
     role,
-    canAccess,
-    canDo,
-    getScope,
+    can,
     isAdmin,
     isResponsable,
     isChefEquipe,

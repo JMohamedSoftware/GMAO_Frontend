@@ -2,8 +2,10 @@ import React from 'react';
 import { ShieldOff, ChevronLeft } from 'lucide-react';
 import { usePermissions } from '@/shared/hooks/usePermissions';
 
+import { Permission } from '@/shared/permissions';
+
 interface AccessGuardProps {
-  page: string;
+  permission: Permission;
   onNavigate?: (screen: string) => void;
   children: React.ReactNode;
 }
@@ -21,10 +23,10 @@ const roleLabels: Record<string, string> = {
  * Wraps a page to conditionally render based on role access.
  * If user doesn't have permission, shows a stylized "Access Denied" screen.
  */
-export const AccessGuard: React.FC<AccessGuardProps> = ({ page, onNavigate, children }) => {
-  const { canAccess, role } = usePermissions();
+export const AccessGuard: React.FC<AccessGuardProps> = ({ permission, onNavigate, children }) => {
+  const { can, role } = usePermissions();
 
-  if (!canAccess(page)) {
+  if (!can(permission)) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-6 max-w-md text-center p-8">

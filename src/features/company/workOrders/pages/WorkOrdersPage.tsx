@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useGmao } from '@/shared/hooks/useGmao';
 import { WorkOrder, Incident } from '@/shared/types/gmao';
 import { usePermissions } from '@/shared/hooks/usePermissions';
+import { PERMISSIONS } from '@/shared/permissions';
 import { 
   Search, 
   Plus, 
@@ -40,7 +41,7 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
     updateWorkOrderStatus 
   } = useGmao();
 
-  const { canDo, isTechnicien } = usePermissions();
+  const { can, isTechnicien } = usePermissions();
 
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('All');
@@ -153,7 +154,7 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
           </p>
         </div>
 
-        {canDo('workorders', 'creer') && (
+        {can(PERMISSIONS.WORKORDER_CREATE) && (
           <button 
             onClick={() => {
               onClearPrefilledIncident();

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useGmao } from '@/shared/hooks/useGmao';
 import { Supplier } from '@/shared/types/gmao';
 import { usePermissions } from '@/shared/hooks/usePermissions';
+import { PERMISSIONS } from '@/shared/permissions';
 import { 
   Plus, 
   Search, 
@@ -21,7 +22,7 @@ import {
 
 export const Suppliers: React.FC = () => {
   const { suppliers, addSupplier } = useGmao();
-  const { canDo } = usePermissions();
+  const { can } = usePermissions();
   const [search, setSearch] = useState('');
 
   // Add Supplier Modal
@@ -110,7 +111,7 @@ export const Suppliers: React.FC = () => {
           </p>
         </div>
 
-        {canDo('suppliers', 'creer') && (
+        {can(PERMISSIONS.SUPPLIER_CREATE) && (
           <button 
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/95 text-white font-bold text-xs rounded-custom-sm shadow-md hover-lift"
