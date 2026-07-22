@@ -69,26 +69,8 @@ export function useAuth() {
   const login = useCallback(async (credentials: LoginRequest): Promise<boolean> => {
     setLoading();
     try {
-      let response;
-      try {
-        // Appel réel au backend
-        response = await loginApi(credentials);
-      } catch (apiError) {
-        // ── Quick Login / Mock Fallback ──
-        // Si le backend est indisponible (ex: Erreur 404), on tente le mock local
-        const mockedUser = mockLogin(credentials.email);
-        if (mockedUser) {
-          console.warn("Backend API non disponible. Utilisation du compte mock:", mockedUser.email);
-          response = {
-            accessToken: "mock_access_token",
-            refreshToken: "mock_refresh_token",
-            user: mockedUser,
-          };
-        } else {
-          throw apiError; // L'email n'est pas dans le mock, on renvoie l'erreur originale
-        }
-      }
-
+      // Appel réel au backend
+      const response = await loginApi(credentials);
       const session = buildSession(
         response.accessToken,
         response.refreshToken,
