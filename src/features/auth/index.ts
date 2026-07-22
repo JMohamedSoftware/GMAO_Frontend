@@ -7,7 +7,6 @@ export { Login } from './pages/Login';
 
 // Components
 export { LoginForm }      from './components/LoginForm';
-export { DevQuickLogin }  from './components/DevQuickLogin';
 export { ProtectedRoute } from './components/ProtectedRoute';
 
 // Hooks
