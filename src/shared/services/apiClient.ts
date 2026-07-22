@@ -85,9 +85,8 @@ apiClient.interceptors.response.use(
 
         // Update Redux state with new user object containing fresh permissions
         store.dispatch(login({
-          user: data.user,
-          accessToken: data.accessToken,
-          refreshToken: data.refreshToken
+          user: data.user as any,
+          tenantId: data.user.tenantId || null
         }));
 
         processQueue(null, data.accessToken);

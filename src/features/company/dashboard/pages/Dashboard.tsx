@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useGmao } from '@/shared/hooks/useGmao';
 import { Equipment } from '@/shared/types/gmao';
+import { usePermissions } from '@/shared/hooks/usePermissions';
+import { PERMISSIONS } from '@/shared/permissions';
 
 import { DashboardNavigation } from '../components/DashboardNavigation';
 import { DashboardStats } from '../components/DashboardStats';
@@ -15,6 +17,7 @@ interface DashboardProps {
 
 export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipment }) => {
   const { workOrders, equipments, incidents, technicians, parts, addIncident } = useGmao();
+  const { can } = usePermissions();
 
   // Quick-peek drawer state for arborescence clicks
   const [selectedDashboardEq, setSelectedDashboardEq] = useState<Equipment | null>(null);

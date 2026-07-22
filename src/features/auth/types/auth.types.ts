@@ -24,6 +24,7 @@ export interface RefreshTokenRequest {
 export interface RefreshTokenResponse {
   accessToken: string;
   refreshToken: string;
+  user: AuthUser;
 }
 
 // ---------- Domain Models ----------
