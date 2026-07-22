@@ -10,7 +10,6 @@ import {
   loadSession,
   saveSession,
   isTokenExpired,
-  mockLogin,
 } from '../services/auth.service';
 import { loginApi, logoutApi, refreshTokenApi } from '../api/auth.api';
 

@@ -6,7 +6,6 @@ import React, { useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useGmao } from '@/shared/hooks/useGmao';
 import { LoginForm } from '../components/LoginForm';
-import { DevQuickLogin } from '../components/DevQuickLogin';
 import logoIcon from '@/shared/assets/icons/images.jpeg';
 import bgImage from '@/shared/assets/images/tomate.jpg';
 
@@ -22,38 +21,6 @@ export const Login: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   useEffect(() => {
     if (isAuthenticated) onLoginSuccess();
   }, [isAuthenticated, onLoginSuccess]);
-
-  // Auto-login via URL param (used for automated print pipelines)
-  useEffect(() => {
-    const param = new URLSearchParams(window.location.search).get('autologin');
-    if (!param) return;
-
-    const autoLoginMap: Record<string, string> = {
-      admin:      'admin@gmao-saas.com',
-      superadmin: 'admin@gmao-saas.com',
-      midi:       'admin@midi.com',
-      nord:       'admin@nord.com',
-    };
-
-    const email = autoLoginMap[param.toLowerCase()];
-    if (email) {
-      login({ email, password: '' }).then((ok) => { 
-        if (ok) {
-          reduxLogin(email, '', 'tenant-midi');
-          onLoginSuccess(); 
-        }
-      });
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Quick login handler (dev mode) ───────────────────
-  const handleQuickLogin = async (email: string) => {
-    const ok = await login({ email, password: '' });
-    if (ok) {
-      reduxLogin(email, '', 'tenant-midi');
-      onLoginSuccess();
-    }
-  };
 
   // ── Form submit ──────────────────────────────────────
   const handleSubmit = async (credentials: { email: string; password: string }) => {
@@ -129,9 +96,6 @@ export const Login: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             isLoading={isLoading}
             error={error}
           />
-
-          {/* Dev Quick Logins */}
-          <DevQuickLogin onQuickLogin={handleQuickLogin} />
 
         </div>
       </div>
