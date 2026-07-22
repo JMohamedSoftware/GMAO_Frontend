@@ -22,7 +22,6 @@ export {
   buildSession,
   decodeJwt,
   isTokenExpired,
-  mockLogin,
 } from './services/auth.service';
 
 // API
