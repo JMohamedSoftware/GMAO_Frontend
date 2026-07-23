@@ -23,8 +23,31 @@ export const Admin: React.FC = () => {
   const [selectedRole, setSelectedRole] = useState<AppRole>('Technicien');
 
   // Active users registry list
-  const activeTenant = tenants.find(t => t.id === currentTenantId);
-  const users = activeTenant?.users || [];
+  const [users, setUsers] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const data = await usersApi.getUsers();
+        // map backend user models to frontend UserAccount type expected by UI
+        const mappedUsers = data.map((u: any) => ({
+          id: u.id.toString(),
+          name: `${u.prenom} ${u.nom}`.trim(),
+          email: u.email,
+          role: u.role?.nom || 'Technicien',
+          department: 'Général',
+          status: u.isActive ? 'Actif' : 'Inactif',
+          avatar: u.avatar || 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=150&auto=format&fit=crop&q=80',
+          lastActive: 'À l\'instant',
+          createdAt: u.createdAt
+        }));
+        setUsers(mappedUsers);
+      } catch (err) {
+        console.error('Failed to load users', err);
+      }
+    };
+    fetchUsers();
+  }, []);
 
   // Roles permissions matrices UI dummy definitions (could be dynamic)
   const permissions = {
@@ -71,7 +94,7 @@ export const Admin: React.FC = () => {
       
       const roleId = roleMapping[newUser.role] || 4; // Default to Technicien
 
-      await usersApi.createUser({
+      const createdUser = await usersApi.createUser({
         user: {
           nom,
           prenom,
@@ -85,21 +108,27 @@ export const Admin: React.FC = () => {
         password: newUser.password
       });
 
-      // Update local Redux state for instant UI update
-      addUser({ 
-        ...newUser, 
-        status: newUser.status as "Actif" | "Inactif", 
-        avatar: newUser.avatar || 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=150&auto=format&fit=crop&q=80',
-        createdAt: new Date().toISOString().split('T')[0]
-      });
+      // Update local state for instant UI update
+      setUsers([...users, {
+        id: createdUser.id?.toString() || Date.now().toString(),
+        name: `${createdUser.prenom} ${createdUser.nom}`.trim(),
+        email: createdUser.email,
+        role: newUser.role,
+        department: 'Général',
+        status: createdUser.isActive ? 'Actif' : 'Inactif',
+        avatar: createdUser.avatar || 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=150&auto=format&fit=crop&q=80',
+        lastActive: 'À l\'instant',
+        createdAt: createdUser.createdAt
+      }]);
 
       setIsAddUserOpen(false);
       setNewUser({ name: '', email: '', password: '', role: 'Technicien', phone: '', department: '', status: 'Actif', avatar: '' });
       setSuccessSaved(true);
       setTimeout(() => setSuccessSaved(false), 2500);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error creating user:', err);
-      alert('Erreur lors de la création de l\'utilisateur.');
+      const msg = err.response?.data?.message || err.response?.data || "Erreur lors de la création de l'utilisateur.";
+      alert(typeof msg === 'string' ? msg : "Erreur lors de la création de l'utilisateur.");
     } finally {
       setIsSubmitting(false);
     }

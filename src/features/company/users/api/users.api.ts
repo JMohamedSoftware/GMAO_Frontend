@@ -16,6 +16,10 @@ export interface CreateUserPayload {
 }
 
 export const usersApi = {
+  getUsers: async () => {
+    const response = await apiClient.get('/api/users');
+    return response.data;
+  },
   createUser: async (payload: CreateUserPayload) => {
     const response = await apiClient.post('/api/users', payload);
     return response.data;
