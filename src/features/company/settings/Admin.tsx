@@ -126,9 +126,12 @@ export const Admin: React.FC = () => {
       setSuccessSaved(true);
       setTimeout(() => setSuccessSaved(false), 2500);
     } catch (err: any) {
-      console.error('Error creating user:', err);
-      const msg = err.response?.data?.message || err.response?.data || "Erreur lors de la création de l'utilisateur.";
-      alert(typeof msg === 'string' ? msg : "Erreur lors de la création de l'utilisateur.");
+      console.error('Error creating user full:', err.response?.data || err);
+      let msg = err.response?.data?.message || err.response?.data;
+      if (typeof msg === 'object') {
+        msg = JSON.stringify(msg);
+      }
+      alert(msg || "Erreur lors de la création de l'utilisateur.");
     } finally {
       setIsSubmitting(false);
     }
