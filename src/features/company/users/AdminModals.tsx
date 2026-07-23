@@ -128,10 +128,7 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
                 </div>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="font-bold text-slate-500 dark:text-slate-400">Photo URL (Optionnel)</label>
-                <input type="text" value={newUser.avatar} onChange={(e) => setNewUser({...newUser, avatar: e.target.value})} className="p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:border-primary" placeholder="https://..." />
-              </div>
+
 
               <button 
                 type="submit"
