@@ -9,6 +9,7 @@ export interface CreateUserPayload {
     roleId: number;
     societeId?: number | null;
     isActive?: boolean;
+    avatar?: string;
   };
   password?: string;
   competenceIds?: number[];

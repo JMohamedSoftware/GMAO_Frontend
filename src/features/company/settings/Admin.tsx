@@ -80,6 +80,7 @@ export const Admin: React.FC = () => {
           roleId,
           societeId: 1,
           isActive: newUser.status === 'Actif',
+          avatar: newUser.avatar || undefined,
         },
         password: newUser.password
       });

@@ -41,6 +41,34 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
             </div>
             
             <form onSubmit={handleAddUser} className="p-5 flex flex-col gap-4 text-xs">
+              <div className="flex flex-col gap-1.5 items-center pb-2">
+                <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 flex items-center justify-center cursor-pointer hover:border-primary transition-colors group">
+                  {newUser.avatar ? (
+                    <img src={newUser.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <UserPlus className="w-8 h-8 text-slate-400" />
+                  )}
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-white font-semibold text-[10px]">Changer</span>
+                  </div>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="absolute inset-0 opacity-0 cursor-pointer" 
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setNewUser({ ...newUser, avatar: reader.result as string });
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                </div>
+                <span className="text-[10px] text-slate-500">Photo de profil (Optionnel)</span>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="font-bold text-slate-500 dark:text-slate-400">Nom Complet *</label>
