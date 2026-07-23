@@ -35,42 +35,14 @@ export const useGmao = () => {
     campaigns: activeTenant ? activeTenant.campaigns : [],
 
     // Actions
-    login: (email: string, password?: string, tenantId?: string, quickRole?: User['role'], forcedName?: string) => {
-      // ── SuperAdmin: handle any user with SuperAdmin role (not just hardcoded email) ──
-      if (quickRole === 'SuperAdmin' || email.toLowerCase() === 'admin@gmao-saas.com') {
-        dispatch(actions.login({
-          user: {
-            name: forcedName || 'Super Administrateur',
-            email,
-            role: 'SuperAdmin',
-            avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
-          },
-          tenantId: null
-        }));
-        return true;
-      }
-      
-      const tId = tenantId || 'tenant-midi';
-      const tenant = state.tenants.find(t => t.id === tId);
-      // Removed strict check to allow backend users from new tenants to login
-      // if (!tenant || tenant.status !== 'Active') return false;
-
+    login: (email: string, password?: string, tenantId?: string | null, quickRole?: User['role'], forcedName?: string) => {
       let role = quickRole || 'CompanyAdmin';
       let name = forcedName || 'Utilisateur';
       let avatar = 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80';
 
-      if (tenant && tenant.users) {
-        const u = tenant.users.find(x => x.email.toLowerCase() === email.toLowerCase());
-        if (u) {
-          if (password && u.password && u.password !== password) return false;
-          dispatch(actions.login({ user: { name: u.name, email: u.email, role: u.role as any, avatar: u.avatar, tenantId: tId }, tenantId: tId }));
-          return true;
-        }
-      }
-
       dispatch(actions.login({
-        user: { name, email, role: role as any, avatar, tenantId: tId },
-        tenantId: tId
+        user: { name, email, role: role as any, avatar, tenantId: tenantId || undefined },
+        tenantId: tenantId || null
       }));
       return true;
     },
