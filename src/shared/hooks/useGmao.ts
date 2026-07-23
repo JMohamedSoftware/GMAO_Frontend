@@ -52,13 +52,14 @@ export const useGmao = () => {
       
       const tId = tenantId || 'tenant-midi';
       const tenant = state.tenants.find(t => t.id === tId);
-      if (!tenant || tenant.status !== 'Active') return false;
+      // Removed strict check to allow backend users from new tenants to login
+      // if (!tenant || tenant.status !== 'Active') return false;
 
       let role = quickRole || 'CompanyAdmin';
       let name = forcedName || 'Utilisateur';
       let avatar = 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80';
 
-      if (tenant.users) {
+      if (tenant && tenant.users) {
         const u = tenant.users.find(x => x.email.toLowerCase() === email.toLowerCase());
         if (u) {
           if (password && u.password && u.password !== password) return false;
