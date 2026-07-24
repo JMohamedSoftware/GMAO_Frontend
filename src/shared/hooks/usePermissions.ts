@@ -1,5 +1,5 @@
 import { useGmao } from '@/shared/hooks/useGmao';
-import { Permission, can as canGuard, ROLES } from '@/shared/permissions';
+import { Permission, can as canGuard, ROLES, hasScopedPermission } from '@/shared/permissions';
 import { useAuth } from '@/features/auth';
 
 export function usePermissions() {
@@ -15,17 +15,17 @@ export function usePermissions() {
    * Can the current user perform a specific action?
    * Usage: can(PERMISSIONS.WORKORDER_CREATE)
    */
-  const can = (permission: Permission): boolean => {
+  const can = (permission: Permission | string): boolean => {
     // If dynamic permissions are loaded from backend, use them!
     const userPermissions = authUser?.permissions || currentUser?.permissions;
     
     if (userPermissions && userPermissions.length > 0) {
       if (role === ROLES.SUPER_ADMIN || role === ROLES.COMPANY_ADMIN) return true; 
-      return userPermissions.includes(permission);
+      return hasScopedPermission(userPermissions, permission);
     }
     
     // Fallback to static mapping if dynamic permissions are missing
-    return canGuard(role, permission);
+    return canGuard(role, permission as Permission);
   };
 
   /**

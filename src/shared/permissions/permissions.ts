@@ -65,4 +65,30 @@ export const PERMISSIONS = {
   REPORT_EXPORT: 'REPORT_EXPORT',
 } as const;
 
-export type Permission = keyof typeof PERMISSIONS;
+export type Permission = keyof typeof PERMISSIONS | `${keyof typeof PERMISSIONS}_ALL` | `${keyof typeof PERMISSIONS}_TEAM` | `${keyof typeof PERMISSIONS}_OWN`;
+
+/**
+ * Checks if the user has a specific permission, considering scopes.
+ * If checking for 'WORKORDER_VIEW', it returns true if the user has
+ * 'WORKORDER_VIEW', 'WORKORDER_VIEW_ALL', 'WORKORDER_VIEW_TEAM', or 'WORKORDER_VIEW_OWN'.
+ */
+export const hasScopedPermission = (userPermissions: string[], basePermission: string): boolean => {
+  return userPermissions.some(p => 
+    p === basePermission || 
+    p === `${basePermission}_ALL` || 
+    p === `${basePermission}_TEAM` || 
+    p === `${basePermission}_OWN`
+  );
+};
+
+/**
+ * Gets the specific scope for a base permission, if it exists.
+ * Returns 'ALL', 'TEAM', 'OWN', or 'NONE'.
+ */
+export const getPermissionScope = (userPermissions: string[], basePermission: string): 'ALL' | 'TEAM' | 'OWN' | 'NONE' => {
+  if (userPermissions.includes(`${basePermission}_ALL`)) return 'ALL';
+  if (userPermissions.includes(`${basePermission}_TEAM`)) return 'TEAM';
+  if (userPermissions.includes(`${basePermission}_OWN`)) return 'OWN';
+  if (userPermissions.includes(basePermission)) return 'ALL'; // Fallback for boolean permissions
+  return 'NONE';
+};

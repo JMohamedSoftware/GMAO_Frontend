@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Save, Check } from 'lucide-react';
-import { PERMISSIONS } from '@/shared/permissions';
+import { PERMISSIONS, getPermissionScope, hasScopedPermission } from '@/shared/permissions';
 import { apiClient } from '@/shared/services/apiClient';
 
 export const RoleSettings: React.FC = () => {
@@ -46,14 +46,65 @@ export const RoleSettings: React.FC = () => {
     if (!selectedRole) return;
     setRoles(prev => prev.map(r => {
       if (r.id !== selectedRole.id) return r;
-      const hasPerm = r.permissions.includes(perm);
+      const hasPerm = hasScopedPermission(r.permissions, perm);
+      
+      let newPerms = [...r.permissions];
+      if (hasPerm) {
+        newPerms = newPerms.filter((p: string) => !p.startsWith(perm));
+      } else {
+        newPerms.push(perm);
+      }
+
       return {
         ...r,
-        permissions: hasPerm 
-          ? r.permissions.filter((p: string) => p !== perm)
-          : [...r.permissions, perm]
+        permissions: newPerms
       };
     }));
+  };
+
+  const changeScope = (basePerm: string, newScope: string) => {
+    if (!selectedRole) return;
+    setRoles(prev => prev.map(r => {
+      if (r.id !== selectedRole.id) return r;
+      let newPerms = r.permissions.filter((p: string) => !p.startsWith(basePerm));
+      if (newScope !== 'NONE') {
+        if (newScope === 'ALL') {
+          newPerms.push(`${basePerm}_ALL`);
+        } else {
+          newPerms.push(`${basePerm}_${newScope}`);
+        }
+      }
+      return { ...r, permissions: newPerms };
+    }));
+  };
+
+  const renderPermissionControl = (moduleName: string, basePerm?: string) => {
+    if (!basePerm || !selectedRole) return null;
+    
+    // Modules that support scoped permissions
+    const supportsScope = moduleName === 'Correctif' || moduleName === 'Préventif';
+    
+    if (supportsScope) {
+      const currentScope = getPermissionScope(selectedRole.permissions, basePerm);
+      return (
+        <select 
+          className="text-xs p-1 border border-slate-300 rounded dark:bg-slate-700 dark:border-slate-600 focus:outline-none focus:border-primary bg-transparent text-slate-700 dark:text-slate-200"
+          value={currentScope}
+          onChange={(e) => changeScope(basePerm, e.target.value)}
+        >
+          <option value="NONE">Aucun</option>
+          <option value="OWN">Personnel</option>
+          <option value="TEAM">Équipe</option>
+          <option value="ALL">Tout</option>
+        </select>
+      );
+    }
+
+    return (
+      <input type="checkbox" className="w-4 h-4 text-primary rounded cursor-pointer"
+             checked={hasScopedPermission(selectedRole.permissions, basePerm)}
+             onChange={() => togglePermission(basePerm)} />
+    );
   };
 
   const handleSave = async () => {
@@ -123,43 +174,23 @@ export const RoleSettings: React.FC = () => {
                   <td className="py-3 text-xs font-bold text-slate-700 dark:text-slate-200">{row.module}</td>
                   {/* View */}
                   <td className="py-3 text-center">
-                    {row.perms.find(p => p.endsWith('VIEW')) && (
-                      <input type="checkbox" className="w-4 h-4 text-primary rounded cursor-pointer"
-                             checked={selectedRole.permissions.includes(row.perms.find(p => p.endsWith('VIEW'))!)}
-                             onChange={() => togglePermission(row.perms.find(p => p.endsWith('VIEW'))!)} />
-                    )}
+                    {renderPermissionControl(row.module, row.perms.find(p => p.endsWith('VIEW')))}
                   </td>
                   {/* Create */}
                   <td className="py-3 text-center">
-                    {row.perms.find(p => p.endsWith('CREATE')) && (
-                      <input type="checkbox" className="w-4 h-4 text-primary rounded cursor-pointer"
-                             checked={selectedRole.permissions.includes(row.perms.find(p => p.endsWith('CREATE'))!)}
-                             onChange={() => togglePermission(row.perms.find(p => p.endsWith('CREATE'))!)} />
-                    )}
+                    {renderPermissionControl(row.module, row.perms.find(p => p.endsWith('CREATE')))}
                   </td>
                   {/* Update */}
                   <td className="py-3 text-center">
-                    {row.perms.find(p => p.endsWith('UPDATE')) && (
-                      <input type="checkbox" className="w-4 h-4 text-primary rounded cursor-pointer"
-                             checked={selectedRole.permissions.includes(row.perms.find(p => p.endsWith('UPDATE'))!)}
-                             onChange={() => togglePermission(row.perms.find(p => p.endsWith('UPDATE'))!)} />
-                    )}
+                    {renderPermissionControl(row.module, row.perms.find(p => p.endsWith('UPDATE')))}
                   </td>
                   {/* Delete */}
                   <td className="py-3 text-center">
-                    {row.perms.find(p => p.endsWith('DELETE')) && (
-                      <input type="checkbox" className="w-4 h-4 text-primary rounded cursor-pointer"
-                             checked={selectedRole.permissions.includes(row.perms.find(p => p.endsWith('DELETE'))!)}
-                             onChange={() => togglePermission(row.perms.find(p => p.endsWith('DELETE'))!)} />
-                    )}
+                    {renderPermissionControl(row.module, row.perms.find(p => p.endsWith('DELETE')))}
                   </td>
                   {/* Execute */}
                   <td className="py-3 text-center">
-                    {row.perms.find(p => p.endsWith('EXECUTE')) && (
-                      <input type="checkbox" className="w-4 h-4 text-primary rounded cursor-pointer"
-                             checked={selectedRole.permissions.includes(row.perms.find(p => p.endsWith('EXECUTE'))!)}
-                             onChange={() => togglePermission(row.perms.find(p => p.endsWith('EXECUTE'))!)} />
-                    )}
+                    {renderPermissionControl(row.module, row.perms.find(p => p.endsWith('EXECUTE')))}
                   </td>
                 </tr>
               ))}
