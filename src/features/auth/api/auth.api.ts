@@ -11,7 +11,8 @@ import type {
 } from '../types/auth.types';
 
 /** Base URL du Backend — à changer via variable d'environnement en prod */
-const API_BASE = import.meta.env.VITE_API_URL || 'https://gmao-backend-a6r2.onrender.com/api';
+const rawUrl = import.meta.env.VITE_API_URL || 'https://gmao-backend-a6r2.onrender.com';
+const API_BASE = rawUrl.replace(/\/api\/?$/, '') + '/api';
 
 // ---------- Helpers ----------
 
