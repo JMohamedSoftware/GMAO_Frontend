@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Save, Check } from 'lucide-react';
 import { PERMISSIONS } from '@/shared/permissions';
+import { apiClient } from '@/shared/services/apiClient';
 
 export const RoleSettings: React.FC = () => {
   const [roles, setRoles] = useState<any[]>([]);
@@ -25,14 +26,13 @@ export const RoleSettings: React.FC = () => {
 
   const fetchRoles = async () => {
     try {
-      const res = await fetch('https://gmao-backend-a6r2.onrender.com/api/Settings/Roles', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('gmao_access_token')}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setRoles(data);
-        if (data.length > 0) setSelectedRoleId(data[0].id);
-      }
+      const res = await apiClient.get('/api/Settings/Roles');
+      // Filter out admin roles so they cannot be modified by the user
+      const filteredRoles = res.data.filter((r: any) => 
+        r.nom !== 'SuperAdmin' && r.nom !== 'Administrateur' && r.nom !== 'CompanyAdmin'
+      );
+      setRoles(filteredRoles);
+      if (filteredRoles.length > 0) setSelectedRoleId(filteredRoles[0].id);
     } catch (e) {
       console.error(e);
     } finally {
@@ -61,18 +61,11 @@ export const RoleSettings: React.FC = () => {
     setSaving(true);
     setSuccessMsg('');
     try {
-      const res = await fetch(`https://gmao-backend-a6r2.onrender.com/api/Settings/Roles/${selectedRole.id}/Permissions`, {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${localStorage.getItem('gmao_access_token')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ permissions: selectedRole.permissions })
+      await apiClient.post(`/api/Settings/Roles/${selectedRole.id}/Permissions`, {
+        permissions: selectedRole.permissions
       });
-      if (res.ok) {
-        setSuccessMsg('Permissions sauvegardées avec succès.');
-        setTimeout(() => setSuccessMsg(''), 3000);
-      }
+      setSuccessMsg('Permissions sauvegardées avec succès.');
+      setTimeout(() => setSuccessMsg(''), 3000);
     } catch (e) {
       console.error(e);
     } finally {
@@ -106,6 +99,9 @@ export const RoleSettings: React.FC = () => {
             {role.nom}
           </button>
         ))}
+        {roles.length === 0 && (
+          <span className="text-xs text-slate-500">Aucun rôle modifiable trouvé.</span>
+        )}
       </div>
 
       {selectedRole && (
