@@ -51,7 +51,6 @@ export const Admin: React.FC = () => {
 
   // Roles permissions matrices UI dummy definitions (could be dynamic)
   const permissions = {
-    'Administrateur': {},
     'Responsable Maintenance': {},
     'Chef d\'équipe': {},
     'Technicien': {},
@@ -78,14 +77,10 @@ export const Admin: React.FC = () => {
     try {
       // Map role to backend RoleId
       const roleMapping: Record<string, number> = {
-        'Administrateur': 1,
-        'CompanyAdmin': 1,
         'Responsable Maintenance': 2,
         'Chef d\'équipe': 3,
         'Technicien': 4,
-        'Production': 5,
-        'Magasinier': 6,
-        'SuperAdmin': 7
+        'Production': 5
       };
 
       const parts = newUser.name.trim().split(' ');

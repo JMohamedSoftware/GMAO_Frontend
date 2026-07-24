@@ -6,8 +6,7 @@ export type AppRole =
   | 'Responsable Maintenance'
   | "Chef d'équipe"
   | 'Technicien'
-  | 'Production'
-  | 'Magasinier';
+  | 'Production';
 
 export const ROLES: Record<string, AppRole> = {
   SUPER_ADMIN: 'SuperAdmin',
@@ -16,5 +15,4 @@ export const ROLES: Record<string, AppRole> = {
   CHEF_EQUIPE: "Chef d'équipe",
   TECHNICIEN: 'Technicien',
   PRODUCTION: 'Production',
-  MAGASINIER: 'Magasinier',
 };
