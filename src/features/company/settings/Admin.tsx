@@ -131,7 +131,7 @@ export const Admin: React.FC = () => {
       if (typeof msg === 'object') {
         msg = JSON.stringify(msg);
       }
-      alert(msg || "Erreur lors de la création de l'utilisateur.");
+      alert(msg || err.message || "Erreur lors de la création de l'utilisateur.");
     } finally {
       setIsSubmitting(false);
     }
