@@ -16,6 +16,14 @@ export interface SensorInfo {
   history: number[];
 }
 
+export interface Localisation {
+  id: number;
+  nom: string;
+  description?: string;
+  parentId?: number;
+  sousLocalisations?: Localisation[];
+}
+
 export interface Equipment {
   id: string; 
   parentId?: string;
@@ -32,12 +40,9 @@ export interface Equipment {
   responsibility?: string;
   barcode?: string;
   gipPresence?: boolean;
-  site?: string;
-  building?: string;
-  floor?: string;
-  room?: string;
+  localisationId?: number;
+  localisation?: Localisation;
   commissionDate: string;
-  location: string;
   criticality: 'Faible' | 'Moyenne' | 'Haute' | 'Critique';
   status: 'En service' | 'En panne' | 'En maintenance' | 'Hors service';
   healthIndex: number; 
@@ -152,9 +157,10 @@ export interface Notification {
 }
 
 export interface User {
+  id: string;
   name: string;
   email: string;
-  role: 'SuperAdmin' | 'CompanyAdmin' | 'Responsable Maintenance' | 'Chef d\'équipe' | 'Technicien' | 'Production' | 'Read-Only User';
+  role: 'SuperAdmin' | 'Administrateur' | 'Responsable Maintenance' | 'Chef d\'équipe' | 'Technicien' | 'Responsable Production';
   avatar: string;
   tenantId?: string;
   permissions?: string[];
@@ -170,8 +176,27 @@ export interface UserAccount {
   avatar: string;
   phone?: string;
   department?: string;
+  equipeId?: number | null;
   lastConnection?: string;
   createdAt?: string;
+}
+
+export interface EquipeMembre {
+  id: number;
+  nom: string;
+  prenom: string;
+  email: string;
+  role?: string;
+}
+
+export interface Equipe {
+  id: number;
+  nom: string;
+  description?: string;
+  chefEquipeId?: number;
+  chefEquipeNom?: string;
+  societeId: number;
+  membres: EquipeMembre[];
 }
 
 

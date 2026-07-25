@@ -8,9 +8,11 @@ import { CheckCircle2 } from 'lucide-react';
 import { AdminDashboardStats } from './AdminDashboardStats';
 import { UserManagement } from '../users/UserManagement';
 import { RoleSettings } from './RoleSettings';
+import { LocalisationSettings } from './LocalisationSettings';
 import { AdminSettings } from './AdminSettings';
 import { AdminModals } from '../users/AdminModals';
 import { usersApi } from '../users/api/users.api';
+import { TeamManagement } from '../users/TeamManagement';
 
 export const Admin: React.FC = () => {
   const { tenants, currentTenantId, addUser, rolePermissions, updateRolePermission } = useGmao();
@@ -19,6 +21,7 @@ export const Admin: React.FC = () => {
   const [successSaved, setSuccessSaved] = useState(false);
   const [language, setLanguage] = useState<'fr' | 'en'>('fr');
   const [emailAlerts, setEmailAlerts] = useState(true);
+  const [activeTab, setActiveTab] = useState<'utilisateurs' | 'equipes' | 'roles' | 'localisations' | 'parametres'>('utilisateurs');
   
   const [selectedRole, setSelectedRole] = useState<AppRole>('Technicien');
 
@@ -163,11 +166,63 @@ export const Admin: React.FC = () => {
       {/* Dashboard Stats */}
       <AdminDashboardStats users={users} />
 
-      {/* Users directory & Permission grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Left: User Directory & Habilitation Matrix */}
-        <div className="lg:col-span-2 flex flex-col gap-6">
+      {/* Tabs */}
+      <div className="flex flex-wrap gap-2 mb-2 border-b border-slate-200 dark:border-slate-700 pb-2">
+        <button
+          onClick={() => setActiveTab('utilisateurs')}
+          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+            activeTab === 'utilisateurs'
+              ? 'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-500 dark:bg-indigo-500/10 dark:text-indigo-400'
+              : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
+          }`}
+        >
+          Utilisateurs
+        </button>
+        <button
+          onClick={() => setActiveTab('equipes')}
+          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+            activeTab === 'equipes'
+              ? 'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-500 dark:bg-indigo-500/10 dark:text-indigo-400'
+              : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
+          }`}
+        >
+          Équipes
+        </button>
+        <button
+          onClick={() => setActiveTab('roles')}
+          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+            activeTab === 'roles'
+              ? 'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-500 dark:bg-indigo-500/10 dark:text-indigo-400'
+              : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
+          }`}
+        >
+          Rôles & Permissions
+        </button>
+        <button
+          onClick={() => setActiveTab('localisations')}
+          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+            activeTab === 'localisations'
+              ? 'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-500 dark:bg-indigo-500/10 dark:text-indigo-400'
+              : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
+          }`}
+        >
+          Localisations
+        </button>
+        <button
+          onClick={() => setActiveTab('parametres')}
+          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+            activeTab === 'parametres'
+              ? 'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-500 dark:bg-indigo-500/10 dark:text-indigo-400'
+              : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
+          }`}
+        >
+          Système
+        </button>
+      </div>
+
+      {/* Tab Content */}
+      <div className="mt-2">
+        {activeTab === 'utilisateurs' && (
           <UserManagement 
             users={users} 
             can={can} 
@@ -175,21 +230,32 @@ export const Admin: React.FC = () => {
             setEditingUser={setEditingUser} 
             setIsEditUserOpen={setIsEditUserOpen} 
           />
+        )}
+        
+        {activeTab === 'equipes' && (
+          <TeamManagement can={can} />
+        )}
 
+        {activeTab === 'roles' && (
           <RoleSettings />
-        </div>
+        )}
 
-        {/* Right: System Settings & Preference Appearance */}
-        <div className="flex flex-col gap-6">
-          <AdminSettings 
-            language={language}
-            setLanguage={setLanguage}
-            emailAlerts={emailAlerts}
-            setEmailAlerts={setEmailAlerts}
-            handleSaveSettings={handleSaveSettings}
-            can={can}
-          />
-        </div>
+        {activeTab === 'localisations' && (
+          <LocalisationSettings />
+        )}
+
+        {activeTab === 'parametres' && (
+          <div className="max-w-3xl">
+            <AdminSettings 
+              language={language}
+              setLanguage={setLanguage}
+              emailAlerts={emailAlerts}
+              setEmailAlerts={setEmailAlerts}
+              handleSaveSettings={handleSaveSettings}
+              can={can}
+            />
+          </div>
+        )}
       </div>
 
       {/* Modals */}

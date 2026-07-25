@@ -99,7 +99,7 @@ export const IncidentModalProvider: React.FC<{ children: ReactNode }> = ({ child
                   >
                     <option value="">Choisir la machine...</option>
                     {equipments.map(e => (
-                      <option key={e.id} value={e.id}>{e.name} ({e.id}) • {e.location}</option>
+                      <option key={e.id} value={e.id}>{e.name} ({e.id}) • {e.localisation?.nom || 'Non spécifié'}</option>
                     ))}
                   </select>
                 </div>

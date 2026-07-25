@@ -27,9 +27,9 @@ export const RoleSettings: React.FC = () => {
   const fetchRoles = async () => {
     try {
       const res = await apiClient.get('/api/Settings/Roles');
-      // Filter out admin roles and Magasinier so they cannot be modified by the user
+      // Filter out admin roles so they cannot be modified by the user
       const filteredRoles = res.data.filter((r: any) => 
-        r.nom !== 'SuperAdmin' && r.nom !== 'Administrateur' && r.nom !== 'CompanyAdmin' && r.nom !== 'Admin' && r.nom !== 'Magasinier'
+        r.nom !== 'Administrateur'
       );
       setRoles(filteredRoles);
       if (filteredRoles.length > 0) setSelectedRoleId(filteredRoles[0].id);

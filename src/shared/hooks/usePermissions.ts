@@ -13,15 +13,24 @@ export function usePermissions() {
   
   /**
    * Can the current user perform a specific action?
-   * Usage: can(PERMISSIONS.WORKORDER_CREATE)
+   * @param permission The base permission to check
+   * @param resourceOwnerIds Optional array of user IDs that own the resource (e.g. technicienId, responsableId)
+   * @param resourceEquipeIds Optional array of team IDs that own the resource
    */
-  const can = (permission: Permission | string): boolean => {
+  const can = (permission: Permission | string, resourceOwnerIds?: (number | null | undefined)[], resourceEquipeIds?: (number | null | undefined)[]): boolean => {
     // If dynamic permissions are loaded from backend, use them!
     const userPermissions = authUser?.permissions || currentUser?.permissions;
     
     if (userPermissions && userPermissions.length > 0) {
-      if (role === ROLES.SUPER_ADMIN || role === ROLES.COMPANY_ADMIN) return true; 
-      return hasScopedPermission(userPermissions, permission);
+      if (role === ROLES.SUPER_ADMIN || role === ROLES.ADMINISTRATEUR) return true; 
+      return hasScopedPermission(
+        userPermissions, 
+        permission, 
+        resourceOwnerIds, 
+        authUser?.id || currentUser?.id ? Number(authUser?.id || currentUser?.id) : undefined,
+        resourceEquipeIds,
+        undefined // equipeId removed from User type
+      );
     }
     
     // Fallback to static mapping if dynamic permissions are missing
@@ -31,7 +40,7 @@ export function usePermissions() {
   /**
    * Role checkers — convenience shortcuts
    */
-  const isAdmin = role === ROLES.COMPANY_ADMIN || role === ROLES.SUPER_ADMIN;
+  const isAdmin = role === ROLES.ADMINISTRATEUR || role === ROLES.SUPER_ADMIN;
   const isResponsable = role === ROLES.RESPONSABLE;
   const isChefEquipe = role === ROLES.CHEF_EQUIPE;
   const isTechnicien = role === ROLES.TECHNICIEN;

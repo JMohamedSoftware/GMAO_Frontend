@@ -2,8 +2,7 @@ import React from 'react';
 import { PlusSquare, MinusSquare, Settings2, Package, PlusCircle, Trash2, Search } from 'lucide-react';
 import { usePermissions } from '@/shared/hooks/usePermissions';
 import { PERMISSIONS } from '@/shared/permissions';
-import { Equipment as EquipmentType } from '@/shared/types/gmao';
-import { GeoNode } from './GeoTree';
+import { Equipment as EquipmentType, Localisation } from '@/shared/types/gmao';
 
 export type EqNode = {
   id: string;
@@ -18,7 +17,7 @@ interface EqTreeProps {
   eqTree: EqNode[];
   eqExpanded: Set<string>;
   selectedEqId: string | null;
-  selectedGeoNode: GeoNode | null;
+  selectedGeoNode: Localisation | null;
   search: string;
   onSearchChange: (search: string) => void;
   filterCriticality: string;

@@ -1,18 +1,17 @@
 // src/shared/permissions/roles.ts
 export type AppRole =
   | 'SuperAdmin'
-  | 'Admin'
-  | 'CompanyAdmin'
+  | 'Administrateur'
   | 'Responsable Maintenance'
   | "Chef d'équipe"
   | 'Technicien'
-  | 'Production';
+  | 'Responsable Production';
 
-export const ROLES: Record<string, AppRole> = {
+export const ROLES = {
   SUPER_ADMIN: 'SuperAdmin',
-  COMPANY_ADMIN: 'Admin',
+  ADMINISTRATEUR: 'Administrateur',
   RESPONSABLE: 'Responsable Maintenance',
   CHEF_EQUIPE: "Chef d'équipe",
   TECHNICIEN: 'Technicien',
-  PRODUCTION: 'Production',
-};
+  PRODUCTION: 'Responsable Production',
+} as const;

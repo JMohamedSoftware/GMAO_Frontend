@@ -143,7 +143,7 @@ export const DashboardTree: React.FC<DashboardTreeProps> = ({
               </div>
               <div className="bg-slate-50 dark:bg-slate-900/40 rounded-lg p-2">
                 <span className="text-[8px] text-slate-400 font-bold uppercase block">Localisation</span>
-                <span className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300 truncate block">{selectedDashboardEq.location}</span>
+                <span className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300 truncate block">{selectedDashboardEq.localisation?.nom}</span>
               </div>
               <div className="bg-slate-50 dark:bg-slate-900/40 rounded-lg p-2">
                 <span className="text-[8px] text-slate-400 font-bold uppercase block">Dernière MP</span>

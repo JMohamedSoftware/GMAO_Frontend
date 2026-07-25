@@ -2,7 +2,8 @@ import React from 'react';
 import { Settings2, Wrench, Save, Edit, Plus, Info, History, Calendar, Link, FileText, ClipboardList } from 'lucide-react';
 import { usePermissions } from '@/shared/hooks/usePermissions';
 import { PERMISSIONS } from '@/shared/permissions';
-import { Equipment as EquipmentType } from '@/shared/types/gmao';
+import { Equipment as EquipmentType, Localisation } from '@/shared/types/gmao';
+import { useLocalisations } from '@/shared/hooks/useLocalisations';
 
 interface EquipmentDetailsProps {
   activeEquipment: EquipmentType | undefined;
@@ -30,6 +31,20 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
   onSave
 }) => {
   const { can } = usePermissions();
+  const { tree } = useLocalisations();
+
+  const flattenTree = (nodes: Localisation[], depth = 0): { id: number; nom: string; depth: number }[] => {
+    let result: { id: number; nom: string; depth: number }[] = [];
+    nodes.forEach(node => {
+      result.push({ id: node.id, nom: node.nom, depth });
+      if (node.sousLocalisations) {
+        result = result.concat(flattenTree(node.sousLocalisations, depth + 1));
+      }
+    });
+    return result;
+  };
+
+  const flatLocalisations = flattenTree(tree);
 
   if (!activeEquipment && !isAdding) {
     return (
@@ -136,21 +151,21 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
               Localisation Géographique (Requise)
             </h3>
           </div>
-          <div>
-            <label className="text-[10px] text-slate-500 font-bold block mb-1">Site / Usine <span className="text-rose-500">*</span></label>
-            <input type="text" readOnly={!isEditing && !isAdding} value={(isEditing || isAdding) ? formData.site : activeEquipment?.site || ''} onChange={e => onSetFormData({...formData, site: e.target.value})} className={`w-full text-xs p-1.5 rounded border ${isEditing || isAdding ? 'bg-white dark:bg-slate-800 border-slate-300' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'} outline-none`} placeholder="Ex: USINE DE LINO" />
-          </div>
-          <div>
-            <label className="text-[10px] text-slate-500 font-bold block mb-1">Bâtiment</label>
-            <input type="text" readOnly={!isEditing && !isAdding} value={(isEditing || isAdding) ? formData.building : activeEquipment?.building || ''} onChange={e => onSetFormData({...formData, building: e.target.value})} className={`w-full text-xs p-1.5 rounded border ${isEditing || isAdding ? 'bg-white dark:bg-slate-800 border-slate-300' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'} outline-none`} placeholder="Ex: BATIMENT NORD" />
-          </div>
-          <div>
-            <label className="text-[10px] text-slate-500 font-bold block mb-1">Étage / Niveau</label>
-            <input type="text" readOnly={!isEditing && !isAdding} value={(isEditing || isAdding) ? formData.floor : activeEquipment?.floor || ''} onChange={e => onSetFormData({...formData, floor: e.target.value})} className={`w-full text-xs p-1.5 rounded border ${isEditing || isAdding ? 'bg-white dark:bg-slate-800 border-slate-300' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'} outline-none`} placeholder="Ex: RDC" />
-          </div>
-          <div>
-            <label className="text-[10px] text-slate-500 font-bold block mb-1">Local / Ligne</label>
-            <input type="text" readOnly={!isEditing && !isAdding} value={(isEditing || isAdding) ? formData.room : activeEquipment?.room || ''} onChange={e => onSetFormData({...formData, room: e.target.value})} className={`w-full text-xs p-1.5 rounded border ${isEditing || isAdding ? 'bg-white dark:bg-slate-800 border-slate-300' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'} outline-none`} placeholder="Ex: Ligne 1" />
+          <div className="col-span-4 md:col-span-2">
+            <label className="text-[10px] text-slate-500 font-bold block mb-1">Localisation <span className="text-rose-500">*</span></label>
+            <select 
+              disabled={!isEditing && !isAdding} 
+              value={(isEditing || isAdding) ? formData.localisationId || '' : activeEquipment?.localisationId || ''} 
+              onChange={e => onSetFormData({...formData, localisationId: e.target.value ? Number(e.target.value) : undefined})} 
+              className={`w-full text-xs p-1.5 rounded border ${isEditing || isAdding ? 'bg-white dark:bg-slate-800 border-slate-300' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'} outline-none`}
+            >
+              <option value="">-- Sélectionnez une localisation --</option>
+              {flatLocalisations.map(loc => (
+                <option key={loc.id} value={loc.id}>
+                  {'\u00A0'.repeat(loc.depth * 4)}{loc.depth > 0 ? '└ ' : ''}{loc.nom}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 

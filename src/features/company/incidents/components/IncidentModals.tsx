@@ -52,7 +52,7 @@ export const IncidentModals: React.FC<IncidentModalsProps> = ({
                 >
                   <option value="">Choisir la machine...</option>
                   {equipments.map(e => (
-                    <option key={e.id} value={e.id}>{e.name} ({e.id}) • {e.location}</option>
+                    <option key={e.id} value={e.id}>{e.name} ({e.id}) • {e.localisation?.nom || 'Non spécifié'}</option>
                   ))}
                 </select>
               </div>
@@ -91,7 +91,7 @@ export const IncidentModals: React.FC<IncidentModalsProps> = ({
                 <div className="p-2 border border-slate-200 dark:border-slate-800 rounded bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 flex items-center gap-2">
                   <MapPin className="w-3 h-3" />
                   <span>
-                    {selectedEqId ? equipments.find(e => e.id === selectedEqId)?.location : 'Sélectionnez un équipement d\'abord'}
+                    {selectedEqId ? (equipments.find(e => e.id === selectedEqId)?.localisation?.nom || 'Non spécifié') : 'Sélectionnez un équipement d\'abord'}
                   </span>
                 </div>
               </div>

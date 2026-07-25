@@ -31,12 +31,12 @@ export const Login: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       if (sessionStr) {
         try {
           const session = JSON.parse(sessionStr);
-          reduxLogin(credentials.email, credentials.password, session.user?.tenantId || 'tenant-midi', session.user?.role as any, session.user?.name);
+          reduxLogin(credentials.email, credentials.password, session.user?.tenantId || undefined, session.user?.role as any, session.user?.name);
         } catch {
-          reduxLogin(credentials.email, credentials.password, 'tenant-midi');
+          reduxLogin(credentials.email, credentials.password, undefined);
         }
       } else {
-        reduxLogin(credentials.email, credentials.password, 'tenant-midi');
+        reduxLogin(credentials.email, credentials.password, undefined);
       }
       onLoginSuccess();
     }

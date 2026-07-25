@@ -6,8 +6,8 @@ import { ROLE_PERMISSIONS } from './ability';
 export const can = (role: string | undefined | null, permission: Permission): boolean => {
   if (!role) return false;
   
-  // SuperAdmin and CompanyAdmin have access to everything
-  if (role === ROLES.SUPER_ADMIN || role === ROLES.COMPANY_ADMIN) {
+  // SuperAdmin and Administrateur have access to everything
+  if (role === ROLES.SUPER_ADMIN || role === ROLES.ADMINISTRATEUR) {
     return true;
   }
 

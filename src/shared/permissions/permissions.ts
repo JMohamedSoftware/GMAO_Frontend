@@ -69,10 +69,48 @@ export type Permission = keyof typeof PERMISSIONS | `${keyof typeof PERMISSIONS}
 
 /**
  * Checks if the user has a specific permission, considering scopes.
- * If checking for 'WORKORDER_VIEW', it returns true if the user has
- * 'WORKORDER_VIEW', 'WORKORDER_VIEW_ALL', 'WORKORDER_VIEW_TEAM', or 'WORKORDER_VIEW_OWN'.
+ * If resourceOwnerIds and currentUserId are provided, it strictly checks `_OWN` and `_TEAM` against the resource owners.
+ * If not provided, it simply checks if the user has ANY level of this permission (useful for menu visibility).
  */
-export const hasScopedPermission = (userPermissions: string[], basePermission: string): boolean => {
+export const hasScopedPermission = (
+  userPermissions: string[], 
+  basePermission: string, 
+  resourceOwnerIds?: (number | null | undefined)[], 
+  currentUserId?: number,
+  resourceEquipeIds?: (number | null | undefined)[],
+  currentUserEquipeId?: number | null
+): boolean => {
+  // If user has full un-scoped access or ALL scope, they can access anything
+  if (userPermissions.includes(basePermission) || userPermissions.includes(`${basePermission}_ALL`)) {
+    return true;
+  }
+
+  // If specific resource checking is requested
+  if (resourceOwnerIds && currentUserId) {
+    const isOwner = resourceOwnerIds.includes(currentUserId);
+    
+    // Check OWN
+    if (userPermissions.includes(`${basePermission}_OWN`) && isOwner) {
+      return true;
+    }
+    
+    // Check TEAM
+    if (userPermissions.includes(`${basePermission}_TEAM`)) {
+      if (isOwner) return true; // Owner is always in their own team implicitly
+      
+      // If we have team IDs for the resource and the current user
+      if (currentUserEquipeId && resourceEquipeIds) {
+        if (resourceEquipeIds.includes(currentUserEquipeId)) {
+          return true;
+        }
+      }
+    }
+    
+    // If resource is specified but user is not the owner (and doesn't have _ALL), deny.
+    return false;
+  }
+
+  // If no resource is specified (generic check for UI element visibility like "My Tasks" menu)
   return userPermissions.some(p => 
     p === basePermission || 
     p === `${basePermission}_ALL` || 

@@ -1,26 +1,13 @@
 import React from 'react';
-import { ChevronRight, ChevronDown, MapPin, Building2, Layers, DoorOpen, Trash2, Plus, PlusSquare, MinusSquare, FolderOpen, Folder, PlusCircle } from 'lucide-react';
-import { PERMISSIONS } from '@/shared/permissions';
-import { usePermissions } from '@/shared/hooks/usePermissions';
-
-export type GeoNode = {
-  id: string;
-  name: string;
-  type: 'site' | 'building' | 'floor' | 'room';
-  children: GeoNode[];
-  isCustom?: boolean;
-  parentId?: string;
-};
+import { ChevronRight, ChevronDown, MapPin, FolderOpen, Folder, PlusSquare, MinusSquare } from 'lucide-react';
+import { Localisation } from '@/shared/types/gmao';
 
 interface GeoTreeProps {
-  geoTree: GeoNode[];
-  geoExpanded: Set<string>;
-  selectedGeoNode: GeoNode | null;
-  onToggleNode: (id: string) => void;
-  onSelectNode: (node: GeoNode) => void;
-  onAddGeo: () => void;
-  onAddNewFromGeo: (node: GeoNode, e: React.MouseEvent) => void;
-  onDeleteGeoNode: (node: GeoNode, e: React.MouseEvent) => void;
+  geoTree: Localisation[];
+  geoExpanded: Set<number>;
+  selectedGeoNode: Localisation | null;
+  onToggleNode: (id: number) => void;
+  onSelectNode: (node: Localisation) => void;
 }
 
 export const GeoTree: React.FC<GeoTreeProps> = ({
@@ -29,17 +16,13 @@ export const GeoTree: React.FC<GeoTreeProps> = ({
   selectedGeoNode,
   onToggleNode,
   onSelectNode,
-  onAddGeo,
-  onAddNewFromGeo,
-  onDeleteGeoNode
 }) => {
-  const { can } = usePermissions();
 
-  const renderNodes = (nodes: GeoNode[], level = 0) => {
+  const renderNodes = (nodes: Localisation[], level = 0) => {
     return nodes.map(node => {
       const isExpanded = geoExpanded.has(node.id);
       const isSelected = selectedGeoNode?.id === node.id;
-      const hasChildren = node.children.length > 0;
+      const hasChildren = node.sousLocalisations && node.sousLocalisations.length > 0;
       
       return (
         <div key={node.id}>
@@ -57,33 +40,12 @@ export const GeoTree: React.FC<GeoTreeProps> = ({
               
               {isExpanded ? <FolderOpen className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-primary' : 'text-amber-400'}`} /> : <Folder className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-primary' : 'text-amber-400'}`} />}
               
-              <span className="truncate uppercase">{node.name}</span>
-            </div>
-            
-            <div className={`flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity`}>
-                {can(PERMISSIONS.EQUIPMENT_CREATE) && node.type !== 'room' && (
-                    <button 
-                    onClick={(e) => onAddNewFromGeo(node, e)}
-                    className={`p-1 rounded ${isSelected ? 'text-primary hover:bg-primary/20' : 'text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:text-primary shadow-sm'} shrink-0`}
-                    title="Ajouter un sous-dossier"
-                    >
-                    <PlusCircle className="w-3 h-3" />
-                    </button>
-                )}
-                {can(PERMISSIONS.EQUIPMENT_DELETE) && (
-                <button 
-                onClick={(e) => onDeleteGeoNode(node, e)}
-                className={`p-1 rounded ${isSelected ? 'text-rose-500 hover:bg-rose-500/20' : 'text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:text-rose-500 shadow-sm'} shrink-0`}
-                title="Supprimer"
-                >
-                <Trash2 className="w-3 h-3" />
-                </button>
-                )}
+              <span className="truncate uppercase">{node.nom}</span>
             </div>
           </div>
           {isExpanded && hasChildren && (
             <div>
-              {renderNodes(node.children, level + 1)}
+              {renderNodes(node.sousLocalisations!, level + 1)}
             </div>
           )}
         </div>
@@ -98,13 +60,6 @@ export const GeoTree: React.FC<GeoTreeProps> = ({
           <MapPin className="w-4 h-4 text-primary" />
           Localisations
         </h3>
-        <button 
-            onClick={onAddGeo}
-            className="p-1 rounded bg-primary text-white hover:bg-primary/90 shadow-sm transition-transform hover:scale-105 active:scale-95"
-            title="Ajouter une localisation"
-        >
-            <Plus className="w-3.5 h-3.5" />
-        </button>
       </div>
       <div className="p-2 overflow-y-auto flex-1 custom-scrollbar">
         {renderNodes(geoTree)}

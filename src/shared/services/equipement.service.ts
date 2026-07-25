@@ -18,7 +18,7 @@ export const equipementService = {
       purchaseDate: dto.dateAchat?.toString(),
       endOfWarranty: dto.dateFinGarantie?.toString(),
       commissionDate: dto.dateMiseEnService?.toString() || new Date().toISOString(),
-      location: dto.localisationNom,
+      localisationId: dto.localisationId,
       criticality: dto.criticite,
       status: dto.etat,
       healthIndex: 100, // Not available in basic backend DTO
@@ -49,7 +49,7 @@ export const equipementService = {
       purchaseDate: dto.dateAchat?.toString(),
       endOfWarranty: dto.dateFinGarantie?.toString(),
       commissionDate: dto.dateMiseEnService?.toString() || new Date().toISOString(),
-      location: dto.localisationNom,
+      localisationId: dto.localisationId,
       criticality: dto.criticite,
       status: dto.etat,
       healthIndex: 100,

@@ -1,11 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useGmao } from '@/shared/hooks/useGmao';
 import { useEquipements } from '@/shared/hooks/useEquipements';
-import { Equipment as EquipmentType } from '@/shared/types/gmao';
+import { useLocalisations } from '@/shared/hooks/useLocalisations';
+import { Equipment as EquipmentType, Localisation } from '@/shared/types/gmao';
 import { usePermissions } from '@/shared/hooks/usePermissions';
 import { PERMISSIONS } from '@/shared/permissions';
 import { Settings2, Plus } from 'lucide-react';
-import { GeoTree, GeoNode } from '../components/GeoTree';
+import { GeoTree } from '../components/GeoTree';
 import { EqTree, EqNode } from '../components/EqTree';
 import { EquipmentDetails } from '../components/EquipmentDetails';
 
@@ -18,21 +19,20 @@ interface EquipmentProps {
 export const Equipment: React.FC<EquipmentProps> = ({ 
   selectedEqFromDash, 
 }) => {
-  const { suppliers, deleteEquipmentsByLocation, deleteEquipmentsByCategory } = useGmao();
-  const { equipments, loading, deleteEquipment } = useEquipements();
+  const { suppliers, deleteEquipmentsByCategory } = useGmao();
+  const { equipments, deleteEquipment } = useEquipements();
+  const { tree: geoTree } = useLocalisations();
   const { can } = usePermissions();
   
   const [search, setSearch] = useState('');
   
-  // Custom added nodes via prompt
-  const [customGeoNodes, setCustomGeoNodes] = useState<{id: string, name: string, type: string, parentId?: string}[]>([]);
   const [customCategories, setCustomCategories] = useState<string[]>([]);
   const [filterCriticality, setFilterCriticality] = useState<string>('Toutes');
   const [filterStatus, setFilterStatus] = useState<string>('Tous');
 
   // Left Panel (Geo) State
-  const [geoExpanded, setGeoExpanded] = useState<Set<string>>(new Set(['USINE DE LINO', 'USINE DE LINO-BATIMENT SUD']));
-  const [selectedGeoNode, setSelectedGeoNode] = useState<GeoNode | null>(null);
+  const [geoExpanded, setGeoExpanded] = useState<Set<number>>(new Set());
+  const [selectedGeoNode, setSelectedGeoNode] = useState<Localisation | null>(null);
 
   // Middle Panel (Eq) State
   const [eqExpanded, setEqExpanded] = useState<Set<string>>(new Set());
@@ -44,69 +44,45 @@ export const Equipment: React.FC<EquipmentProps> = ({
   const [formData, setFormData] = useState<Partial<EquipmentType>>({});
   const [activeTab, setActiveTab] = useState<'info'|'historique'|'preventifs'|'pieces'|'documents'|'ot'>('info');
 
-  // 1. Build Geographical Tree
-  const geoTree = useMemo(() => {
-    const root: GeoNode[] = [];
-    const sites = Array.from(new Set(equipments.map(e => e.site).filter(Boolean))) as string[];
-    customGeoNodes.filter(n => n.type === 'site').forEach(n => {
-        if (!sites.includes(n.name)) sites.push(n.name);
-    });
+  // Helper to get all descendant IDs of a localisation
+  const getDescendantLocalisationIds = (locId: number): number[] => {
+    const ids = [locId];
+    
+    // Find node in tree
+    const findNode = (nodes: Localisation[]): Localisation | null => {
+        for (const n of nodes) {
+            if (n.id === locId) return n;
+            if (n.sousLocalisations) {
+                const found = findNode(n.sousLocalisations);
+                if (found) return found;
+            }
+        }
+        return null;
+    };
 
-    sites.forEach(site => {
-      const isCustomSite = customGeoNodes.some(n => n.type === 'site' && n.name === site);
-      const siteNode: GeoNode = { id: site, name: site, type: 'site', children: [], isCustom: isCustomSite };
-      const siteEqs = equipments.filter(e => e.site === site);
-      
-      const buildings = Array.from(new Set(siteEqs.map(e => e.building).filter(Boolean))) as string[];
-      customGeoNodes.filter(n => n.type === 'building' && n.parentId === siteNode.id).forEach(n => {
-          if (!buildings.includes(n.name)) buildings.push(n.name);
-      });
+    const node = findNode(geoTree);
+    if (!node) return ids;
 
-      buildings.forEach(building => {
-        const isCustomBuilding = customGeoNodes.some(n => n.type === 'building' && n.name === building && n.parentId === siteNode.id);
-        const buildNode: GeoNode = { id: `${site}-${building}`, name: building, type: 'building', children: [], isCustom: isCustomBuilding, parentId: siteNode.id };
-        const buildEqs = siteEqs.filter(e => e.building === building);
-        
-        const floors = Array.from(new Set(buildEqs.map(e => e.floor).filter(Boolean))) as string[];
-        customGeoNodes.filter(n => n.type === 'floor' && n.parentId === buildNode.id).forEach(n => {
-            if (!floors.includes(n.name)) floors.push(n.name);
-        });
+    const collectDescendants = (n: Localisation) => {
+        if (n.sousLocalisations) {
+            for (const child of n.sousLocalisations) {
+                ids.push(child.id);
+                collectDescendants(child);
+            }
+        }
+    };
+    collectDescendants(node);
 
-        floors.forEach(floor => {
-          const isCustomFloor = customGeoNodes.some(n => n.type === 'floor' && n.name === floor && n.parentId === buildNode.id);
-          const floorNode: GeoNode = { id: `${site}-${building}-${floor}`, name: floor, type: 'floor', children: [], isCustom: isCustomFloor, parentId: buildNode.id };
-          const floorEqs = buildEqs.filter(e => e.floor === floor);
-          
-          const rooms = Array.from(new Set(floorEqs.map(e => e.room).filter(Boolean))) as string[];
-          customGeoNodes.filter(n => n.type === 'room' && n.parentId === floorNode.id).forEach(n => {
-              if (!rooms.includes(n.name)) rooms.push(n.name);
-          });
-
-          rooms.forEach(room => {
-            const isCustomRoom = customGeoNodes.some(n => n.type === 'room' && n.name === room && n.parentId === floorNode.id);
-            const roomNode: GeoNode = { id: `${site}-${building}-${floor}-${room}`, name: room, type: 'room', children: [], isCustom: isCustomRoom, parentId: floorNode.id };
-            floorNode.children.push(roomNode);
-          });
-          buildNode.children.push(floorNode);
-        });
-        siteNode.children.push(buildNode);
-      });
-      root.push(siteNode);
-    });
-    return root;
-  }, [equipments, customGeoNodes]);
+    return ids;
+  };
 
   // 2. Build Equipment Tree
   const eqTree = useMemo(() => {
     if (!selectedGeoNode) return [];
     
-    let filtered = equipments.filter(e => {
-      if (selectedGeoNode.type === 'site') return e.site === selectedGeoNode.name;
-      if (selectedGeoNode.type === 'building') return e.building === selectedGeoNode.name;
-      if (selectedGeoNode.type === 'floor') return e.floor === selectedGeoNode.name;
-      if (selectedGeoNode.type === 'room') return e.room === selectedGeoNode.name;
-      return false;
-    });
+    const validLocIds = getDescendantLocalisationIds(selectedGeoNode.id);
+
+    let filtered = equipments.filter(e => e.localisationId && validLocIds.includes(e.localisationId));
 
     if (search) {
       filtered = filtered.filter(e => e.name.toLowerCase().includes(search.toLowerCase()) || e.id.toLowerCase().includes(search.toLowerCase()));
@@ -157,23 +133,35 @@ export const Equipment: React.FC<EquipmentProps> = ({
     }
 
     return root;
-  }, [selectedGeoNode, equipments, search, filterCriticality, filterStatus, customCategories]);
+  }, [selectedGeoNode, equipments, search, filterCriticality, filterStatus, customCategories, geoTree]);
 
   // Sync selectedEqFromDash
-  React.useEffect(() => {
+  useEffect(() => {
     if (selectedEqFromDash) {
       setSelectedEqId(selectedEqFromDash.id);
       
       const eq = selectedEqFromDash;
-      if (eq.room) {
-        setSelectedGeoNode({ id: `${eq.site}-${eq.building}-${eq.floor}-${eq.room}`, name: eq.room, type: 'room', children: [] });
-      } else if (eq.site) {
-        setSelectedGeoNode({ id: eq.site, name: eq.site, type: 'site', children: [] });
+      if (eq.localisationId) {
+        // Find localisation by ID
+        const findNode = (nodes: Localisation[]): Localisation | null => {
+            for (const n of nodes) {
+                if (n.id === eq.localisationId) return n;
+                if (n.sousLocalisations) {
+                    const found = findNode(n.sousLocalisations);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
+        const node = findNode(geoTree);
+        if (node) {
+            setSelectedGeoNode(node);
+        }
       }
     }
-  }, [selectedEqFromDash]);
+  }, [selectedEqFromDash, geoTree]);
 
-  const toggleGeoNode = (id: string) => {
+  const toggleGeoNode = (id: number) => {
     setGeoExpanded(prev => {
       const newSet = new Set(prev);
       if (newSet.has(id)) newSet.delete(id);
@@ -198,54 +186,6 @@ export const Equipment: React.FC<EquipmentProps> = ({
     setIsEditing(false);
   };
 
-  const handleAddGeo = () => {
-      let node = selectedGeoNode;
-      if (!node) {
-          const firstSite = geoTree[0];
-          if (firstSite) {
-              node = firstSite;
-          } else {
-              const name = window.prompt("Nom du nouveau Site / Usine :");
-              if (name && name.trim() !== '') {
-                  setCustomGeoNodes(prev => [...prev, {
-                      id: `site-${name}`,
-                      name: name,
-                      type: 'site',
-                      isCustom: true
-                  }]);
-              }
-              return;
-          }
-      }
-      
-      const typeNames: Record<string, string> = {
-          'site': 'Bâtiment',
-          'building': 'Étage / Niveau',
-          'floor': 'Local / Ligne',
-          'room': 'Sous-local'
-      };
-      const nextType = typeNames[node.type];
-      if (nextType) {
-          const name = window.prompt(`Nom du nouveau ${nextType} dans ${node.name} :`);
-          if (name && name.trim() !== '') {
-              let nextTypeKey = 'building';
-              if (node.type === 'building') nextTypeKey = 'floor';
-              if (node.type === 'floor') nextTypeKey = 'room';
-              if (node.type === 'room') nextTypeKey = 'subroom';
-
-              setCustomGeoNodes(prev => [...prev, {
-                  id: `${node.id}-${name}`,
-                  name: name,
-                  type: nextTypeKey,
-                  parentId: node.id,
-                  isCustom: true
-              }]);
-              
-              setGeoExpanded(prev => new Set(prev).add(node!.id));
-          }
-      }
-  };
-
   const handleAddNew = () => {
     setIsAdding(true);
     setSelectedEqId(null);
@@ -255,41 +195,9 @@ export const Equipment: React.FC<EquipmentProps> = ({
       category: '',
       status: 'En service',
       criticality: 'Moyenne',
-      site: selectedGeoNode?.type === 'site' ? selectedGeoNode.name : selectedGeoNode?.id.split('-')[0] || '',
-      building: selectedGeoNode?.type === 'building' ? selectedGeoNode.name : selectedGeoNode?.id.split('-')[1] || '',
-      floor: selectedGeoNode?.type === 'floor' ? selectedGeoNode.name : selectedGeoNode?.id.split('-')[2] || '',
-      room: selectedGeoNode?.type === 'room' ? selectedGeoNode.name : selectedGeoNode?.id.split('-')[3] || '',
+      localisationId: selectedGeoNode ? selectedGeoNode.id : undefined,
       photos: []
     });
-  };
-
-  const handleAddNewFromGeo = (node: GeoNode, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const typeNames: Record<string, string> = {
-        'site': 'Bâtiment',
-        'building': 'Étage / Niveau',
-        'floor': 'Local / Ligne',
-        'room': 'Sous-local'
-    };
-    const nextType = typeNames[node.type];
-    if (nextType) {
-        const name = window.prompt(`Nom du nouveau ${nextType} dans ${node.name} :`);
-        if (name && name.trim() !== '') {
-            let nextTypeKey = 'building';
-            if (node.type === 'building') nextTypeKey = 'floor';
-            if (node.type === 'floor') nextTypeKey = 'room';
-            if (node.type === 'room') nextTypeKey = 'subroom';
-
-            setCustomGeoNodes(prev => [...prev, {
-                id: `${node.id}-${name}`,
-                name: name,
-                type: nextTypeKey,
-                parentId: node.id
-            }]);
-            
-            setGeoExpanded(prev => new Set(prev).add(node.id));
-        }
-    }
   };
 
   const handleAddNewFromEq = (node: EqNode, e: React.MouseEvent) => {
@@ -301,15 +209,9 @@ export const Equipment: React.FC<EquipmentProps> = ({
       id: `EQ-NEW-${Math.floor(Math.random() * 1000)}`,
       status: 'En service',
       criticality: 'Moyenne',
+      localisationId: selectedGeoNode ? selectedGeoNode.id : undefined,
       photos: [],
     };
-    
-    if (selectedGeoNode) {
-        if (selectedGeoNode.type === 'site') newEq.site = selectedGeoNode.name;
-        if (selectedGeoNode.type === 'building') { newEq.site = selectedGeoNode.id.split('-')[0]; newEq.building = selectedGeoNode.name; }
-        if (selectedGeoNode.type === 'floor') { newEq.site = selectedGeoNode.id.split('-')[0]; newEq.building = selectedGeoNode.id.split('-')[1]; newEq.floor = selectedGeoNode.name; }
-        if (selectedGeoNode.type === 'room') { newEq.site = selectedGeoNode.id.split('-')[0]; newEq.building = selectedGeoNode.id.split('-')[1]; newEq.floor = selectedGeoNode.id.split('-')[2]; newEq.room = selectedGeoNode.name; }
-    }
 
     if (node.type === 'category') {
       newEq.category = node.name;
@@ -319,19 +221,6 @@ export const Equipment: React.FC<EquipmentProps> = ({
     }
 
     setFormData(newEq);
-  };
-
-  const handleDeleteGeoNode = (node: GeoNode, e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (window.confirm(`Êtes-vous sûr de vouloir supprimer ${node.name} et tout son contenu ?`)) {
-          if (node.isCustom) {
-              setCustomGeoNodes(prev => prev.filter(n => n.id !== node.id));
-          } else {
-              const parts = node.id.split('-');
-              deleteEquipmentsByLocation(node.type as any, parts[0], parts[1], parts[2], parts[3]);
-          }
-          if (selectedGeoNode?.id === node.id) setSelectedGeoNode(null);
-      }
   };
 
   const handleDeleteEqNode = (node: EqNode, e: React.MouseEvent) => {
@@ -385,9 +274,6 @@ export const Equipment: React.FC<EquipmentProps> = ({
           selectedGeoNode={selectedGeoNode}
           onToggleNode={toggleGeoNode}
           onSelectNode={setSelectedGeoNode}
-          onAddGeo={handleAddGeo}
-          onAddNewFromGeo={handleAddNewFromGeo}
-          onDeleteGeoNode={handleDeleteGeoNode}
         />
 
         <EqTree 

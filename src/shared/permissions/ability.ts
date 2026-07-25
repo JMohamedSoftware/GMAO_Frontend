@@ -2,9 +2,9 @@
 import { AppRole, ROLES } from './roles';
 import { Permission, PERMISSIONS } from './permissions';
 
-export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
+export const ROLE_PERMISSIONS: Record<AppRole, Permission[]> = {
   [ROLES.SUPER_ADMIN]: Object.values(PERMISSIONS),
-  [ROLES.COMPANY_ADMIN]: Object.values(PERMISSIONS),
+  [ROLES.ADMINISTRATEUR]: Object.values(PERMISSIONS),
   [ROLES.RESPONSABLE]: [
     // Equivalents for Responsable
     PERMISSIONS.DASHBOARD_VIEW,

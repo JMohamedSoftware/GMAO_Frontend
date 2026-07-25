@@ -65,7 +65,7 @@ export const CommandMenu: React.FC<CommandMenuProps> = ({ isOpen, onClose, onNav
   const filteredEquip = equipments.filter(eq => 
     eq.name.toLowerCase().includes(search.toLowerCase()) || 
     eq.id.toLowerCase().includes(search.toLowerCase()) ||
-    eq.location.toLowerCase().includes(search.toLowerCase())
+    eq.localisation?.nom?.toLowerCase().includes(search.toLowerCase())
   ).slice(0, 3).map(eq => ({
     name: `Fiche: ${eq.name} (${eq.id})`,
     screen: `equipment-detail:${eq.id}`,

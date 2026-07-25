@@ -36,10 +36,10 @@ const initialEquipments: Equipment[] = [
     brand: 'FMC Technologies',
     model: 'Line-2000',
     serialNumber: 'LIG-2022-001',
-    site: 'USINE DE LINO',
-    building: 'BATIMENT NORD',
-    floor: 'RDC',
-    room: 'Atelier Principal',
+
+
+
+
     responsibility: 'PRODUCTION',
     gipPresence: true,
     purchaseDate: '2022-01-10',
@@ -47,7 +47,7 @@ const initialEquipments: Equipment[] = [
     barcode: '1234567890123',
     inventory: 'INV-2022-10',
     commissionDate: '2022-04-15',
-    location: 'Lavage',
+
     criticality: 'Critique',
     status: 'En service',
     healthIndex: 94,
@@ -72,10 +72,10 @@ const initialEquipments: Equipment[] = [
     model: 'VAP-3000-G',
     serialNumber: 'BW-2022-8947',
     supplierId: 'SUP-002',
-    site: 'USINE DE LINO',
-    building: 'BATIMENT NORD',
-    floor: 'RDC',
-    room: 'Local Technique',
+
+
+
+
     responsibility: 'TECHNIQUE',
     gipPresence: true,
     purchaseDate: '2022-02-15',
@@ -83,7 +83,7 @@ const initialEquipments: Equipment[] = [
     barcode: '4567891230123',
     inventory: 'INV-2022-11',
     commissionDate: '2022-04-15',
-    location: 'Utilités',
+
     criticality: 'Critique',
     status: 'En service',
     healthIndex: 94,
@@ -112,15 +112,15 @@ const initialEquipments: Equipment[] = [
     model: 'Evap-Tomato-3E',
     serialNumber: 'AL-2021-0021',
     supplierId: 'SUP-003',
-    site: 'USINE DE LINO',
-    building: 'BATIMENT NORD',
-    floor: 'RDC',
-    room: 'Atelier Concentration',
+
+
+
+
     responsibility: 'PRODUCTION',
     purchaseDate: '2021-05-20',
     barcode: '9876543210123',
     commissionDate: '2021-06-20',
-    location: 'Concentration',
+
     criticality: 'Critique',
     status: 'En service',
     healthIndex: 88,
@@ -145,14 +145,14 @@ const initialEquipments: Equipment[] = [
     brand: 'Grundfos',
     model: 'CRN-45',
     serialNumber: 'GR-8899-741',
-    site: 'USINE DE LINO',
-    building: 'BATIMENT NORD',
-    floor: 'RDC',
-    room: 'Atelier Concentration',
+
+
+
+
     responsibility: 'TECHNIQUE',
     gipPresence: false,
     commissionDate: '2021-06-25',
-    location: 'Concentration',
+
     criticality: 'Moyenne',
     status: 'En panne',
     healthIndex: 45,
@@ -176,14 +176,14 @@ const initialEquipments: Equipment[] = [
     brand: 'Intralox',
     model: 'S800-OpenHinge',
     serialNumber: 'IX-2023-055',
-    site: 'USINE DE LINO',
-    building: 'BATIMENT SUD',
-    floor: 'Usine',
-    room: 'Réception',
+
+
+
+
     responsibility: 'PRODUCTION',
     gipPresence: false,
     commissionDate: '2023-02-10',
-    location: 'Tri',
+
     criticality: 'Haute',
     status: 'En service',
     healthIndex: 98,
@@ -207,13 +207,13 @@ const initialEquipments: Equipment[] = [
     brand: 'FMC Technologies',
     model: 'Steril-Host-4',
     serialNumber: 'FMC-AC-2021-04',
-    site: 'USINE DE LINO',
-    building: 'BATIMENT SUD',
-    floor: 'Usine',
-    room: 'Concentration - Ligne 1',
+
+
+
+
     responsibility: 'PRODUCTION',
     commissionDate: '2021-09-12',
-    location: 'Conditionnement',
+
     criticality: 'Critique',
     status: 'En service',
     healthIndex: 96,
@@ -237,13 +237,13 @@ const initialEquipments: Equipment[] = [
     brand: 'Krones',
     model: 'AseptFill-200',
     serialNumber: 'KR-2024-88',
-    site: 'USINE DE LINO',
-    building: 'BATIMENT SUD',
-    floor: 'Usine',
-    room: 'Conditionnement',
+
+
+
+
     responsibility: 'PRODUCTION',
     commissionDate: '2024-01-15',
-    location: 'Conditionnement',
+
     criticality: 'Critique',
     status: 'En service',
     healthIndex: 92,
