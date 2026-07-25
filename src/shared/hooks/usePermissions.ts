@@ -22,7 +22,7 @@ export function usePermissions() {
     const userPermissions = authUser?.permissions || currentUser?.permissions;
     
     if (userPermissions && userPermissions.length > 0) {
-      if (role === ROLES.SUPER_ADMIN || role === ROLES.ADMINISTRATEUR) return true; 
+      if (role === ROLES.SUPER_ADMIN || role === ROLES.ADMINISTRATEUR || (role as string) === 'Admin' || (role as string) === 'CompanyAdmin') return true; 
       return hasScopedPermission(
         userPermissions, 
         permission, 
@@ -40,7 +40,7 @@ export function usePermissions() {
   /**
    * Role checkers — convenience shortcuts
    */
-  const isAdmin = role === ROLES.ADMINISTRATEUR || role === ROLES.SUPER_ADMIN;
+  const isAdmin = role === ROLES.ADMINISTRATEUR || role === ROLES.SUPER_ADMIN || (role as string) === 'Admin' || (role as string) === 'CompanyAdmin';
   const isResponsable = role === ROLES.RESPONSABLE;
   const isChefEquipe = role === ROLES.CHEF_EQUIPE;
   const isTechnicien = role === ROLES.TECHNICIEN;

@@ -36,7 +36,7 @@ export const useGmao = () => {
 
     // Actions
     login: (email: string, password?: string, tenantId?: string | null, quickRole?: User['role'], forcedName?: string) => {
-      let role = quickRole || 'CompanyAdmin';
+      let role = quickRole || 'Administrateur';
       let name = forcedName || 'Utilisateur';
       let avatar = 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80';
 
