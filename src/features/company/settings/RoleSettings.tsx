@@ -29,7 +29,7 @@ export const RoleSettings: React.FC = () => {
       const res = await apiClient.get('/api/Settings/Roles');
       // Filter out admin roles so they cannot be modified by the user
       const filteredRoles = res.data.filter((r: any) => 
-        r.nom !== 'Administrateur'
+        r.nom !== 'Administrateur' && r.nom !== 'SuperAdmin'
       );
       setRoles(filteredRoles);
       if (filteredRoles.length > 0) setSelectedRoleId(filteredRoles[0].id);
