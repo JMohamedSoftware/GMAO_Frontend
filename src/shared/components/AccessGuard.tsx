@@ -11,8 +11,6 @@ interface AccessGuardProps {
 }
 
 const roleLabels: Record<string, string> = {
-  'CompanyAdmin': 'Administrateur',
-  'Admin': 'Administrateur',
   'Responsable Maintenance': 'Responsable Maintenance',
   "Chef d'équipe": "Chef d'équipe",
   'Technicien': 'Technicien',

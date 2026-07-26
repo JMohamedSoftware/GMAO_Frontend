@@ -7,7 +7,7 @@ export const can = (role: string | undefined | null, permission: Permission): bo
   if (!role) return false;
   
   // SuperAdmin and Administrateur have access to everything
-  if (role === ROLES.SUPER_ADMIN || role === ROLES.ADMINISTRATEUR || role === 'Admin' || role === 'CompanyAdmin') {
+  if (role === ROLES.SUPER_ADMIN || role === ROLES.ADMINISTRATEUR) {
     return true;
   }
 
