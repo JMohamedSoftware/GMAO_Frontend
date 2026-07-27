@@ -13,6 +13,7 @@ import { AdminSettings } from './AdminSettings';
 import { AdminModals } from '../users/AdminModals';
 import { usersApi } from '../users/api/users.api';
 import { TeamManagement } from '../users/TeamManagement';
+import { apiClient } from '@/shared/services/apiClient';
 
 export const Admin: React.FC = () => {
   const { tenants, currentTenantId, addUser, rolePermissions, updateRolePermission } = useGmao();
@@ -66,11 +67,17 @@ export const Admin: React.FC = () => {
     setTimeout(() => setSuccessSaved(false), 2500);
   };
 
-  // Add user modal state
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserAccount | null>(null);
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'Technicien', phone: '', department: '', status: 'Actif', avatar: '' });
+  const [availableRoles, setAvailableRoles] = useState<{id: number, nom: string}[]>([]);
+
+  React.useEffect(() => {
+    apiClient.get('/api/Settings/Roles').then(res => {
+      setAvailableRoles(res.data.filter((r: any) => !['Administrateur', 'SuperAdmin'].includes(r.nom)));
+    }).catch(() => {});
+  }, []);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -135,11 +142,64 @@ export const Admin: React.FC = () => {
     }
   };
 
-  const handleEditUser = (e: React.FormEvent) => {
+  const handleEditUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Implementation would update the user context
-    setIsEditUserOpen(false);
-    setEditingUser(null);
+    if (!editingUser) return;
+    setIsSubmitting(true);
+    try {
+      const roleMapping: Record<string, number> = {};
+      availableRoles.forEach(r => { roleMapping[r.nom] = r.id; });
+
+      const parts = (editingUser.name || '').trim().split(' ');
+      const prenom = parts[0] || 'Prénom';
+      const nom = parts.slice(1).join(' ') || 'Nom';
+
+      await usersApi.updateUser(editingUser.id, {
+        nom,
+        prenom,
+        email: editingUser.email,
+        telephone: editingUser.phone || '',
+        roleId: roleMapping[editingUser.role] || undefined,
+        isActive: editingUser.status === 'Actif',
+      });
+
+      // Refresh list
+      const data = await usersApi.getUsers();
+      const mappedUsers = data.map((u: any) => ({
+        id: u.id.toString(),
+        name: `${u.prenom} ${u.nom}`.trim(),
+        email: u.email,
+        role: u.role?.nom || 'Technicien',
+        department: 'Général',
+        phone: u.telephone,
+        status: u.isActive ? 'Actif' : 'Inactif',
+        avatar: u.avatar || 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=150&auto=format&fit=crop&q=80',
+        lastActive: 'À l\'instant',
+        createdAt: u.createdAt
+      }));
+      setUsers(mappedUsers);
+
+      setIsEditUserOpen(false);
+      setEditingUser(null);
+      setSuccessSaved(true);
+      setTimeout(() => setSuccessSaved(false), 2500);
+    } catch (err: any) {
+      alert(err.response?.data?.message || err.message || "Erreur lors de la modification.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) return;
+    try {
+      await usersApi.deleteUser(userId);
+      setUsers(prev => prev.filter(u => u.id !== userId));
+      setSuccessSaved(true);
+      setTimeout(() => setSuccessSaved(false), 2500);
+    } catch (err: any) {
+      alert(err.response?.data?.message || err.message || "Erreur lors de la suppression.");
+    }
   };
 
   return (
@@ -228,7 +288,8 @@ export const Admin: React.FC = () => {
             can={can} 
             setIsAddUserOpen={setIsAddUserOpen} 
             setEditingUser={setEditingUser} 
-            setIsEditUserOpen={setIsEditUserOpen} 
+            setIsEditUserOpen={setIsEditUserOpen}
+            onDeleteUser={handleDeleteUser}
           />
         )}
         
@@ -265,12 +326,13 @@ export const Admin: React.FC = () => {
         handleAddUser={handleAddUser}
         newUser={newUser}
         setNewUser={setNewUser}
-        permissions={permissions}
+        availableRoles={availableRoles}
         isEditUserOpen={isEditUserOpen}
         setIsEditUserOpen={setIsEditUserOpen}
         handleEditUser={handleEditUser}
         editingUser={editingUser}
         setEditingUser={setEditingUser}
+        isSubmitting={isSubmitting}
       />
     </div>
   );

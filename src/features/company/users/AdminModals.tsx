@@ -8,7 +8,8 @@ interface AdminModalsProps {
   handleAddUser: (e: React.FormEvent) => void;
   newUser: any;
   setNewUser: (user: any) => void;
-  permissions: any;
+  availableRoles: {id: number, nom: string}[];
+  isSubmitting?: boolean;
   
   isEditUserOpen: boolean;
   setIsEditUserOpen: (open: boolean) => void;
@@ -18,8 +19,8 @@ interface AdminModalsProps {
 }
 
 export const AdminModals: React.FC<AdminModalsProps> = ({
-  isAddUserOpen, setIsAddUserOpen, handleAddUser, newUser, setNewUser, permissions,
-  isEditUserOpen, setIsEditUserOpen, handleEditUser, editingUser, setEditingUser
+  isAddUserOpen, setIsAddUserOpen, handleAddUser, newUser, setNewUser, availableRoles,
+  isEditUserOpen, setIsEditUserOpen, handleEditUser, editingUser, setEditingUser, isSubmitting
 }) => {
   return (
     <>
@@ -110,9 +111,10 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
                     onChange={(e) => setNewUser({...newUser, role: e.target.value})}
                     className="p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:border-primary cursor-pointer font-semibold"
                   >
-                    {Object.keys(permissions).map(roleOption => (
-                      <option key={roleOption} value={roleOption}>{roleOption}</option>
+                    {availableRoles.map(r => (
+                      <option key={r.id} value={r.nom}>{r.nom}</option>
                     ))}
+                    {availableRoles.length === 0 && <option value="Technicien">Technicien</option>}
                   </select>
                 </div>
                 <div className="flex flex-col gap-1.5">
@@ -132,10 +134,11 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
 
               <button 
                 type="submit"
-                className="w-full mt-2 bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded-lg shadow-md cursor-pointer transition-colors flex items-center justify-center gap-2"
+                disabled={isSubmitting}
+                className="w-full mt-2 bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded-lg shadow-md cursor-pointer transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
               >
                 <Check className="w-4 h-4" />
-                Confirmer l'ajout
+                {isSubmitting ? 'Ajout en cours...' : "Confirmer l'ajout"}
               </button>
             </form>
           </div>
@@ -168,6 +171,28 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
                 </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-bold text-slate-500 dark:text-slate-400">Nom Complet</label>
+                  <input
+                    type="text"
+                    value={editingUser.name || ''}
+                    onChange={(e) => setEditingUser({...editingUser, name: e.target.value})}
+                    className="p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:border-primary"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-bold text-slate-500 dark:text-slate-400">Téléphone</label>
+                  <input
+                    type="text"
+                    value={editingUser.phone || ''}
+                    onChange={(e) => setEditingUser({...editingUser, phone: e.target.value})}
+                    className="p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:border-primary"
+                    placeholder="+216 XX XXX XXX"
+                  />
+                </div>
+              </div>
+
               <div className="flex flex-col gap-1.5">
                 <label className="font-bold text-slate-500 dark:text-slate-400">Rôle</label>
                 <select
@@ -175,9 +200,10 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
                   onChange={(e) => setEditingUser({...editingUser, role: e.target.value})}
                   className="p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:border-primary cursor-pointer font-semibold"
                 >
-                  {Object.keys(permissions).map(roleOption => (
-                    <option key={roleOption} value={roleOption}>{roleOption}</option>
+                  {availableRoles.map(r => (
+                    <option key={r.id} value={r.nom}>{r.nom}</option>
                   ))}
+                  {availableRoles.length === 0 && <option value={editingUser.role}>{editingUser.role}</option>}
                 </select>
               </div>
 
@@ -206,10 +232,11 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
 
               <button 
                 type="submit"
-                className="w-full mt-2 bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded-lg shadow-md cursor-pointer transition-colors flex items-center justify-center gap-2"
+                disabled={isSubmitting}
+                className="w-full mt-2 bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded-lg shadow-md cursor-pointer transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
               >
                 <Save className="w-4 h-4" />
-                Enregistrer
+                {isSubmitting ? 'Sauvegarde...' : 'Enregistrer'}
               </button>
             </form>
           </div>

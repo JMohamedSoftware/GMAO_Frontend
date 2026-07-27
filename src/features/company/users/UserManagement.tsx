@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, UserPlus, Phone, Briefcase, Calendar, Clock, Edit2 } from 'lucide-react';
+import { Users, UserPlus, Phone, Briefcase, Calendar, Clock, Edit2, Trash2 } from 'lucide-react';
 import { PERMISSIONS } from '@/shared/permissions';
 import { UserAccount } from '@/shared/types/gmao';
 
@@ -9,6 +9,7 @@ interface UserManagementProps {
   setIsAddUserOpen: (open: boolean) => void;
   setEditingUser: (user: UserAccount | null) => void;
   setIsEditUserOpen: (open: boolean) => void;
+  onDeleteUser: (id: string) => void;
 }
 
 export const UserManagement: React.FC<UserManagementProps> = ({
@@ -16,7 +17,8 @@ export const UserManagement: React.FC<UserManagementProps> = ({
   can,
   setIsAddUserOpen,
   setEditingUser,
-  setIsEditUserOpen
+  setIsEditUserOpen,
+  onDeleteUser
 }) => {
   return (
     <div className="glass-panel p-5 rounded-custom-lg border border-white/40 dark:border-slate-800/40 shadow-sm flex flex-col gap-4">
@@ -70,9 +72,17 @@ export const UserManagement: React.FC<UserManagementProps> = ({
               </span>
               <button 
                 onClick={() => { setEditingUser(u); setIsEditUserOpen(true); }}
-                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 transition-colors"
+                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-primary transition-colors"
+                title="Modifier"
               >
                 <Edit2 className="w-4 h-4" />
+              </button>
+              <button 
+                onClick={() => onDeleteUser(u.id)}
+                className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg text-slate-400 hover:text-rose-500 transition-colors"
+                title="Supprimer"
+              >
+                <Trash2 className="w-4 h-4" />
               </button>
             </div>
           </div>

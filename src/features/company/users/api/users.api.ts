@@ -23,5 +23,21 @@ export const usersApi = {
   createUser: async (payload: CreateUserPayload) => {
     const response = await apiClient.post('/api/users', payload);
     return response.data;
+  },
+  updateUser: async (id: string | number, payload: {
+    nom?: string;
+    prenom?: string;
+    email?: string;
+    telephone?: string;
+    roleId?: number;
+    isActive?: boolean;
+    avatar?: string;
+  }) => {
+    const response = await apiClient.put(`/api/users/${id}`, payload);
+    return response.data;
+  },
+  deleteUser: async (id: string | number) => {
+    const response = await apiClient.delete(`/api/users/${id}`);
+    return response.data;
   }
 };
