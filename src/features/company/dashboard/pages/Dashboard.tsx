@@ -3,6 +3,8 @@ import { useGmao } from '@/shared/hooks/useGmao';
 import { Equipment } from '@/shared/types/gmao';
 import { usePermissions } from '@/shared/hooks/usePermissions';
 import { PERMISSIONS } from '@/shared/permissions';
+import { localisationsApi } from '@/shared/api/localisations.api';
+import { Localisation } from '@/shared/types/gmao';
 
 import { DashboardNavigation } from '../components/DashboardNavigation';
 import { DashboardStats } from '../components/DashboardStats';
@@ -21,6 +23,47 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
 
   // Quick-peek drawer state for arborescence clicks
   const [selectedDashboardEq, setSelectedDashboardEq] = useState<Equipment | null>(null);
+  const [dynamicTree, setDynamicTree] = useState<any>(null);
+
+  React.useEffect(() => {
+    const fetchTree = async () => {
+      try {
+        const roots = await localisationsApi.getTree();
+        
+        const buildNode = (loc: Localisation): any => {
+          const eqsInLoc = equipments.filter(e => e.localisationId === loc.id);
+          const eqNodes = eqsInLoc.map(e => ({ name: `${e.id} - ${e.name}`, eqId: e.id }));
+          const childNodes = (loc.sousLocalisations || []).map(buildNode);
+          return {
+            name: loc.nom,
+            children: [...childNodes, ...eqNodes]
+          };
+        };
+
+        const rootChildren = roots.map(buildNode);
+        
+        // If there are equipments with NO localisation, group them under "Non assignés"
+        const eqsWithoutLoc = equipments.filter(e => !e.localisationId);
+        if (eqsWithoutLoc.length > 0) {
+          rootChildren.push({
+            name: 'Équipements non assignés',
+            children: eqsWithoutLoc.map(e => ({ name: `${e.id} - ${e.name}`, eqId: e.id }))
+          });
+        }
+        
+        setDynamicTree({
+          name: 'Usine / Parc Global',
+          children: rootChildren
+        });
+
+      } catch (err) {
+        console.error('Failed to fetch localisations tree', err);
+      }
+    };
+    
+    // Refresh tree if equipments change or on mount
+    fetchTree();
+  }, [equipments]);
 
   // Stats Calculations
   const totalLaborCost = workOrders.reduce((acc, ot) => {
@@ -56,41 +99,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
   const btAFaire = workOrders.filter(o => o.status === 'En attente' || o.status === 'Affecté').length;
   const btEnCours = workOrders.filter(o => o.status === 'En cours').length;
   const btFait = workOrders.filter(o => o.status === 'Terminé' || o.status === 'Clôturé').length;
-
-  // 3. Asset Tree structure (Tomato factory)
-  const factoryTree = {
-    name: '05 - Usine Tomates POMODORO',
-    children: [
-      {
-        name: '1 - Réception & Lavage',
-        children: [
-          { name: 'EQ-CONV-001 - Convoyeur à bande Réception', eqId: 'EQ-CONV-001' }
-        ]
-      },
-      {
-        name: '2 - Concentration',
-        children: [
-          { name: 'EQ-EVAP-001 - Évaporateur Concentrateur N°1', eqId: 'EQ-EVAP-001' },
-          { name: 'EQ-PUMP-001 - Pompe Centrifuge LKH-25', eqId: 'EQ-PUMP-001' }
-        ]
-      },
-      {
-        name: '3 - Conditionnement & Stérilisation',
-        children: [
-          { name: 'EQ-AUTO-001 - Autoclave FMC Steril-Host 4', eqId: 'EQ-AUTO-001' },
-          { name: 'EQ-PACK-001 - Remplisseuse Aseptique Krones', eqId: 'EQ-PACK-001' }
-        ]
-      },
-      {
-        name: '4 - Énergie & Utilités',
-        children: [
-          { name: 'EQ-BOIL-001 - Chaudière Thermique Babcock VAP 3000', eqId: 'EQ-BOIL-001' },
-          { name: 'EQ-COMP-001 - Compresseur Central Kaeser CSD 125', eqId: 'EQ-COMP-001' },
-          { name: 'EQ-STAT-001 - Station Traitement Eau brute Veolia', eqId: 'EQ-STAT-001' }
-        ]
-      }
-    ]
-  };
 
   // Recharts composed dataset
   const monthlyTrendsData = [
@@ -143,14 +151,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
         {/* ROW 2: Arborescence (left 8 cols) + Quick-peek panel (right 4 cols) */}
         <div className="lg:col-span-8 flex flex-col gap-6">
           {can(PERMISSIONS.EQUIPMENT_VIEW) && (
-            <DashboardTree 
-              factoryTree={factoryTree}
-              equipments={equipments}
-              selectedDashboardEq={selectedDashboardEq}
-              setSelectedDashboardEq={setSelectedDashboardEq}
-              onNavigate={onNavigate}
-              onSelectEquipmentToNavigate={onSelectEquipment}
-            />
+            dynamicTree ? (
+              <DashboardTree 
+                factoryTree={dynamicTree}
+                equipments={equipments}
+                selectedDashboardEq={selectedDashboardEq}
+                setSelectedDashboardEq={setSelectedDashboardEq}
+                onNavigate={onNavigate}
+                onSelectEquipmentToNavigate={onSelectEquipment}
+              />
+            ) : (
+              <div className="glass-panel rounded-custom-lg border border-white/40 dark:border-slate-850 p-12 text-center shadow-sm">
+                <span className="text-sm font-bold text-slate-500 animate-pulse">Chargement de l'arborescence...</span>
+              </div>
+            )
           )}
         </div>
 
