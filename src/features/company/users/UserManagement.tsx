@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, UserPlus, Phone, Briefcase, Calendar, Clock, Edit2, Trash2 } from 'lucide-react';
+import { UserPlus, Phone, Briefcase, Calendar, Clock, Edit2, Trash2 } from 'lucide-react';
 import { PERMISSIONS } from '@/shared/permissions';
 import { UserAccount } from '@/shared/types/gmao';
 
@@ -22,11 +22,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({
 }) => {
   return (
     <div className="glass-panel p-5 rounded-custom-lg border border-white/40 dark:border-slate-800/40 shadow-sm flex flex-col gap-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-sm font-bold text-slate-850 dark:text-slate-100 flex items-center gap-2">
-          <Users className="w-4.5 h-4.5 text-primary" />
-          Répertoire des Utilisateurs
-        </h3>
+      <div className="flex justify-end items-center">
         {can(PERMISSIONS.USER_CREATE) && (
         <button
           onClick={() => setIsAddUserOpen(true)}
