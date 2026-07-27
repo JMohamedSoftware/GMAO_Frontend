@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { Equipment, Supplier, SparePart, Incident, WorkOrder, Campaign, User } from '../types/gmao';
 
-const API_URL = 'http://localhost:5033/api';
+const rawUrl = import.meta.env.VITE_API_URL || 'https://gmao-backend-a6r2.onrender.com';
+const API_URL = rawUrl.replace(/\/api\/?$/, '') + '/api';
 
 const getAuthHeaders = () => {
     const token = localStorage.getItem('gmao_token');
