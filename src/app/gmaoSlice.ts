@@ -1,7 +1,7 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { Tenant, User, Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount } from '@/shared/types/gmao';
 import { AppRole } from '@/shared/permissions';
-import { initialSuppliers, initialParts, initialTechnicians, initialUsers, initialEquipments, initialIncidents, initialWorkOrders, initialCampaigns } from '@/data/mockData';
+import { fetchEquipments, fetchSuppliers, fetchParts, fetchIncidents, fetchWorkOrders, fetchCampaigns } from '@/shared/api/dataFetch.api';
 
 interface GmaoState {
   tenants: Tenant[];
@@ -29,14 +29,14 @@ const getInitialTenants = (): Tenant[] => {
       createdAt: '2026-01-10T12:00:00Z',
       adminEmail: 'admin@midi.com',
       capacityTonsPerDay: 450,
-      equipments: initialEquipments,
-      workOrders: initialWorkOrders,
-      incidents: initialIncidents,
-      technicians: initialTechnicians,
-      parts: initialParts,
-      suppliers: initialSuppliers,
-      campaigns: initialCampaigns,
-      users: initialUsers
+      equipments: [],
+      workOrders: [],
+      incidents: [],
+      technicians: [],
+      parts: [],
+      suppliers: [],
+      campaigns: [],
+      users: []
     }
   ];
 };
@@ -52,6 +52,20 @@ const initialState: GmaoState = {
   notifications: []
 };
 
+export const fetchTenantDataAsync = createAsyncThunk(
+  'gmao/fetchTenantData',
+  async () => {
+    const [equipments, suppliers, parts, incidents, workOrders, campaigns] = await Promise.all([
+      fetchEquipments(),
+      fetchSuppliers(),
+      fetchParts(),
+      fetchIncidents(),
+      fetchWorkOrders(),
+      fetchCampaigns()
+    ]);
+    return { equipments, suppliers, parts, incidents, workOrders, campaigns };
+  }
+);
 export const gmaoSlice = createSlice({
   name: 'gmao',
   initialState,
@@ -262,6 +276,19 @@ export const gmaoSlice = createSlice({
     syncToLocalStorage: (state) => {
       localStorage.setItem('gmao_tenants_v8', JSON.stringify(state.tenants));
     }
+  },
+  extraReducers: (builder) => {
+    builder.addCase(fetchTenantDataAsync.fulfilled, (state, action) => {
+      const tenant = state.tenants.find(t => t.id === state.currentTenantId);
+      if (tenant) {
+        tenant.equipments = action.payload.equipments;
+        tenant.suppliers = action.payload.suppliers;
+        tenant.parts = action.payload.parts;
+        tenant.incidents = action.payload.incidents;
+        tenant.workOrders = action.payload.workOrders;
+        tenant.campaigns = action.payload.campaigns;
+      }
+    });
   }
 });
 
@@ -275,3 +302,4 @@ export const {
 } = gmaoSlice.actions;
 
 export default gmaoSlice.reducer;
+

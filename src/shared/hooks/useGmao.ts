@@ -3,10 +3,17 @@ import * as actions from '@/app/gmaoSlice';
 import { AppRole } from '@/shared/permissions';
 import { Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount, User, Tenant } from '@/shared/types/gmao';
 import { useEffect } from 'react';
+import { fetchTenantDataAsync } from '@/app/gmaoSlice';
 
 export const useGmao = () => {
   const dispatch = useAppDispatch();
   const state = useAppSelector(s => s.gmao);
+
+  useEffect(() => {
+    if (state.currentUser) {
+      dispatch(fetchTenantDataAsync());
+    }
+  }, [state.currentUser, dispatch]);
 
   // Sync to local storage manually or via middleware. We'll do a simple effect for tenants:
   useEffect(() => {
@@ -78,3 +85,4 @@ export const useGmao = () => {
     impersonateTenant: (...args: any[]) => {}
   };
 };
+
