@@ -72,6 +72,7 @@ const initialEquipments: Equipment[] = [
     model: 'VAP-3000-G',
     serialNumber: 'BW-2022-8947',
     supplierId: 'SUP-002',
+    localisationId: 5,
 
 
 
@@ -112,6 +113,7 @@ const initialEquipments: Equipment[] = [
     model: 'Evap-Tomato-3E',
     serialNumber: 'AL-2021-0021',
     supplierId: 'SUP-003',
+    localisationId: 3,
 
 
 
@@ -145,6 +147,7 @@ const initialEquipments: Equipment[] = [
     brand: 'Grundfos',
     model: 'CRN-45',
     serialNumber: 'GR-8899-741',
+    localisationId: 3,
 
 
 
@@ -176,6 +179,7 @@ const initialEquipments: Equipment[] = [
     brand: 'Intralox',
     model: 'S800-OpenHinge',
     serialNumber: 'IX-2023-055',
+    localisationId: 2,
 
 
 
@@ -207,6 +211,7 @@ const initialEquipments: Equipment[] = [
     brand: 'FMC Technologies',
     model: 'Steril-Host-4',
     serialNumber: 'FMC-AC-2021-04',
+    localisationId: 4,
 
 
 
@@ -237,6 +242,7 @@ const initialEquipments: Equipment[] = [
     brand: 'Krones',
     model: 'AseptFill-200',
     serialNumber: 'KR-2024-88',
+    localisationId: 4,
 
 
 
