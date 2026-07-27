@@ -74,7 +74,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({
                 <Edit2 className="w-4 h-4" />
               </button>
               <button 
-                onClick={() => onDeleteUser(u.id)}
+                onClick={() => onDeleteUser(u.id ?? '')}
                 className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg text-slate-400 hover:text-rose-500 transition-colors"
                 title="Supprimer"
               >

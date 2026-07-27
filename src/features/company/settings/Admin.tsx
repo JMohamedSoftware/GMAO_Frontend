@@ -154,7 +154,7 @@ export const Admin: React.FC = () => {
       const prenom = parts[0] || 'Prénom';
       const nom = parts.slice(1).join(' ') || 'Nom';
 
-      await usersApi.updateUser(editingUser.id, {
+      await usersApi.updateUser(editingUser.id ?? '', {
         nom,
         prenom,
         email: editingUser.email,
