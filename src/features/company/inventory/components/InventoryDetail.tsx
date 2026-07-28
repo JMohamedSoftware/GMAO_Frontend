@@ -6,7 +6,7 @@ import { SparePart, Supplier } from '@/shared/types/gmao';
 interface InventoryDetailProps {
   activePart: SparePart | undefined;
   suppliers: Supplier[];
-  CATEGORY_ICONS: Record<string, string>;
+  CATEGORY_ICONS: Record<string, React.ComponentType<any>>;
   can: (permission: any) => boolean;
   onNavigate: (screen: string) => void;
   handleOpenMovement: (partRef: string, type: 'in' | 'out', e: React.MouseEvent) => void;
@@ -28,9 +28,10 @@ export const InventoryDetail: React.FC<InventoryDetailProps> = ({
     );
   }
 
+  const sup = suppliers.find(s => s.id === activePart.supplierId);
+  const Icon = CATEGORY_ICONS[activePart.category] || Package;
   const isLow = activePart.stockCurrent <= activePart.stockMin;
   const percent = Math.min(100, Math.round((activePart.stockCurrent / activePart.stockMax) * 100));
-  const sup = suppliers.find(s => s.id === activePart.supplierId);
 
   return (
     <div className="flex-1 flex flex-col bg-white/50 dark:bg-slate-900/30 rounded-custom-md border border-white/40 dark:border-slate-800/40 shadow-sm overflow-hidden">
@@ -52,8 +53,8 @@ export const InventoryDetail: React.FC<InventoryDetailProps> = ({
               <div>
                 <p className="text-[10px] font-bold text-slate-400 font-mono">{activePart.ref}</p>
                 <h2 className="text-lg font-extrabold text-slate-800 dark:text-white leading-tight mt-0.5">{activePart.name}</h2>
-                <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                  {CATEGORY_ICONS[activePart.category] || '📦'} {activePart.category}
+                <span className="inline-flex items-center gap-1.5 mt-1 text-[10px] font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
+                  <Icon className="w-3 h-3 text-primary shrink-0" /> {activePart.category}
                 </span>
               </div>
               <span className={`text-[10px] font-extrabold px-2 py-1 rounded-lg ${isLow ? 'bg-rose-500/10 text-rose-600 border border-rose-200' : 'bg-emerald-500/10 text-emerald-600 border border-emerald-200'}`}>

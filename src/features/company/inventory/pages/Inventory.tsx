@@ -3,7 +3,22 @@ import { useGmao } from '@/shared/hooks/useGmao';
 import { SparePart } from '@/shared/types/gmao';
 import { usePermissions } from '@/shared/hooks/usePermissions';
 import { PERMISSIONS } from '@/shared/permissions';
-import { Plus, Boxes } from 'lucide-react';
+import { 
+  Plus, 
+  Boxes,
+  Disc,
+  Link2,
+  Repeat,
+  Droplets,
+  Cpu,
+  Settings,
+  Zap,
+  Wind,
+  Droplet,
+  Wrench,
+  Container,
+  Package
+} from 'lucide-react';
 
 import { InventoryStats } from '../components/InventoryStats';
 import { InventoryList } from '../components/InventoryList';
@@ -14,19 +29,19 @@ interface InventoryProps {
   onNavigate: (screen: string) => void;
 }
 
-const CATEGORY_ICONS: Record<string, string> = {
-  'Roulements':   '🔘',
-  'Joints':       '🔗',
-  'Courroies':    '〰️',
-  'Vannes':       '🚰',
-  'Automatisme':  '💻',
-  'Garnitures':   '⚙️',
-  'Électrique':   '⚡',
-  'Pneumatique':  '💨',
-  'Hydraulique':  '💧',
-  'Visserie':     '🔩',
-  'Lubrifiants':  '🛢️',
-  'Autre':        '📦',
+const CATEGORY_ICONS: Record<string, React.ComponentType<any>> = {
+  'Roulements':   Disc,
+  'Joints':       Link2,
+  'Courroies':    Repeat,
+  'Vannes':       Droplets,
+  'Automatisme':  Cpu,
+  'Garnitures':   Settings,
+  'Électrique':   Zap,
+  'Pneumatique':  Wind,
+  'Hydraulique':  Droplet,
+  'Visserie':     Wrench,
+  'Lubrifiants':  Container,
+  'Autre':        Package,
 };
 
 export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {

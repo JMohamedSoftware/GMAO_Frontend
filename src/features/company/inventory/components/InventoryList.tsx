@@ -16,7 +16,7 @@ interface InventoryListProps {
   toggleCategory: (cat: string) => void;
   selectedPartRef: string | null;
   setSelectedPartRef: (ref: string) => void;
-  CATEGORY_ICONS: Record<string, string>;
+  CATEGORY_ICONS: Record<string, React.ComponentType<any>>;
 }
 
 export const InventoryList: React.FC<InventoryListProps> = ({
@@ -63,6 +63,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({
           const catParts = groupedParts[cat] || [];
           if (catParts.length === 0) return null; // hide empty categories
           const isExpanded = expandedCategories.includes(cat);
+          const Icon = CATEGORY_ICONS[cat] || Package;
           
           return (
             <div key={cat} className="flex flex-col gap-1">
@@ -72,7 +73,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({
                 className="flex items-center justify-between w-full text-left px-2 pt-2 pb-1 border-b border-slate-200/50 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
               >
                 <h4 className="flex items-center gap-2 text-xs font-black text-slate-500 uppercase tracking-wider">
-                  <span className="text-base">{CATEGORY_ICONS[cat] || '📦'}</span>
+                  <Icon className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 shrink-0" />
                   {cat} ({catParts.length})
                 </h4>
                 {isExpanded ? (
