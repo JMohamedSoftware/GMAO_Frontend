@@ -279,7 +279,28 @@ export const gmaoSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(fetchTenantDataAsync.fulfilled, (state, action) => {
-      const tenant = state.tenants.find(t => t.id === state.currentTenantId);
+      let tenant = state.tenants.find(t => t.id === state.currentTenantId);
+      if (!tenant && state.currentTenantId) {
+        tenant = {
+          id: state.currentTenantId,
+          name: 'Société',
+          domain: '',
+          status: 'Active',
+          subscriptionPlan: 'Enterprise',
+          createdAt: new Date().toISOString(),
+          adminEmail: state.currentUser?.email || '',
+          capacityTonsPerDay: 450,
+          equipments: [],
+          workOrders: [],
+          incidents: [],
+          technicians: [],
+          parts: [],
+          suppliers: [],
+          campaigns: [],
+          users: []
+        };
+        state.tenants.push(tenant);
+      }
       if (tenant) {
         tenant.equipments = action.payload.equipments;
         tenant.suppliers = action.payload.suppliers;
