@@ -5,7 +5,7 @@ const rawUrl = import.meta.env.VITE_API_URL || 'https://gmao-backend-a6r2.onrend
 const API_URL = rawUrl.replace(/\/api\/?$/, '') + '/api';
 
 const getAuthHeaders = () => {
-    const token = localStorage.getItem('gmao_token');
+    const token = localStorage.getItem('gmao_access_token');
     return {
         headers: {
             Authorization: `Bearer ${token}`
