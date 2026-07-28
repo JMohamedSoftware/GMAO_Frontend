@@ -57,12 +57,25 @@ export const fetchSuppliers = async (): Promise<Supplier[]> => {
     }));
 };
 
+const mapPieceCategory = (id?: number): string => {
+    switch (id) {
+        case 1: return 'Roulements';
+        case 2: return 'Joints';
+        case 3: return 'Courroies';
+        case 4: return 'Garnitures';
+        case 5: return 'Lubrifiants';
+        case 6: return 'Électrique';
+        case 7: return 'Visserie';
+        default: return 'Autre';
+    }
+};
+
 export const fetchParts = async (): Promise<SparePart[]> => {
     const response = await axios.get(`${API_URL}/Pieces`, getAuthHeaders());
     return response.data.map((p: any) => ({
         ref: p.reference,
         name: p.designation,
-        category: p.famillePieceNom || 'Autre',
+        category: mapPieceCategory(p.famillePieceId),
         supplierId: p.fournisseurId?.toString() || '',
         stockCurrent: p.stockActuel || 0,
         stockMin: p.stockMinimum || 0,

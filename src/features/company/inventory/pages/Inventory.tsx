@@ -25,6 +25,8 @@ const CATEGORY_ICONS: Record<string, string> = {
   'Pneumatique':  '💨',
   'Hydraulique':  '💧',
   'Visserie':     '🔩',
+  'Lubrifiants':  '🛢️',
+  'Autre':        '📦',
 };
 
 export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
@@ -89,7 +91,15 @@ export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
   const totalValuation = parts.reduce((acc, p) => acc + (p.stockCurrent * p.unitPrice), 0);
 
   // Grouped parts, filtered globally
-  const categories = Object.keys(CATEGORY_ICONS);
+  const categories = useMemo(() => {
+    const allCats = new Set<string>();
+    parts.forEach(p => {
+      if (p.category) allCats.add(p.category);
+    });
+    Object.keys(CATEGORY_ICONS).forEach(c => allCats.add(c));
+    return Array.from(allCats);
+  }, [parts]);
+
   const groupedParts = useMemo(() => {
     const filtered = parts.filter(p => {
       const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.ref.toLowerCase().includes(search.toLowerCase());
