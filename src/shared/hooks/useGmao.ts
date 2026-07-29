@@ -1,5 +1,6 @@
 import { useAppSelector, useAppDispatch } from '@/app/hooks';
 import * as actions from '@/app/gmaoSlice';
+import { createIncidentAsync, updateIncidentStatusAsync } from '@/app/gmaoSlice';
 import { AppRole } from '@/shared/permissions';
 import { Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount, User, Tenant } from '@/shared/types/gmao';
 import { useEffect } from 'react';
@@ -63,8 +64,26 @@ export const useGmao = () => {
     addEquipment: (eq: Omit<Equipment, 'healthIndex' | 'sensors' | 'hoursCount' | 'cycleCount'>) => dispatch(actions.addEquipment(eq)),
     updateEquipmentStatus: (id: string, status: Equipment['status'], healthIndex?: number) => dispatch(actions.updateEquipmentStatus({id, status, healthIndex})),
     deleteEquipment: (id: string) => dispatch(actions.deleteEquipment(id)),
-    addIncident: (inc: Omit<Incident, 'id' | 'reportedDate' | 'status'>) => dispatch(actions.addIncident(inc)),
-    updateIncidentStatus: (id: string, status: Incident['status'], workOrderId?: string) => dispatch(actions.updateIncidentStatus({id, status, workOrderId})),
+    addIncident: async (inc: Omit<Incident, 'id' | 'reportedDate' | 'status'>) => {
+      const result = await dispatch(createIncidentAsync({
+        equipmentId: inc.equipmentId,
+        description: inc.description,
+        urgency: inc.urgency,
+        photo: inc.photo
+      }));
+      return result;
+    },
+    updateIncidentStatus: async (id: string, status: Incident['status'], workOrderId?: string) => {
+      const activeTenantLocal = state.tenants.find(t => t.id === state.currentTenantId);
+      const fullIncident = activeTenantLocal?.incidents.find(i => i.id === id);
+      if (!fullIncident) {
+        // Fallback: update locally only if we can't find the full incident
+        dispatch(actions.updateIncidentStatus({ id, status, workOrderId }));
+        return;
+      }
+      const result = await dispatch(updateIncidentStatusAsync({ id, status, fullIncident, workOrderId }));
+      return result;
+    },
     addWorkOrder: (ot: Omit<WorkOrder, 'id' | 'createdDate' | 'status' | 'partsUsed' | 'durationMinutes' | 'externalCost'>, incidentId?: string) => dispatch(actions.addWorkOrder({ot, incidentId})),
     updateWorkOrderStatus: (id: string, status: WorkOrder['status'], updates?: Partial<WorkOrder>) => dispatch(actions.updateWorkOrderStatus({id, status, updates})),
     addPartMovement: (ref: string, qty: number, type: 'in' | 'out', otId?: string) => dispatch(actions.addPartMovement({ref, qty, type, otId})),

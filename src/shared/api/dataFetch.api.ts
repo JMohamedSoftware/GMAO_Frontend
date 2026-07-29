@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Equipment, Supplier, SparePart, Incident, WorkOrder, Campaign, User } from '../types/gmao';
+import { Equipment, Supplier, SparePart, Incident, WorkOrder, Campaign } from '../types/gmao';
 
 const rawUrl = import.meta.env.VITE_API_URL || 'https://gmao-backend-a6r2.onrender.com';
 const API_URL = rawUrl.replace(/\/api\/?$/, '') + '/api';
@@ -86,19 +86,120 @@ export const fetchParts = async (): Promise<SparePart[]> => {
     }));
 };
 
+// ─── Enum converters ───────────────────────────────────────────────────────────
+
+/** Backend PrioriteIntervention → Frontend urgency string */
+const intToUrgency = (n: number): Incident['urgency'] => {
+    switch (n) {
+        case 1:  return 'Faible';
+        case 3:  return 'Haute';
+        case 4:  return 'Critique';
+        default: return 'Moyenne';
+    }
+};
+
+/** Backend StatutDemande → Frontend status string */
+const intToStatus = (n: number): Incident['status'] => {
+    switch (n) {
+        case 2:  return 'Validé';
+        case 3:  return 'Rejeté';
+        case 4:  return 'Transformé en OT';
+        default: return 'Nouveau';
+    }
+};
+
+/** Frontend urgency string → backend PrioriteIntervention integer */
+const urgencyToInt = (urgency: string): number => {
+    switch (urgency) {
+        case 'Faible':   return 1;
+        case 'Haute':    return 3;
+        case 'Critique': return 4;
+        default:         return 2; // 'Moyenne'
+    }
+};
+
+/** Frontend status string → backend StatutDemande integer */
+const statusToInt = (status: string): number => {
+    switch (status) {
+        case 'Validé':            return 2;
+        case 'Rejeté':            return 3;
+        case 'Transformé en OT':  return 4;
+        default:                  return 1; // 'Nouveau' / 'EnAttente'
+    }
+};
+
+// ─── Incidents ─────────────────────────────────────────────────────────────────
+
 export const fetchIncidents = async (): Promise<Incident[]> => {
     const response = await axios.get(`${API_URL}/Incidents`, getAuthHeaders());
     return response.data.map((i: any) => ({
         id: i.id?.toString(),
-        title: i.description,
         equipmentId: i.equipementId?.toString(),
         reportedBy: i.demandeurId?.toString(),
         reportedDate: i.datePanne,
-        urgency: i.priorite === 1 ? 'Faible' : i.priorite === 2 ? 'Moyenne' : i.priorite === 3 ? 'Haute' : 'Critique',
-        status: i.statut === 1 ? 'Nouveau' : i.statut === 2 ? 'Validé' : i.statut === 3 ? 'Rejeté' : i.statut === 4 ? 'Transformé en OT' : 'Clos',
-        description: i.description
+        urgency: intToUrgency(i.priorite),
+        status: intToStatus(i.statut),
+        description: i.description,
+        photo: i.photoUrl || undefined,
+        commentaireRejet: i.commentaireRejet || undefined,
     }));
 };
+
+export interface CreateIncidentPayload {
+    equipmentId: string;
+    description: string;
+    urgency: string;
+    demandeurId?: number;
+    photo?: string;
+}
+
+/** POST /api/Incidents — persists a new incident to the backend */
+export const createIncidentApi = async (payload: CreateIncidentPayload): Promise<Incident> => {
+    const body = {
+        equipementId: parseInt(payload.equipmentId, 10),
+        demandeurId: payload.demandeurId || 1,
+        datePanne: new Date().toISOString(),
+        description: payload.description,
+        priorite: urgencyToInt(payload.urgency),
+        statut: 1, // EnAttente / Nouveau
+        photoUrl: payload.photo || null,
+    };
+    const response = await axios.post(`${API_URL}/Incidents`, body, getAuthHeaders());
+    const i = response.data;
+    return {
+        id: i.id?.toString(),
+        equipmentId: i.equipementId?.toString(),
+        reportedBy: i.demandeurId?.toString(),
+        reportedDate: i.datePanne || new Date().toISOString(),
+        urgency: payload.urgency as Incident['urgency'],
+        status: 'Nouveau',
+        description: i.description,
+        photo: i.photoUrl || undefined,
+    };
+};
+
+/** PUT /api/Incidents/{id} — updates an incident's status on the backend */
+export const patchIncidentStatusApi = async (
+    id: string,
+    status: Incident['status'],
+    fullIncident: Incident,
+    commentaireRejet?: string
+): Promise<void> => {
+    const body = {
+        id: parseInt(id, 10),
+        equipementId: parseInt(fullIncident.equipmentId, 10),
+        demandeurId: parseInt(fullIncident.reportedBy, 10) || 1,
+        datePanne: fullIncident.reportedDate,
+        description: fullIncident.description,
+        priorite: urgencyToInt(fullIncident.urgency),
+        statut: statusToInt(status),
+        photoUrl: fullIncident.photo || null,
+        commentaireRejet: commentaireRejet || null,
+    };
+    await axios.put(`${API_URL}/Incidents/${id}`, body, getAuthHeaders());
+};
+
+// ─── Work Orders ───────────────────────────────────────────────────────────────
 
 export const fetchWorkOrders = async (): Promise<WorkOrder[]> => {
     const response = await axios.get(`${API_URL}/OrdresTravail`, getAuthHeaders());

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Incident, Equipment } from '@/shared/types/gmao';
-import { AlertCircle, X, MapPin, Camera, Video, FileText, Mic } from 'lucide-react';
+import { AlertCircle, X, MapPin, Camera, Video, FileText, Mic, Loader2 } from 'lucide-react';
 
 interface IncidentModalsProps {
   showAddModal: boolean;
@@ -15,11 +15,13 @@ interface IncidentModalsProps {
   photo: string;
   setPhoto: (photo: string) => void;
   handleReportIncident: (e: React.FormEvent) => void;
+  isSubmitting?: boolean;
 }
 
 export const IncidentModals: React.FC<IncidentModalsProps> = ({
   showAddModal, setShowAddModal, equipments, selectedEqId, setSelectedEqId,
-  description, setDescription, urgency, setUrgency, photo, setPhoto, handleReportIncident
+  description, setDescription, urgency, setUrgency, photo, setPhoto,
+  handleReportIncident, isSubmitting = false
 }) => {
   return (
     <>
@@ -157,9 +159,13 @@ export const IncidentModals: React.FC<IncidentModalsProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded font-bold shadow-md shadow-rose-500/10 cursor-pointer"
+                  disabled={isSubmitting}
+                  className="px-5 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded font-bold shadow-md shadow-rose-500/10 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  Signaler l'Incident
+                  {isSubmitting
+                    ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Envoi en cours...</>
+                    : 'Signaler l\'Incident'
+                  }
                 </button>
               </div>
             </form>

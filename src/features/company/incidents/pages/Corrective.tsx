@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useGmao } from '@/shared/hooks/useGmao';
 import { Incident } from '@/shared/types/gmao';
 import { usePermissions } from '@/shared/hooks/usePermissions';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, RefreshCw } from 'lucide-react';
 
 import { IncidentList } from '../components/IncidentList';
 import { IncidentModals } from '../components/IncidentModals';
@@ -18,6 +18,11 @@ export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreate
   const [search, setSearch] = useState('');
   const [filterUrgency, setFilterUrgency] = useState<string>('Toutes');
   
+  // Loading state for async operations
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set());
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
   // Incident Modal
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedEqId, setSelectedEqId] = useState('');
@@ -29,7 +34,7 @@ export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreate
   const filteredIncidents = incidents.filter(inc => {
     // Production/Technicien see only their own DIs
     if (isProduction || isTechnicien) {
-      if (currentUser && !inc.reportedBy.includes(currentUser.name)) return false;
+      if (currentUser && !inc.reportedBy.includes(currentUser.name) && inc.reportedBy !== currentUser.id?.toString()) return false;
     }
 
     const eq = equipments.find(e => e.id === inc.equipmentId);
@@ -56,24 +61,50 @@ export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreate
     return filteredIncidents.filter(inc => inc.status === status);
   };
 
-  const handleReportIncident = (e: React.FormEvent) => {
+  /** Create incident → POST to backend */
+  const handleReportIncident = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedEqId || !description) return;
 
-    addIncident({
-      equipmentId: selectedEqId,
-      description,
-      reportedBy: 'Youssef Mansouri (Prod)',
-      urgency,
-      photo: photo || undefined
-    });
+    setIsSubmitting(true);
+    setErrorMsg(null);
+    try {
+      await addIncident({
+        equipmentId: selectedEqId,
+        description,
+        reportedBy: currentUser?.name || 'Production',
+        urgency,
+        photo: photo || undefined
+      });
 
-    // Reset
-    setSelectedEqId('');
-    setDescription('');
-    setUrgency('Moyenne');
-    setPhoto('');
-    setShowAddModal(false);
+      // Reset form
+      setSelectedEqId('');
+      setDescription('');
+      setUrgency('Moyenne');
+      setPhoto('');
+      setShowAddModal(false);
+    } catch (err: any) {
+      setErrorMsg(err?.response?.data?.message || err?.message || 'Erreur lors de la déclaration. Réessayez.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  /** Update status → PUT to backend */
+  const handleUpdateStatus = async (id: string, status: Incident['status']) => {
+    setUpdatingIds(prev => new Set(prev).add(id));
+    setErrorMsg(null);
+    try {
+      await updateIncidentStatus(id, status);
+    } catch (err: any) {
+      setErrorMsg(err?.response?.data?.message || err?.message || 'Erreur lors de la mise à jour. Réessayez.');
+    } finally {
+      setUpdatingIds(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
   };
 
   const columns: { id: Incident['status']; label: string; color: string }[] = [
@@ -104,13 +135,22 @@ export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreate
         <div className="flex gap-2">
           <button 
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs rounded-custom-sm shadow-md hover-lift cursor-pointer"
+            disabled={isSubmitting}
+            className="flex items-center gap-1.5 px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs rounded-custom-sm shadow-md hover-lift cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <Plus className="w-4 h-4" />
             <span>Déclarer Panne</span>
           </button>
         </div>
       </div>
+
+      {/* Error Banner */}
+      {errorMsg && (
+        <div className="px-4 py-3 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/30 rounded-custom-md text-xs text-rose-700 dark:text-rose-400 font-semibold flex items-center justify-between gap-2">
+          <span>⚠️ {errorMsg}</span>
+          <button onClick={() => setErrorMsg(null)} className="text-rose-400 hover:text-rose-600 cursor-pointer font-bold">✕</button>
+        </div>
+      )}
 
       {/* Search Filter */}
       <div className="glass-panel p-4 rounded-custom-md border border-white/40 dark:border-slate-800/40 shadow-sm flex items-center justify-between">
@@ -152,7 +192,8 @@ export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreate
         can={can}
         isProduction={isProduction}
         isTechnicien={isTechnicien}
-        updateIncidentStatus={updateIncidentStatus}
+        updateIncidentStatus={handleUpdateStatus}
+        updatingIds={updatingIds}
         onOpenCreateOtWithIncident={onOpenCreateOtWithIncident}
         onNavigate={onNavigate}
       />
@@ -171,6 +212,7 @@ export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreate
         photo={photo}
         setPhoto={setPhoto}
         handleReportIncident={handleReportIncident}
+        isSubmitting={isSubmitting}
       />
 
     </div>

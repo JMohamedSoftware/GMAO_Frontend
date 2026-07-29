@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { Tenant, User, Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount } from '@/shared/types/gmao';
 import { AppRole } from '@/shared/permissions';
-import { fetchEquipments, fetchSuppliers, fetchParts, fetchIncidents, fetchWorkOrders, fetchCampaigns } from '@/shared/api/dataFetch.api';
+import { fetchEquipments, fetchSuppliers, fetchParts, fetchIncidents, fetchWorkOrders, fetchCampaigns, createIncidentApi, patchIncidentStatusApi, CreateIncidentPayload } from '@/shared/api/dataFetch.api';
 
 interface GmaoState {
   tenants: Tenant[];
@@ -64,6 +64,24 @@ export const fetchTenantDataAsync = createAsyncThunk(
       fetchCampaigns()
     ]);
     return { equipments, suppliers, parts, incidents, workOrders, campaigns };
+  }
+);
+
+/** POST /api/Incidents — create a new incident on the backend, then sync to Redux */
+export const createIncidentAsync = createAsyncThunk(
+  'gmao/createIncident',
+  async (payload: CreateIncidentPayload) => {
+    const incident = await createIncidentApi(payload);
+    return incident;
+  }
+);
+
+/** PUT /api/Incidents/{id} — update status on backend, then sync to Redux */
+export const updateIncidentStatusAsync = createAsyncThunk(
+  'gmao/updateIncidentStatus',
+  async (payload: { id: string; status: Incident['status']; fullIncident: Incident; workOrderId?: string; commentaireRejet?: string }) => {
+    await patchIncidentStatusApi(payload.id, payload.status, payload.fullIncident, payload.commentaireRejet);
+    return { id: payload.id, status: payload.status, workOrderId: payload.workOrderId };
   }
 );
 export const gmaoSlice = createSlice({
@@ -308,6 +326,31 @@ export const gmaoSlice = createSlice({
         tenant.incidents = action.payload.incidents;
         tenant.workOrders = action.payload.workOrders;
         tenant.campaigns = action.payload.campaigns;
+      }
+    });
+
+    // When a new incident is created on the backend, prepend it to local state
+    builder.addCase(createIncidentAsync.fulfilled, (state, action) => {
+      const tenant = state.tenants.find(t => t.id === state.currentTenantId);
+      if (tenant) {
+        tenant.incidents.unshift(action.payload);
+        // Mark equipment as En panne for critical/high urgency
+        if (action.payload.urgency === 'Critique' || action.payload.urgency === 'Haute') {
+          const eq = tenant.equipments.find(e => e.id === action.payload.equipmentId);
+          if (eq) { eq.status = 'En panne'; eq.healthIndex = 30; }
+        }
+      }
+    });
+
+    // When an incident status is updated on the backend, mirror it in local state
+    builder.addCase(updateIncidentStatusAsync.fulfilled, (state, action) => {
+      const tenant = state.tenants.find(t => t.id === state.currentTenantId);
+      if (tenant) {
+        const inc = tenant.incidents.find(i => i.id === action.payload.id);
+        if (inc) {
+          inc.status = action.payload.status;
+          if (action.payload.workOrderId) inc.workOrderId = action.payload.workOrderId;
+        }
       }
     });
   }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Incident, Equipment } from '@/shared/types/gmao';
-import { AlertCircle, User, Clock, Check, X, ArrowRight, FileText } from 'lucide-react';
+import { AlertCircle, User, Clock, Check, X, ArrowRight, FileText, Loader2 } from 'lucide-react';
 import { PERMISSIONS } from '@/shared/permissions';
 
 interface IncidentListProps {
@@ -12,14 +12,15 @@ interface IncidentListProps {
   isProduction: boolean;
   isTechnicien: boolean;
   updateIncidentStatus: (id: string, status: Incident['status']) => void;
+  updatingIds: Set<string>;
   onOpenCreateOtWithIncident: (inc: Incident) => void;
   onNavigate: (screen: string) => void;
 }
 
 export const IncidentList: React.FC<IncidentListProps> = ({
   columns, getColumnIncidents, equipments, getUrgencyColor, can,
-  isProduction, isTechnicien, updateIncidentStatus, onOpenCreateOtWithIncident,
-  onNavigate
+  isProduction, isTechnicien, updateIncidentStatus, updatingIds,
+  onOpenCreateOtWithIncident, onNavigate
 }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
@@ -137,17 +138,24 @@ export const IncidentList: React.FC<IncidentListProps> = ({
                             <button
                               title="Valider cet incident"
                               onClick={() => updateIncidentStatus(inc.id, 'Validé')}
-                              className="flex-1 py-1 rounded bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white transition text-[9px] font-bold border border-emerald-500/20 flex items-center justify-center gap-0.5 cursor-pointer"
+                              disabled={updatingIds.has(inc.id)}
+                              className="flex-1 py-1 rounded bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white transition text-[9px] font-bold border border-emerald-500/20 flex items-center justify-center gap-0.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                              <Check className="w-3 h-3" />
-                              <span>Valider</span>
+                              {updatingIds.has(inc.id)
+                                ? <Loader2 className="w-3 h-3 animate-spin" />
+                                : <><Check className="w-3 h-3" /><span>Valider</span></>
+                              }
                             </button>
                             <button
                               title="Rejeter cet incident"
                               onClick={() => updateIncidentStatus(inc.id, 'Rejeté')}
-                              className="p-1 rounded bg-rose-500/10 text-rose-600 hover:bg-rose-500 hover:text-white transition text-[9px] font-bold border border-rose-500/20 cursor-pointer"
+                              disabled={updatingIds.has(inc.id)}
+                              className="p-1 rounded bg-rose-500/10 text-rose-600 hover:bg-rose-500 hover:text-white transition text-[9px] font-bold border border-rose-500/20 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                              <X className="w-3 h-3" />
+                              {updatingIds.has(inc.id)
+                                ? <Loader2 className="w-3 h-3 animate-spin" />
+                                : <X className="w-3 h-3" />
+                              }
                             </button>
                           </>
                         )}
