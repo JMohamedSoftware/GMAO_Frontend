@@ -199,7 +199,82 @@ export const patchIncidentStatusApi = async (
     await axios.put(`${API_URL}/Incidents/${id}`, body, getAuthHeaders());
 };
 
-// ─── Work Orders ───────────────────────────────────────────────────────────────
+// ─── Work Orders write ─────────────────────────────────────────────────────────
+
+export interface CreateWorkOrderPayload {
+    title: string;
+    description: string;
+    equipmentId: string;
+    type: WorkOrder['type'];
+    priority: WorkOrder['priority'];
+    technicianId?: string;
+    incidentId?: string;   // links to DemandeIntervention
+    responsableId?: number;
+}
+
+const typeToInt = (type: string): number => {
+    switch (type) {
+        case 'Préventif':   return 2;
+        case 'Amélioratif': return 4;
+        default:            return 1; // Corrective
+    }
+};
+
+const otPriorityToInt = (priority: string): number => {
+    switch (priority) {
+        case 'Faible':   return 1;
+        case 'Haute':    return 3;
+        case 'Critique': return 4;
+        default:         return 2; // Moyenne
+    }
+};
+
+/** POST /api/OrdresTravail — creates a new OT and auto-transitions the linked incident */
+export const createWorkOrderApi = async (payload: CreateWorkOrderPayload): Promise<WorkOrder> => {
+    const now = new Date().toISOString();
+    // Generate a sequential-looking number (backend uses auto-increment ID)
+    const body = {
+        numeroOT: `OT-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`,
+        demandeId: payload.incidentId ? parseInt(payload.incidentId, 10) : null,
+        equipementId: parseInt(payload.equipmentId, 10),
+        responsableId: payload.responsableId || 1,
+        technicienId: payload.technicianId ? parseInt(payload.technicianId, 10) : null,
+        priorite: otPriorityToInt(payload.priority),
+        typeMaintenance: typeToInt(payload.type),
+        statut: 1, // Cree
+        dateCreation: now,
+        dateDebutPrevue: null,
+        dateFinPrevue: null,
+        description: payload.description,
+        instructions: null,
+        coutMainOeuvre: null,
+        coutPieces: null,
+        coutSousTraitance: null,
+        campagneId: null,
+    };
+    const response = await axios.post(`${API_URL}/OrdresTravail`, body, getAuthHeaders());
+    const w = response.data;
+    return {
+        id: w.id?.toString(),
+        equipmentId: w.equipementId?.toString() || payload.equipmentId,
+        title: w.numeroOT || payload.title,
+        description: w.description || payload.description,
+        type: payload.type,
+        priority: payload.priority,
+        status: 'Brouillon',
+        createdDate: w.dateCreation || now,
+        startDate: undefined,
+        endDate: undefined,
+        technicianId: w.technicienId?.toString() || undefined,
+        assignedBy: w.responsableId?.toString() || '1',
+        durationMinutes: 0,
+        partsUsed: [],
+        externalCost: 0,
+        campaign: '',
+    };
+};
+
+
 
 export const fetchWorkOrders = async (): Promise<WorkOrder[]> => {
     const response = await axios.get(`${API_URL}/OrdresTravail`, getAuthHeaders());

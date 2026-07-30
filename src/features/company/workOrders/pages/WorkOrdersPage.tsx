@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGmao } from '@/shared/hooks/useGmao';
+import { useAppDispatch } from '@/app/hooks';
+import { createWorkOrderAsync } from '@/app/gmaoSlice';
 import { WorkOrder, Incident } from '@/shared/types/gmao';
 import { usePermissions } from '@/shared/hooks/usePermissions';
 import { PERMISSIONS } from '@/shared/permissions';
@@ -37,9 +39,10 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
     technicians, 
     parts, 
     currentUser,
-    addWorkOrder, 
     updateWorkOrderStatus 
   } = useGmao();
+
+  const dispatch = useAppDispatch();
 
   const { can, isTechnicien } = usePermissions();
 
@@ -53,6 +56,8 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
 
   // OT creation modal
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newType, setNewType] = useState<WorkOrder['type']>('Correctif');
@@ -101,29 +106,33 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
     return matchesSearch && matchesType && matchesStatus && matchesPriority;
   });
 
-  const handleCreateOtSubmit = (e: React.FormEvent) => {
+  const handleCreateOtSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle || !newEqId) return;
 
-    addWorkOrder({
-      title: newTitle,
-      description: newDesc,
-      equipmentId: newEqId,
-      type: newType,
-      priority: newPriority,
-      technicianId: newTechId || undefined,
-      assignedBy: 'Karim Gherbi (Resp. Maintenance)',
-      campaign: 'Campagne 2026'
-    }, prefilledIncident?.id);
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      await dispatch(createWorkOrderAsync({
+        title: newTitle,
+        description: newDesc,
+        equipmentId: newEqId,
+        type: newType,
+        priority: newPriority,
+        technicianId: newTechId || undefined,
+        incidentId: prefilledIncident?.id,
+      })).unwrap();
 
-    setNewTitle('');
-    setNewDesc('');
-    setNewEqId('');
-    setNewTechId('');
-    setShowCreateModal(false);
-    
-    if (prefilledIncident) {
-      onClearPrefilledIncident();
+      setNewTitle('');
+      setNewDesc('');
+      setNewEqId('');
+      setNewTechId('');
+      setShowCreateModal(false);
+      if (prefilledIncident) onClearPrefilledIncident();
+    } catch (err: any) {
+      setSubmitError(err?.message || 'Erreur lors de la création. Réessayez.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { Tenant, User, Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount } from '@/shared/types/gmao';
 import { AppRole } from '@/shared/permissions';
-import { fetchEquipments, fetchSuppliers, fetchParts, fetchIncidents, fetchWorkOrders, fetchCampaigns, createIncidentApi, patchIncidentStatusApi, CreateIncidentPayload } from '@/shared/api/dataFetch.api';
+import { fetchEquipments, fetchSuppliers, fetchParts, fetchIncidents, fetchWorkOrders, fetchCampaigns, createIncidentApi, patchIncidentStatusApi, CreateIncidentPayload, createWorkOrderApi, CreateWorkOrderPayload } from '@/shared/api/dataFetch.api';
 
 interface GmaoState {
   tenants: Tenant[];
@@ -82,6 +82,15 @@ export const updateIncidentStatusAsync = createAsyncThunk(
   async (payload: { id: string; status: Incident['status']; fullIncident: Incident; workOrderId?: string; commentaireRejet?: string }) => {
     await patchIncidentStatusApi(payload.id, payload.status, payload.fullIncident, payload.commentaireRejet);
     return { id: payload.id, status: payload.status, workOrderId: payload.workOrderId };
+  }
+);
+
+/** POST /api/OrdresTravail — create a new Work Order on the backend, then sync to Redux */
+export const createWorkOrderAsync = createAsyncThunk(
+  'gmao/createWorkOrder',
+  async (payload: CreateWorkOrderPayload & { incidentId?: string }) => {
+    const workOrder = await createWorkOrderApi(payload);
+    return { workOrder, incidentId: payload.incidentId };
   }
 );
 export const gmaoSlice = createSlice({
@@ -350,6 +359,22 @@ export const gmaoSlice = createSlice({
         if (inc) {
           inc.status = action.payload.status;
           if (action.payload.workOrderId) inc.workOrderId = action.payload.workOrderId;
+        }
+      }
+    });
+
+    // When a new OT is created on the backend, prepend it and update linked incident
+    builder.addCase(createWorkOrderAsync.fulfilled, (state, action) => {
+      const tenant = state.tenants.find(t => t.id === state.currentTenantId);
+      if (tenant) {
+        tenant.workOrders.unshift(action.payload.workOrder);
+        // Transition the linked incident to "Transformé en OT"
+        if (action.payload.incidentId) {
+          const inc = tenant.incidents.find(i => i.id === action.payload.incidentId);
+          if (inc) {
+            inc.status = 'Transformé en OT';
+            inc.workOrderId = action.payload.workOrder.id;
+          }
         }
       }
     });
