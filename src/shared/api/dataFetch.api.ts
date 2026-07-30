@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Equipment, Supplier, SparePart, Incident, WorkOrder, Campaign } from '../types/gmao';
+import { Equipment, Supplier, SparePart, Incident, WorkOrder, Campaign, Technician } from '../types/gmao';
 
 const rawUrl = import.meta.env.VITE_API_URL || 'https://gmao-backend-a6r2.onrender.com';
 const API_URL = rawUrl.replace(/\/api\/?$/, '') + '/api';
@@ -85,6 +85,32 @@ export const fetchParts = async (): Promise<SparePart[]> => {
         photo: p.photoUrl
     }));
 };
+
+const TECHNICIAN_ROLE_ID = 4;
+
+/** Maps a role label to the closest Technician.role union type */
+const mapTechRole = (roleId: number): Technician['role'] => {
+    return 'Électromécanicien'; // default — backend has no speciality field yet
+};
+
+export const fetchTechnicians = async (): Promise<Technician[]> => {
+    const response = await axios.get(`${API_URL}/Users`, getAuthHeaders());
+    return response.data
+        .filter((u: any) => u.roleId === TECHNICIAN_ROLE_ID && u.isActive !== false)
+        .map((u: any): Technician => ({
+            id: u.id?.toString(),
+            name: `${u.prenom} ${u.nom}`.trim(),
+            role: mapTechRole(u.roleId),
+            qualification: 'Technicien de Maintenance',
+            skills: [],
+            status: 'Disponible',
+            hourlyRate: 0,
+            avatar: u.avatar ||
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(`${u.prenom}+${u.nom}`)}&background=e11d48&color=fff&size=150`,
+        }));
+};
+
+
 
 // ─── Enum converters ───────────────────────────────────────────────────────────
 

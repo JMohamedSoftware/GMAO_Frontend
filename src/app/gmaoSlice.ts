@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { Tenant, User, Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount } from '@/shared/types/gmao';
 import { AppRole } from '@/shared/permissions';
-import { fetchEquipments, fetchSuppliers, fetchParts, fetchIncidents, fetchWorkOrders, fetchCampaigns, createIncidentApi, patchIncidentStatusApi, CreateIncidentPayload, createWorkOrderApi, CreateWorkOrderPayload } from '@/shared/api/dataFetch.api';
+import { fetchEquipments, fetchSuppliers, fetchParts, fetchIncidents, fetchWorkOrders, fetchCampaigns, fetchTechnicians, createIncidentApi, patchIncidentStatusApi, CreateIncidentPayload, createWorkOrderApi, CreateWorkOrderPayload } from '@/shared/api/dataFetch.api';
 
 interface GmaoState {
   tenants: Tenant[];
@@ -55,15 +55,16 @@ const initialState: GmaoState = {
 export const fetchTenantDataAsync = createAsyncThunk(
   'gmao/fetchTenantData',
   async () => {
-    const [equipments, suppliers, parts, incidents, workOrders, campaigns] = await Promise.all([
+    const [equipments, suppliers, parts, incidents, workOrders, campaigns, technicians] = await Promise.all([
       fetchEquipments(),
       fetchSuppliers(),
       fetchParts(),
       fetchIncidents(),
       fetchWorkOrders(),
-      fetchCampaigns()
+      fetchCampaigns(),
+      fetchTechnicians(),
     ]);
-    return { equipments, suppliers, parts, incidents, workOrders, campaigns };
+    return { equipments, suppliers, parts, incidents, workOrders, campaigns, technicians };
   }
 );
 
@@ -335,6 +336,7 @@ export const gmaoSlice = createSlice({
         tenant.incidents = action.payload.incidents;
         tenant.workOrders = action.payload.workOrders;
         tenant.campaigns = action.payload.campaigns;
+        tenant.technicians = action.payload.technicians;
       }
     });
 
