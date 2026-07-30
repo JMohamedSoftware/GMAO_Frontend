@@ -306,6 +306,7 @@ export const fetchWorkOrders = async (): Promise<WorkOrder[]> => {
     const response = await axios.get(`${API_URL}/OrdresTravail`, getAuthHeaders());
     return response.data.map((w: any) => ({
         id: w.id?.toString(),
+        incidentId: w.demandeId != null ? w.demandeId.toString() : undefined,   // ← link to incident
         equipmentId: w.equipementId?.toString() || '',
         title: w.numeroOT || '',
         description: w.description || '',
@@ -325,6 +326,7 @@ export const fetchWorkOrders = async (): Promise<WorkOrder[]> => {
         campaign: w.campagneNom || ''
     }));
 };
+
 
 export const fetchCampaigns = async (): Promise<Campaign[]> => {
     const response = await axios.get(`${API_URL}/Campagnes`, getAuthHeaders());
