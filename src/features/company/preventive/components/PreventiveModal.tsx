@@ -3,12 +3,12 @@ import {
   X, Plus, Trash2, Calendar, Clock, Zap, Layers,
   ChevronDown, CheckCircle, Circle, AlertTriangle
 } from 'lucide-react';
-import { PlanPreventif, TachePreventive } from '@/shared/types/gmao';
+import type { PlanPreventif, TachePreventive, CreatePlanDto } from '../types/preventive.types';
 
 interface PreventiveModalProps {
   editingPlan: PlanPreventif | null;
   equipments: any[];
-  onSave: (payload: Omit<PlanPreventif, 'id'>) => Promise<void>;
+  onSave: (payload: CreatePlanDto) => Promise<void>;
   onClose: () => void;
 }
 

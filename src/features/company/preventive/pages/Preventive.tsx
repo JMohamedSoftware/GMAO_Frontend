@@ -1,14 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+// ================================================
+// src/features/company/preventive/pages/Preventive.tsx
+// ================================================
+
+import React, { useState, useEffect } from 'react';
 import { usePermissions } from '@/shared/hooks/usePermissions';
 import { useGmao } from '@/shared/hooks/useGmao';
-import { PlanPreventif } from '@/shared/types/gmao';
-import {
-  fetchPlansPreventifs,
-  createPlanPreventif,
-  updatePlanPreventif,
-  genererOTPreventif,
-  replanifierPlanPreventif
-} from '@/shared/api/dataFetch.api';
+import type { PlanPreventif, CreatePlanDto } from '../types/preventive.types';
+import { usePreventive } from '../hooks/usePreventive';
 import { PreventivePlanList } from '../components/PreventivePlanList';
 import { PreventiveCalendar } from '../components/PreventiveCalendar';
 import { PreventiveDrawer } from '../components/PreventiveDrawer';
@@ -18,48 +16,38 @@ interface PreventiveProps {
   onNavigate: (screen: string) => void;
 }
 
-export const Preventive: React.FC<PreventiveProps> = ({ onNavigate }) => {
+export const Preventive: React.FC<PreventiveProps> = () => {
   const { equipments, technicians } = useGmao();
   const { can } = usePermissions();
 
-  // ── State ──────────────────────────────────────────────────────────────────
-  const [plans, setPlans] = useState<PlanPreventif[]>([]);
-  const [loading, setLoading] = useState(true);
+  // ── Hook ─────────────────────────────────────────────────────────────────
+  const {
+    plans, isLoading, error,
+    loadPlans, addPlan, editPlan,
+    triggerOT, reschedule,
+  } = usePreventive();
+
+  // ── Local UI state ────────────────────────────────────────────────────────
   const [currentMonth, setCurrentMonth] = useState(() => {
     const n = new Date();
     return new Date(n.getFullYear(), n.getMonth(), 1);
   });
 
-  const [selectedPlan, setSelectedPlan] = useState<PlanPreventif | null>(null);
-  const [activePlanToDrag, setActivePlanToDrag] = useState<PlanPreventif | null>(null);
+  const [selectedPlan,    setSelectedPlan]    = useState<PlanPreventif | null>(null);
+  const [activeDragPlan,  setActiveDragPlan]  = useState<PlanPreventif | null>(null);
+  const [showModal,       setShowModal]       = useState(false);
+  const [editingPlan,     setEditingPlan]     = useState<PlanPreventif | null>(null);
 
-  // Modal state
-  const [showModal, setShowModal] = useState(false);
-  const [editingPlan, setEditingPlan] = useState<PlanPreventif | null>(null);
-
-  // Filters
-  const [filterEq, setFilterEq] = useState('');
-  const [filterFam, setFilterFam] = useState('');
+  // Calendar filters
+  const [filterEq,   setFilterEq]   = useState('');
+  const [filterFam,  setFilterFam]  = useState('');
   const [filterTech, setFilterTech] = useState('');
   const [filterPrio, setFilterPrio] = useState('');
 
-  // Toast
+  // Toast notifications
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
 
-  // ── Load plans from backend ────────────────────────────────────────────────
-  const loadPlans = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await fetchPlansPreventifs();
-      setPlans(data);
-    } catch (err) {
-      console.error('Erreur chargement plans préventifs:', err);
-      showToast('Erreur de chargement des plans', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
+  // ── Boot ──────────────────────────────────────────────────────────────────
   useEffect(() => { loadPlans(); }, [loadPlans]);
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
@@ -67,59 +55,47 @@ export const Preventive: React.FC<PreventiveProps> = ({ onNavigate }) => {
     setTimeout(() => setToast(null), 3500);
   };
 
-  // ── Handlers ───────────────────────────────────────────────────────────────
+  // ── Handlers ──────────────────────────────────────────────────────────────
+
   const handleGenererOT = async (plan: PlanPreventif) => {
     try {
-      const result = await genererOTPreventif(plan.id);
-      // Update local plan date
-      setPlans(prev => prev.map(p =>
-        p.id === plan.id ? { ...p, prochaineDate: result.prochaineDate?.split('T')[0], derniereDate: new Date().toISOString().split('T')[0] } : p
-      ));
-      showToast(`✅ OT créé : ${result.numeroOT}`, 'success');
+      const numero = await triggerOT(plan);
+      showToast(`✅ OT créé : ${numero}`, 'success');
       setSelectedPlan(null);
-    } catch (err) {
-      console.error(err);
-      showToast('Erreur lors de la génération de l\'OT', 'error');
+      setActiveDragPlan(null);
+    } catch {
+      showToast("Erreur lors de la génération de l'OT", 'error');
     }
   };
 
   const handleDropOnDay = async (dateStr: string) => {
-    if (!activePlanToDrag || !dateStr) return;
+    if (!activeDragPlan || !dateStr) return;
     try {
-      await replanifierPlanPreventif(activePlanToDrag.id, dateStr);
-      setPlans(prev => prev.map(p =>
-        p.id === activePlanToDrag.id ? { ...p, prochaineDate: dateStr } : p
-      ));
+      await reschedule(activeDragPlan.id, dateStr);
       showToast(`📅 Plan replanifié au ${dateStr}`, 'success');
-    } catch (err) {
-      console.error(err);
+    } catch {
       showToast('Erreur lors de la replanification', 'error');
     }
-    setActivePlanToDrag(null);
+    setActiveDragPlan(null);
   };
 
-  const handleSavePlan = async (payload: Omit<PlanPreventif, 'id'>) => {
+  const handleSavePlan = async (dto: CreatePlanDto) => {
     try {
       if (editingPlan) {
-        await updatePlanPreventif(editingPlan.id, payload);
+        await editPlan(editingPlan.id, dto);
         showToast('Plan mis à jour avec succès', 'success');
       } else {
-        await createPlanPreventif(payload);
+        await addPlan(dto);
         showToast('Plan créé avec succès', 'success');
       }
       setShowModal(false);
       setEditingPlan(null);
-      await loadPlans();
-    } catch (err) {
-      console.error(err);
+    } catch {
       showToast('Erreur lors de la sauvegarde', 'error');
     }
   };
 
-  const handleOpenCreate = () => {
-    setEditingPlan(null);
-    setShowModal(true);
-  };
+  const handleOpenCreate = () => { setEditingPlan(null); setShowModal(true); };
 
   const handleOpenEdit = (plan: PlanPreventif) => {
     setEditingPlan(plan);
@@ -127,7 +103,8 @@ export const Preventive: React.FC<PreventiveProps> = ({ onNavigate }) => {
     setSelectedPlan(null);
   };
 
-  // ── Calendar helpers ───────────────────────────────────────────────────────
+  // ── Calendar helpers ──────────────────────────────────────────────────────
+
   const buildCalendarCells = () => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
@@ -144,35 +121,22 @@ export const Preventive: React.FC<PreventiveProps> = ({ onNavigate }) => {
     return cells;
   };
 
-  const calendarCells = buildCalendarCells();
-
   const getEventsForDay = (dateStr: string) => {
     if (!dateStr) return [];
-    return plans.filter(p => {
-      if (filterEq && p.equipementId.toString() !== filterEq) return false;
-      if (filterFam && p.equipementFamille !== filterFam) return false;
-      return p.prochaineDate === dateStr;
-    }).map(p => ({
-      id: p.id.toString(),
-      title: p.titre,
-      status: 'Planifié',
-      type: 'plan',
-      priority: 'Haute' as const,
-      plan: p
-    }));
+    return plans
+      .filter(p => {
+        if (filterEq  && p.equipementId.toString() !== filterEq)  return false;
+        if (filterFam && p.equipementFamille !== filterFam)         return false;
+        return p.prochaineDate === dateStr;
+      })
+      .map(p => ({ id: p.id.toString(), title: p.titre, priority: 'Haute' as const, plan: p }));
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'Critique': return 'border-rose-500 bg-rose-500/10 text-rose-700 dark:text-rose-400';
-      case 'Haute':    return 'border-amber-500 bg-amber-500/10 text-amber-700 dark:text-amber-400';
-      case 'Moyenne':  return 'border-primary bg-primary/10 text-primary';
-      default:         return 'border-slate-300 bg-slate-100 text-slate-650';
-    }
-  };
+  const getPriorityColor = () =>
+    'border-amber-500 bg-amber-500/10 text-amber-700 dark:text-amber-400';
 
   const todayDateStr = new Date().toISOString().split('T')[0];
-  const monthLabel = currentMonth.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  const monthLabel   = currentMonth.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
   const capitalizedMonthLabel = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
 
   const goToPrevMonth = () => setCurrentMonth(p => new Date(p.getFullYear(), p.getMonth() - 1, 1));
@@ -180,10 +144,8 @@ export const Preventive: React.FC<PreventiveProps> = ({ onNavigate }) => {
   const goToToday    = () => { const n = new Date(); setCurrentMonth(new Date(n.getFullYear(), n.getMonth(), 1)); };
 
   // Coverage stats
-  const plansThisMonth = plans.filter(p => p.prochaineDate?.startsWith(
-    `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`
-  ));
-  const totalActive = plans.length;
+  const monthKey = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`;
+  const plansThisMonth = plans.filter(p => p.prochaineDate?.startsWith(monthKey));
 
   return (
     <div className="flex flex-col gap-6 animate-[fadeIn_0.3s_ease-out]">
@@ -208,71 +170,74 @@ export const Preventive: React.FC<PreventiveProps> = ({ onNavigate }) => {
           </p>
         </div>
 
-        {/* Coverage bar */}
         <div className="glass-panel p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 shadow-sm min-w-[250px]">
           <div className="flex justify-between items-center mb-1">
             <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
               Plans ce mois
             </span>
             <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">
-              {plansThisMonth.length} / {totalActive}
+              {plansThisMonth.length} / {plans.length}
             </span>
           </div>
           <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
             <div
               className="bg-emerald-500 h-1.5 rounded-full transition-all duration-500"
-              style={{ width: totalActive > 0 ? `${Math.round((plansThisMonth.length / totalActive) * 100)}%` : '0%' }}
+              style={{ width: plans.length > 0 ? `${Math.round((plansThisMonth.length / plans.length) * 100)}%` : '0%' }}
             />
           </div>
           <p className="text-[9px] text-slate-400 mt-1.5">
-            {totalActive} plans préventifs actifs au total
+            {plans.length} plans préventifs actifs
           </p>
         </div>
       </div>
 
-      {loading ? (
+      {/* Error banner */}
+      {error && !isLoading && (
+        <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-xl p-4 text-sm text-rose-700 dark:text-rose-400 flex items-center gap-3">
+          <span className="text-lg">⚠️</span>
+          <span>{error}</span>
+          <button onClick={loadPlans} className="ml-auto text-xs font-bold underline cursor-pointer">
+            Réessayer
+          </button>
+        </div>
+      )}
+
+      {isLoading ? (
         <div className="flex items-center justify-center py-20">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
           <span className="ml-3 text-slate-500 text-sm">Chargement des plans préventifs…</span>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-
-          {/* Left: Plan list */}
           <div className="lg:col-span-1 flex flex-col gap-4">
             <PreventivePlanList
               plans={plans}
               equipments={equipments}
-              activePlanToDrag={activePlanToDrag}
-              onSelectPlan={(p) => { setActivePlanToDrag(p); setSelectedPlan(p); }}
+              activePlanToDrag={activeDragPlan}
+              onSelectPlan={p => { setActiveDragPlan(p); setSelectedPlan(p); }}
               onGenererOT={handleGenererOT}
               onNewPlan={handleOpenCreate}
               can={can}
             />
           </div>
 
-          {/* Right: Calendar */}
           <PreventiveCalendar
             currentMonth={currentMonth}
             goToPrevMonth={goToPrevMonth}
             goToNextMonth={goToNextMonth}
             goToToday={goToToday}
             capitalizedMonthLabel={capitalizedMonthLabel}
-            calendarCells={calendarCells}
+            calendarCells={buildCalendarCells()}
             getEventsForDay={getEventsForDay}
             getPriorityColor={getPriorityColor}
             handleDropOnDay={handleDropOnDay}
-            onEventClick={(plan) => setSelectedPlan(plan)}
-            activePlanToDrag={activePlanToDrag}
+            onEventClick={p => setSelectedPlan(p)}
+            activePlanToDrag={activeDragPlan}
             todayDateStr={todayDateStr}
-            filterEq={filterEq}
-            setFilterEq={setFilterEq}
-            filterFam={filterFam}
-            setFilterFam={setFilterFam}
-            filterTech={filterTech}
-            setFilterTech={setFilterTech}
-            filterPrio={filterPrio}
-            setFilterPrio={setFilterPrio}
+            filterEq={filterEq}    setFilterEq={setFilterEq}
+            filterFam={filterFam}  setFilterFam={setFilterFam}
+            filterTech={filterTech} setFilterTech={setFilterTech}
+            filterPrio={filterPrio} setFilterPrio={setFilterPrio}
             equipments={equipments}
             technicians={technicians}
             can={can}
@@ -281,16 +246,14 @@ export const Preventive: React.FC<PreventiveProps> = ({ onNavigate }) => {
         </div>
       )}
 
-      {/* Drawer */}
       <PreventiveDrawer
         plan={selectedPlan}
-        onClose={() => { setSelectedPlan(null); setActivePlanToDrag(null); }}
+        onClose={() => { setSelectedPlan(null); setActiveDragPlan(null); }}
         onEdit={handleOpenEdit}
         onGenererOT={handleGenererOT}
         can={can}
       />
 
-      {/* Modal create/edit */}
       {showModal && (
         <PreventiveModal
           editingPlan={editingPlan}

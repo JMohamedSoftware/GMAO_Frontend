@@ -1,6 +1,6 @@
 import React from 'react';
 import { Calendar as CalendarIcon, X, CheckCircle, Circle, Edit3, RefreshCw, Clock, Zap, Layers } from 'lucide-react';
-import { PlanPreventif } from '@/shared/types/gmao';
+import type { PlanPreventif } from '../types/preventive.types';
 import { PERMISSIONS } from '@/shared/permissions';
 
 interface PreventiveDrawerProps {

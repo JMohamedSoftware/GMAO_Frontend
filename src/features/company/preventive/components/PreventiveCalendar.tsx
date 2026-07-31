@@ -1,6 +1,6 @@
 import React from 'react';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Filter, Plus } from 'lucide-react';
-import { PlanPreventif } from '@/shared/types/gmao';
+import type { PlanPreventif } from '../types/preventive.types';
 import { PERMISSIONS } from '@/shared/permissions';
 
 interface CalendarEvent {
