@@ -26,8 +26,9 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({ activeTab = 'dashboard' 
   const [showCreateWizard, setShowCreateWizard] = useState(false);
 
   // Filter requests vs active tenants
-  const pendingRequests = tenants.filter(t => t.status === 'Pending');
-  const registeredTenants = tenants.filter(t => t.status !== 'Pending');
+  const safeTenants = tenants || [];
+  const pendingRequests = safeTenants.filter(t => t.status === 'Pending');
+  const registeredTenants = safeTenants.filter(t => t.status !== 'Pending');
 
   // Compute SaaS Analytics
   const activeCount = registeredTenants.filter(t => t.status === 'Active').length;

@@ -176,6 +176,12 @@ export const gmaoSlice = createSlice({
         localStorage.removeItem('gmao_impersonated_tenant_id');
       }
     },
+    setTenantStatus: (state, action: PayloadAction<{ id: string; status: 'Active' | 'Suspended' | 'Pending' }>) => {
+      const tenant = state.tenants.find(t => t.id === action.payload.id);
+      if (tenant) {
+        tenant.status = action.payload.status;
+      }
+    },
     toggleDarkMode: (state) => {
       state.darkMode = !state.darkMode;
       localStorage.setItem('gmao_dark_mode', JSON.stringify(state.darkMode));
@@ -484,7 +490,7 @@ export const {
   addIncident, updateIncidentStatus, addWorkOrder, updateWorkOrderStatus,
   addPartMovement, updatePart, addSupplier, addNotification,
   markNotificationAsRead, markAllNotificationsAsRead, addUser,
-  syncToLocalStorage, impersonateTenant
+  syncToLocalStorage, impersonateTenant, setTenantStatus
 } = gmaoSlice.actions;
 
 export default gmaoSlice.reducer;

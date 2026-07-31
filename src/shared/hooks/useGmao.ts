@@ -107,15 +107,21 @@ export const useGmao = () => {
     },
     approveTenant: async (id: string) => {
       const tenant = state.tenants.find(t => t.id === id);
-      if (tenant && tenant.dbId) {
-        await dispatch(updateTenantAsync({ dbId: tenant.dbId, tenantData: { ...tenant, status: 'Active' } }));
+      if (tenant) {
+        dispatch(actions.setTenantStatus({ id, status: 'Active' }));
+        if (tenant.dbId) {
+          await dispatch(updateTenantAsync({ dbId: tenant.dbId, tenantData: { ...tenant, status: 'Active' } }));
+        }
       }
     },
     suspendTenant: async (id: string) => {
       const tenant = state.tenants.find(t => t.id === id);
-      if (tenant && tenant.dbId) {
+      if (tenant) {
         const newStatus = tenant.status === 'Active' ? 'Suspended' : 'Active';
-        await dispatch(updateTenantAsync({ dbId: tenant.dbId, tenantData: { ...tenant, status: newStatus } }));
+        dispatch(actions.setTenantStatus({ id, status: newStatus }));
+        if (tenant.dbId) {
+          await dispatch(updateTenantAsync({ dbId: tenant.dbId, tenantData: { ...tenant, status: newStatus } }));
+        }
       }
     },
     changeTenantPlan: async (id: string, plan: string) => {
