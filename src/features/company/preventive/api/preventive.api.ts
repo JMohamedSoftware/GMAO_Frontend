@@ -10,7 +10,12 @@ const API_BASE = rawUrl.replace(/\/api\/?$/, '') + '/api';
 
 const getHeaders = () => {
   const token = localStorage.getItem('gmao_access_token');
-  return { headers: { Authorization: token ? `Bearer ${token}` : '' } };
+  return {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  };
 };
 
 // ── Mapper ────────────────────────────────────────────────────────────────────
