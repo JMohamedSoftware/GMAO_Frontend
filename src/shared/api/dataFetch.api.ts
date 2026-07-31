@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Equipment, Supplier, SparePart, Incident, WorkOrder, Campaign, Technician, PlanPreventif, TachePreventive, UserAccount } from '../types/gmao';
+import { Equipment, Supplier, SparePart, Incident, WorkOrder, Campaign, Technician, PlanPreventif, TachePreventive, UserAccount, Tenant } from '../types/gmao';
 
 const rawUrl = import.meta.env.VITE_API_URL || 'https://gmao-backend-a6r2.onrender.com';
 const API_URL = rawUrl.replace(/\/api\/?$/, '') + '/api';
@@ -443,4 +443,56 @@ export const replanifierPlanPreventif = async (planId: number, nouvelleDate: str
         { nouvelleDate: new Date(nouvelleDate).toISOString() },
         getAuthHeaders()
     );
+};
+
+export const fetchTenants = async (): Promise<Tenant[]> => {
+    const response = await axios.get(`${API_URL}/Societes`, getAuthHeaders());
+    return response.data.map((s: any) => ({
+        id: s.codeTenant,
+        dbId: s.id,
+        name: s.nom,
+        domain: s.adresse || '',
+        status: s.isActive ? 'Active' : 'Suspended',
+        subscriptionPlan: s.subscriptionPlan || 'Basic',
+        createdAt: s.createdAt,
+        adminEmail: s.emailContact || '',
+        capacityTonsPerDay: s.capacityTonsPerDay || 450,
+        equipments: [],
+        workOrders: [],
+        incidents: [],
+        technicians: [],
+        parts: [],
+        suppliers: [],
+        campaigns: [],
+        users: []
+    }));
+};
+
+export const createTenantApi = async (tenantData: any): Promise<any> => {
+    const body = {
+        codeTenant: tenantData.id,
+        nom: tenantData.name,
+        adresse: tenantData.domain,
+        emailContact: tenantData.adminEmail,
+        subscriptionPlan: tenantData.subscriptionPlan,
+        capacityTonsPerDay: tenantData.capacityTonsPerDay || 450,
+        isActive: true
+    };
+    const response = await axios.post(`${API_URL}/Societes`, body, getAuthHeaders());
+    return response.data;
+};
+
+export const updateTenantApi = async (dbId: number, tenantData: any): Promise<any> => {
+    const body = {
+        id: dbId,
+        codeTenant: tenantData.id,
+        nom: tenantData.name,
+        adresse: tenantData.domain,
+        emailContact: tenantData.adminEmail,
+        subscriptionPlan: tenantData.subscriptionPlan,
+        capacityTonsPerDay: tenantData.capacityTonsPerDay || 450,
+        isActive: tenantData.status === 'Active'
+    };
+    const response = await axios.put(`${API_URL}/Societes/${dbId}`, body, getAuthHeaders());
+    return response.data;
 };

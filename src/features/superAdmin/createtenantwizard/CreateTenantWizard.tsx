@@ -71,18 +71,18 @@ export const CreateTenantWizard: React.FC<CreateTenantWizardProps> = ({ show, on
     }
   };
 
-  const handleWizardSubmit = () => {
+  const handleWizardSubmit = async () => {
     setCreationLoading(true);
-    setTimeout(() => {
-      registerTenant(companyName, `${companySlug}.platform.com`, adminEmail, 300, subPlan);
-      
-      setTimeout(() => {
-        approveTenant(`tenant-${companySlug}`);
-      }, 0);
-
-      setCreationLoading(false);
+    try {
+      await registerTenant({
+        id: companySlug,
+        name: companyName,
+        domain: `${companySlug}.platform.com`,
+        adminEmail: adminEmail,
+        subscriptionPlan: subPlan,
+        capacityTonsPerDay: 450
+      });
       setCreationSuccess(true);
-      
       setTimeout(() => {
         onClose();
         setCurrentStep(1);
@@ -98,7 +98,11 @@ export const CreateTenantWizard: React.FC<CreateTenantWizardProps> = ({ show, on
         setAdminEmail('');
         setAdminPassword('');
       }, 1500);
-    }, 1500);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setCreationLoading(false);
+    }
   };
 
   if (!show) return null;

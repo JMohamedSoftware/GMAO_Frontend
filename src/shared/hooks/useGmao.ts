@@ -1,6 +1,6 @@
 import { useAppSelector, useAppDispatch } from '@/app/hooks';
 import * as actions from '@/app/gmaoSlice';
-import { createIncidentAsync, updateIncidentStatusAsync } from '@/app/gmaoSlice';
+import { createIncidentAsync, updateIncidentStatusAsync, fetchTenantsAsync, createTenantAsync, updateTenantAsync } from '@/app/gmaoSlice';
 import { AppRole } from '@/shared/permissions';
 import { Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount, User, Tenant } from '@/shared/types/gmao';
 import { useEffect } from 'react';
@@ -13,6 +13,9 @@ export const useGmao = () => {
   useEffect(() => {
     if (state.currentUser) {
       dispatch(fetchTenantDataAsync());
+      if (state.currentUser.role === 'SuperAdmin') {
+        dispatch(fetchTenantsAsync());
+      }
     }
   }, [state.currentUser, dispatch]);
 
@@ -21,7 +24,8 @@ export const useGmao = () => {
     dispatch(actions.syncToLocalStorage());
   }, [state.tenants, dispatch]);
 
-  const activeTenant = state.tenants.find(t => t.id === state.currentTenantId);
+  const activeTenantId = state.impersonatedTenantId || state.currentTenantId;
+  const activeTenant = state.tenants.find(t => t.id === activeTenantId);
 
   return {
     tenants: state.tenants,
@@ -98,11 +102,31 @@ export const useGmao = () => {
     // Missing actions from context but keeping API stable for migration:
     deleteEquipmentsByLocation: (...args: any[]) => {},
     deleteEquipmentsByCategory: (...args: any[]) => {},
-    registerTenant: (...args: any[]) => {},
-    approveTenant: (...args: any[]) => {},
-    suspendTenant: (...args: any[]) => {},
-    changeTenantPlan: (...args: any[]) => {},
-    impersonateTenant: (...args: any[]) => {}
+    registerTenant: async (tenantData: any) => {
+      await dispatch(createTenantAsync(tenantData));
+    },
+    approveTenant: async (id: string) => {
+      const tenant = state.tenants.find(t => t.id === id);
+      if (tenant && tenant.dbId) {
+        await dispatch(updateTenantAsync({ dbId: tenant.dbId, tenantData: { ...tenant, status: 'Active' } }));
+      }
+    },
+    suspendTenant: async (id: string) => {
+      const tenant = state.tenants.find(t => t.id === id);
+      if (tenant && tenant.dbId) {
+        const newStatus = tenant.status === 'Active' ? 'Suspended' : 'Active';
+        await dispatch(updateTenantAsync({ dbId: tenant.dbId, tenantData: { ...tenant, status: newStatus } }));
+      }
+    },
+    changeTenantPlan: async (id: string, plan: string) => {
+      const tenant = state.tenants.find(t => t.id === id);
+      if (tenant && tenant.dbId) {
+        await dispatch(updateTenantAsync({ dbId: tenant.dbId, tenantData: { ...tenant, subscriptionPlan: plan } }));
+      }
+    },
+    impersonateTenant: (id: string | null) => {
+      dispatch(actions.impersonateTenant(id));
+    }
   };
 };
 

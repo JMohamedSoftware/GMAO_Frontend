@@ -204,6 +204,7 @@ export interface Equipe {
 // MULTI-TENANT CONTAINER STRUCT
 export interface Tenant {
   id: string;
+  dbId?: number;
   name: string;
   domain: string;
   status: 'Pending' | 'Active' | 'Suspended';

@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { Tenant, User, Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount } from '@/shared/types/gmao';
 import { AppRole } from '@/shared/permissions';
-import { fetchEquipments, fetchSuppliers, fetchParts, fetchIncidents, fetchWorkOrders, fetchCampaigns, fetchTechnicians, fetchUsers, createIncidentApi, patchIncidentStatusApi, CreateIncidentPayload, createWorkOrderApi, CreateWorkOrderPayload } from '@/shared/api/dataFetch.api';
+import { fetchEquipments, fetchSuppliers, fetchParts, fetchIncidents, fetchWorkOrders, fetchCampaigns, fetchTechnicians, fetchUsers, fetchTenants, createTenantApi, updateTenantApi, createIncidentApi, patchIncidentStatusApi, CreateIncidentPayload, createWorkOrderApi, CreateWorkOrderPayload } from '@/shared/api/dataFetch.api';
 
 interface GmaoState {
   tenants: Tenant[];
@@ -51,6 +51,57 @@ const initialState: GmaoState = {
   rolePermissions: {},
   notifications: []
 };
+
+export const fetchTenantsAsync = createAsyncThunk(
+  'gmao/fetchTenants',
+  async () => {
+    return await fetchTenants();
+  }
+);
+
+export const createTenantAsync = createAsyncThunk(
+  'gmao/createTenant',
+  async (tenantData: any) => {
+    const created = await createTenantApi(tenantData);
+    return {
+      id: created.codeTenant,
+      dbId: created.id,
+      name: created.nom,
+      domain: created.adresse || '',
+      status: created.isActive ? 'Active' : 'Suspended',
+      subscriptionPlan: created.subscriptionPlan || 'Basic',
+      createdAt: created.createdAt,
+      adminEmail: created.emailContact || '',
+      capacityTonsPerDay: created.capacityTonsPerDay || 450,
+      equipments: [],
+      workOrders: [],
+      incidents: [],
+      technicians: [],
+      parts: [],
+      suppliers: [],
+      campaigns: [],
+      users: []
+    } as Tenant;
+  }
+);
+
+export const updateTenantAsync = createAsyncThunk(
+  'gmao/updateTenant',
+  async (payload: { dbId: number; tenantData: any }) => {
+    const updated = await updateTenantApi(payload.dbId, payload.tenantData);
+    return {
+      id: updated.codeTenant,
+      dbId: updated.id,
+      name: updated.nom,
+      domain: updated.adresse || '',
+      status: updated.isActive ? 'Active' : 'Suspended',
+      subscriptionPlan: updated.subscriptionPlan || 'Basic',
+      createdAt: updated.createdAt,
+      adminEmail: updated.emailContact || '',
+      capacityTonsPerDay: updated.capacityTonsPerDay || 450,
+    };
+  }
+);
 
 export const fetchTenantDataAsync = createAsyncThunk(
   'gmao/fetchTenantData',
@@ -116,6 +167,14 @@ export const gmaoSlice = createSlice({
       state.impersonatedTenantId = null;
       localStorage.removeItem('gmao_current_user');
       localStorage.setItem('gmao_current_tenant_id', 'tenant-midi');
+    },
+    impersonateTenant: (state, action: PayloadAction<string | null>) => {
+      state.impersonatedTenantId = action.payload;
+      if (action.payload) {
+        localStorage.setItem('gmao_impersonated_tenant_id', action.payload);
+      } else {
+        localStorage.removeItem('gmao_impersonated_tenant_id');
+      }
     },
     toggleDarkMode: (state) => {
       state.darkMode = !state.darkMode;
@@ -342,6 +401,40 @@ export const gmaoSlice = createSlice({
       }
     });
 
+    builder.addCase(fetchTenantsAsync.fulfilled, (state, action) => {
+      action.payload.forEach(fetched => {
+        const existing = state.tenants.find(t => t.id === fetched.id);
+        if (existing) {
+          existing.dbId = fetched.dbId;
+          existing.name = fetched.name;
+          existing.domain = fetched.domain;
+          existing.status = fetched.status;
+          existing.subscriptionPlan = fetched.subscriptionPlan;
+          existing.adminEmail = fetched.adminEmail;
+          existing.capacityTonsPerDay = fetched.capacityTonsPerDay;
+        } else {
+          state.tenants.push(fetched);
+        }
+      });
+    });
+
+    builder.addCase(createTenantAsync.fulfilled, (state, action) => {
+      state.tenants.push(action.payload);
+    });
+
+    builder.addCase(updateTenantAsync.fulfilled, (state, action) => {
+      const existing = state.tenants.find(t => t.id === action.payload.id);
+      if (existing) {
+        existing.dbId = action.payload.dbId;
+        existing.name = action.payload.name;
+        existing.domain = action.payload.domain;
+        existing.status = action.payload.status;
+        existing.subscriptionPlan = action.payload.subscriptionPlan;
+        existing.adminEmail = action.payload.adminEmail;
+        existing.capacityTonsPerDay = action.payload.capacityTonsPerDay;
+      }
+    });
+
     // When a new incident is created on the backend, prepend it to local state
     builder.addCase(createIncidentAsync.fulfilled, (state, action) => {
       const tenant = state.tenants.find(t => t.id === state.currentTenantId);
@@ -391,8 +484,7 @@ export const {
   addIncident, updateIncidentStatus, addWorkOrder, updateWorkOrderStatus,
   addPartMovement, updatePart, addSupplier, addNotification,
   markNotificationAsRead, markAllNotificationsAsRead, addUser,
-  syncToLocalStorage
+  syncToLocalStorage, impersonateTenant
 } = gmaoSlice.actions;
 
 export default gmaoSlice.reducer;
-
