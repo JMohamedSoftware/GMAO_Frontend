@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Equipment, Supplier, SparePart, Incident, WorkOrder, Campaign, Technician, PlanPreventif, TachePreventive } from '../types/gmao';
+import { Equipment, Supplier, SparePart, Incident, WorkOrder, Campaign, Technician, PlanPreventif, TachePreventive, UserAccount } from '../types/gmao';
 
 const rawUrl = import.meta.env.VITE_API_URL || 'https://gmao-backend-a6r2.onrender.com';
 const API_URL = rawUrl.replace(/\/api\/?$/, '') + '/api';
@@ -108,6 +108,29 @@ export const fetchTechnicians = async (): Promise<Technician[]> => {
             avatar: u.avatar ||
                 `https://ui-avatars.com/api/?name=${encodeURIComponent(`${u.prenom}+${u.nom}`)}&background=e11d48&color=fff&size=150`,
         }));
+};
+
+const mapRoleIdToName = (roleId: number): string => {
+    switch (roleId) {
+        case 1: return 'Administrateur';
+        case 2: return 'Technicien';
+        case 3: return 'Demandeur';
+        default: return 'Utilisateur';
+    }
+};
+
+export const fetchUsers = async (): Promise<UserAccount[]> => {
+    const response = await axios.get(`${API_URL}/Users`, getAuthHeaders());
+    return response.data.map((u: any) => ({
+        id: u.id?.toString(),
+        name: `${u.prenom} ${u.nom}`.trim(),
+        email: u.email,
+        role: mapRoleIdToName(u.roleId),
+        status: u.isActive !== false ? 'Actif' : 'Inactif',
+        avatar: u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(`${u.prenom}+${u.nom}`)}&background=e11d48&color=fff&size=150`,
+        phone: u.telephone,
+        createdAt: u.createdAt
+    }));
 };
 
 

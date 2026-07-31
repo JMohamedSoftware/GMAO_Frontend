@@ -37,19 +37,20 @@ export const useGmao = () => {
     equipments: activeTenant ? activeTenant.equipments : [],
     workOrders: activeTenant ? activeTenant.workOrders : [],
     incidents: activeTenant ? activeTenant.incidents : [],
+    users: activeTenant ? activeTenant.users : [],
     technicians: activeTenant ? activeTenant.technicians : [],
     parts: activeTenant ? activeTenant.parts : [],
     suppliers: activeTenant ? activeTenant.suppliers : [],
     campaigns: activeTenant ? activeTenant.campaigns : [],
 
     // Actions
-    login: (email: string, password?: string, tenantId?: string | null, quickRole?: User['role'], forcedName?: string) => {
+    login: (email: string, password?: string, tenantId?: string | null, quickRole?: User['role'], forcedName?: string, userId?: string) => {
       let role = quickRole || 'Administrateur';
       let name = forcedName || 'Utilisateur';
       let avatar = 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80';
 
       dispatch(actions.login({
-        user: { id: 'temp-user-id', name, email, role: role as any, avatar, tenantId: tenantId || undefined },
+        user: { id: userId || 'temp-user-id', name, email, role: role as any, avatar, tenantId: tenantId || undefined },
         tenantId: tenantId || null
       }));
       return true;

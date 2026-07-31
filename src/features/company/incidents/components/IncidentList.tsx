@@ -1,5 +1,5 @@
 import React from 'react';
-import { Incident, Equipment } from '@/shared/types/gmao';
+import { Incident, Equipment, UserAccount } from '@/shared/types/gmao';
 import { AlertCircle, User, Clock, Check, X, ArrowRight, FileText, Loader2 } from 'lucide-react';
 import { PERMISSIONS } from '@/shared/permissions';
 
@@ -15,12 +15,13 @@ interface IncidentListProps {
   updatingIds: Set<string>;
   onOpenCreateOtWithIncident: (inc: Incident) => void;
   onNavigate: (screen: string) => void;
+  users: UserAccount[];
 }
 
 export const IncidentList: React.FC<IncidentListProps> = ({
   columns, getColumnIncidents, equipments, getUrgencyColor, can,
   isProduction, isTechnicien, updateIncidentStatus, updatingIds,
-  onOpenCreateOtWithIncident, onNavigate
+  onOpenCreateOtWithIncident, onNavigate, users
 }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
@@ -60,12 +61,17 @@ export const IncidentList: React.FC<IncidentListProps> = ({
                     ? `Il y a ${diffDays} j` 
                     : (diffHours > 0 ? `Il y a ${diffHours} h` : 'À l\'instant');
 
-                  // Avatar aléatoire basé sur l'ID
-                  const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(inc.reportedBy.split(' ')[0])}&background=random&color=fff&size=64`;
+                  const reporterUser = users.find(u => u.id?.toString() === inc.reportedBy?.toString());
+                  const reporterName = reporterUser ? reporterUser.name : (inc.reportedBy || 'Production');
                   
-                  const affectedTechName = inc.technicianId 
-                    ? 'Ahmed Bensaid' // Hardcoded for demo, normally from context
-                    : 'Non affecté';
+                  // Avatar based on user or fallback
+                  const avatarUrl = reporterUser?.avatar || 
+                    `https://ui-avatars.com/api/?name=${encodeURIComponent(reporterName.split(' ')[0])}&background=random&color=fff&size=64`;
+                  
+                  const techUser = users.find(u => u.id?.toString() === inc.technicianId?.toString());
+                  const affectedTechName = techUser 
+                    ? techUser.name 
+                    : (inc.technicianId ? `Tech #${inc.technicianId}` : 'Non affecté');
 
                   return (
                     <div 
@@ -126,7 +132,7 @@ export const IncidentList: React.FC<IncidentListProps> = ({
                         <div className="flex items-center gap-2">
                           <img src={avatarUrl} alt="Avatar" className="w-4 h-4 rounded-full ring-1 ring-slate-200 dark:ring-slate-700" />
                           <span className="text-[9px] font-bold text-slate-600 dark:text-slate-400 leading-none">
-                            Par: {inc.reportedBy.split(' ')[0]}
+                            Par: {reporterName}
                           </span>
                         </div>
                       </div>

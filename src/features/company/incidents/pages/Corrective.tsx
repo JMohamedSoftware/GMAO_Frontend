@@ -13,7 +13,7 @@ interface CorrectiveProps {
 }
 
 export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreateOtWithIncident }) => {
-  const { incidents, equipments, workOrders, currentUser, addIncident, updateIncidentStatus } = useGmao();
+  const { incidents, equipments, workOrders, currentUser, users, addIncident, updateIncidentStatus } = useGmao();
   const { can, isProduction, isTechnicien } = usePermissions();
   const [search, setSearch] = useState('');
   const [filterUrgency, setFilterUrgency] = useState<string>('Toutes');
@@ -30,11 +30,12 @@ export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreate
   const [urgency, setUrgency] = useState<Incident['urgency']>('Moyenne');
   const [photo, setPhoto] = useState('');
 
-  // Enrich incidents: inject workOrderId from the OT that links back to this incident
+  // Enrich incidents: inject workOrderId and technicianId from the OT that links back to this incident
   const enrichedIncidents = incidents.map(inc => {
-    if (inc.workOrderId) return inc; // already has it (from createWorkOrderAsync)
     const linkedOt = workOrders.find(ot => ot.incidentId === inc.id);
-    return linkedOt ? { ...inc, workOrderId: linkedOt.id } : inc;
+    return linkedOt 
+      ? { ...inc, workOrderId: linkedOt.id, technicianId: linkedOt.technicianId?.toString() } 
+      : inc;
   });
 
   // Filter incidents based on search query and role
@@ -204,6 +205,7 @@ export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreate
         updatingIds={updatingIds}
         onOpenCreateOtWithIncident={onOpenCreateOtWithIncident}
         onNavigate={onNavigate}
+        users={users}
       />
 
       {/* Add Incident Modal */}

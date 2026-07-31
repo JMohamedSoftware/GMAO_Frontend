@@ -31,7 +31,7 @@ export const Login: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       if (sessionStr) {
         try {
           const session = JSON.parse(sessionStr);
-          reduxLogin(credentials.email, credentials.password, session.user?.tenantId || undefined, session.user?.role as any, session.user?.name);
+          reduxLogin(credentials.email, credentials.password, session.user?.tenantId || undefined, session.user?.role as any, session.user?.name, session.user?.id?.toString());
         } catch {
           reduxLogin(credentials.email, credentials.password, undefined);
         }
