@@ -129,7 +129,7 @@ export const Preventive: React.FC<PreventiveProps> = () => {
         if (filterFam && p.equipementFamille !== filterFam)         return false;
         return p.prochaineDate === dateStr;
       })
-      .map(p => ({ id: p.id.toString(), title: p.titre, priority: 'Haute' as const, plan: p }));
+      .map(p => ({ id: p.id.toString(), title: p.titre, status: 'Planifié', type: 'plan', priority: 'Haute' as const, plan: p }));
   };
 
   const getPriorityColor = () =>
