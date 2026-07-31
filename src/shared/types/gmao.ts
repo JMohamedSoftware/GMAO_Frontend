@@ -223,6 +223,31 @@ export interface Tenant {
   users: UserAccount[];
 }
 
+// ── Maintenance Préventive ───────────────────────────────────────────────────
+export interface TachePreventive {
+  id?: number;
+  description: string;
+  ordre: number;
+  dureeEstimeeMinutes?: number;
+  estObligatoire: boolean;
+}
+
+export interface PlanPreventif {
+  id: number;
+  titre: string;
+  description?: string;
+  typeDeclenchement: 1 | 2 | 3;   // 1=Periodique, 2=Compteur, 3=Saisonnier
+  frequence: number;
+  uniteMesure?: string;            // 'jours', 'semaines', 'mois'
+  derniereDate?: string;
+  prochaineDate?: string;
+  actif: boolean;
+  equipementId: number;
+  equipementNom?: string;
+  equipementFamille?: string;
+  taches: TachePreventive[];
+}
+
 
 
 

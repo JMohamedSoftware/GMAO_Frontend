@@ -1,111 +1,176 @@
 import React from 'react';
-import { Info, Settings2, Calendar as CalendarIcon, RefreshCw } from 'lucide-react';
+import { Calendar as CalendarIcon, RefreshCw, Plus, Clock, Zap, Layers } from 'lucide-react';
+import { PlanPreventif } from '@/shared/types/gmao';
+import { PERMISSIONS } from '@/shared/permissions';
 
 interface PreventivePlanListProps {
-  rules: any[];
+  plans: PlanPreventif[];
   equipments: any[];
-  activePlanToDrag: any | null;
-  handleSelectPlanToDrag: (rule: any) => void;
-  handleTriggerPlan: (rule: any) => void;
+  activePlanToDrag: PlanPreventif | null;
+  onSelectPlan: (plan: PlanPreventif) => void;
+  onGenererOT: (plan: PlanPreventif) => void;
+  onNewPlan: () => void;
+  can: (permission: any) => boolean;
 }
 
-export const PreventivePlanList: React.FC<PreventivePlanListProps> = ({
-  rules,
-  equipments,
-  activePlanToDrag,
-  handleSelectPlanToDrag,
-  handleTriggerPlan
-}) => {
-  return (
-    <div className="glass-panel p-4 rounded-custom-md border border-white/40 dark:border-slate-800/40 shadow-sm flex flex-col gap-3">
-      <div className="flex justify-between items-center group relative cursor-help">
-        <h3 className="text-[11px] font-bold text-slate-850 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-          Planification (Drag/Click) <Info className="w-3.5 h-3.5 text-slate-400" />
-        </h3>
-        <div className="absolute hidden group-hover:block top-6 left-0 bg-slate-800 text-white text-[10px] p-2 rounded shadow-lg z-10 w-48">
-          Glissez un plan vers une date du calendrier pour le planifier manuellement.
-        </div>
-        <span className="text-[9px] bg-primary/10 text-primary font-bold px-1.5 py-0.5 rounded">
-          GMAO Engine
-        </span>
-      </div>
-      
-      <p className="text-[10px] text-slate-400 dark:text-slate-500 leading-normal border-b border-slate-100 dark:border-slate-800 pb-2 mb-1">
-        {activePlanToDrag 
-          ? "Cliquez sur une date pour déposer le plan." 
-          : "Sélectionnez un plan préventif pour le déplacer ou voir ses détails."
-        }
-      </p>
+const triggerLabel = (type: 1 | 2 | 3) => {
+  if (type === 2) return 'Compteur';
+  if (type === 3) return 'Saisonnier';
+  return 'Périodique';
+};
 
-      <div className="flex flex-col gap-3 mt-1">
-        {rules.map(rule => {
-          const isSelected = activePlanToDrag?.id === rule.id;
-          const isOverdue = new Date(rule.nextTrigger) < new Date('2026-07-07');
-          
+const triggerIcon = (type: 1 | 2 | 3) => {
+  if (type === 2) return <Zap className="w-3 h-3 text-amber-500" />;
+  if (type === 3) return <Layers className="w-3 h-3 text-purple-500" />;
+  return <Clock className="w-3 h-3 text-sky-500" />;
+};
+
+const urgencyBadge = (dateStr?: string) => {
+  if (!dateStr) return 'border-slate-200 bg-slate-50 text-slate-500';
+  const diff = Math.ceil((new Date(dateStr).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  if (diff < 0)  return 'border-rose-400 bg-rose-50   text-rose-700   dark:bg-rose-900/20   dark:text-rose-400';
+  if (diff <= 3) return 'border-amber-400 bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400';
+  if (diff <= 7) return 'border-sky-400   bg-sky-50    text-sky-700   dark:bg-sky-900/20   dark:text-sky-400';
+  return 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400';
+};
+
+const daysLabel = (dateStr?: string) => {
+  if (!dateStr) return '—';
+  const diff = Math.ceil((new Date(dateStr).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  if (diff < 0)  return `${Math.abs(diff)}j de retard`;
+  if (diff === 0) return 'Aujourd\'hui';
+  if (diff === 1) return 'Demain';
+  return `Dans ${diff}j`;
+};
+
+export const PreventivePlanList: React.FC<PreventivePlanListProps> = ({
+  plans, equipments, activePlanToDrag, onSelectPlan, onGenererOT, onNewPlan, can
+}) => {
+  const sorted = [...plans].sort((a, b) => {
+    if (!a.prochaineDate) return 1;
+    if (!b.prochaineDate) return -1;
+    return new Date(a.prochaineDate).getTime() - new Date(b.prochaineDate).getTime();
+  });
+
+  return (
+    <div className="glass-panel rounded-custom-lg border border-white/40 dark:border-slate-800/40 shadow-sm flex flex-col h-full">
+
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800/80">
+        <div className="flex items-center gap-2">
+          <CalendarIcon className="w-4 h-4 text-primary" />
+          <span className="text-xs font-extrabold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
+            Plans Actifs
+          </span>
+          <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+            {plans.length}
+          </span>
+        </div>
+        {can(PERMISSIONS.PREVENTIVE_CREATE) && (
+          <button
+            onClick={onNewPlan}
+            className="flex items-center gap-1 bg-primary hover:bg-primary/90 text-white font-bold text-[10px] px-2.5 py-1.5 rounded-lg shadow-sm transition-all cursor-pointer"
+          >
+            <Plus className="w-3 h-3" />
+            Nouveau
+          </button>
+        )}
+      </div>
+
+      {/* Plan list */}
+      <div className="flex flex-col gap-2 p-3 overflow-y-auto max-h-[calc(100vh-280px)] custom-scrollbar">
+        {sorted.length === 0 && (
+          <div className="text-center py-10 text-slate-400 text-xs">
+            <CalendarIcon className="w-8 h-8 mx-auto mb-2 opacity-30" />
+            <p>Aucun plan préventif actif.</p>
+            {can(PERMISSIONS.PREVENTIVE_CREATE) && (
+              <button
+                onClick={onNewPlan}
+                className="mt-3 text-primary font-bold hover:underline"
+              >
+                + Créer le premier plan
+              </button>
+            )}
+          </div>
+        )}
+
+        {sorted.map(plan => {
+          const isActive = activePlanToDrag?.id === plan.id;
+          const badgeClass = urgencyBadge(plan.prochaineDate);
+
           return (
-            <div 
-              key={rule.id}
-              onClick={() => handleSelectPlanToDrag(rule)}
-              className={`p-3 rounded-custom-md border cursor-pointer hover-lift flex flex-col gap-2 relative transition-all ${
-                isSelected 
-                  ? 'border-primary bg-primary/5 shadow-[0_4px_12px_rgba(37,99,235,0.1)] scale-[1.02]' 
-                  : 'border-white/50 dark:border-slate-850/40 bg-white/60 dark:bg-slate-900/20 neumorphic-card hover:bg-white/80'
+            <div
+              key={plan.id}
+              onClick={() => onSelectPlan(plan)}
+              className={`group p-3 rounded-xl border cursor-pointer transition-all select-none ${
+                isActive
+                  ? 'border-primary bg-primary/5 ring-2 ring-primary/20 shadow-md'
+                  : 'border-slate-200/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-900/20 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-sm'
               }`}
             >
-              {isOverdue && (
-                <span className="absolute top-2 right-2 flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+              {/* Title row */}
+              <div className="flex items-start gap-2 mb-2">
+                <span className={`flex-shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold border ${badgeClass}`}>
+                  {daysLabel(plan.prochaineDate)}
                 </span>
-              )}
+              </div>
 
-              <div className="flex justify-between items-start pr-3">
-                <span className="text-[9px] font-bold text-slate-400 font-mono leading-none bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">{rule.id}</span>
-                <div className="flex gap-1">
-                  <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${rule.triggerType === 'Temps' ? 'bg-sky-500/10 text-sky-600' : 'bg-emerald-500/10 text-emerald-600'}`}>
-                    {rule.triggerType}
+              <p className="text-[11px] font-bold text-slate-700 dark:text-slate-200 leading-tight mb-1.5 line-clamp-2">
+                {plan.titre}
+              </p>
+
+              {/* Equipment */}
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-2 truncate">
+                🔩 {plan.equipementNom || `Équipement #${plan.equipementId}`}
+                {plan.equipementFamille && <span className="text-slate-400"> · {plan.equipementFamille}</span>}
+              </p>
+
+              {/* Frequency */}
+              <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mb-2">
+                {triggerIcon(plan.typeDeclenchement)}
+                <span>
+                  {triggerLabel(plan.typeDeclenchement)} —&nbsp;
+                  <span className="text-primary font-semibold">
+                    {plan.typeDeclenchement === 1
+                      ? `Tous les ${plan.frequence} ${plan.uniteMesure || 'jours'}`
+                      : plan.typeDeclenchement === 2
+                        ? `Toutes les ${plan.frequence} ${plan.uniteMesure || 'heures'}`
+                        : `Saisonnier`
+                    }
                   </span>
-                  {rule.priority === 'Critique' && (
-                    <span className="text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider bg-rose-500/10 text-rose-600">
-                      Critique
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <h4 className="font-bold text-xs text-slate-750 dark:text-slate-200 leading-tight">
-                {rule.title}
-              </h4>
-              
-              <div className="text-[9px] text-slate-500 font-semibold mb-1 flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900/40 px-2 py-1 rounded">
-                <Settings2 className="w-3 h-3 text-slate-400" />
-                {rule.triggerType === 'Temps' ? (
-                  <span>Fréquence : <span className="text-primary">{rule.frequency}</span></span>
-                ) : (
-                  <span>Seuil : <span className="text-primary">{rule.thresholdValue}</span></span>
-                )}
-              </div>
-
-              <div className="text-[10px] text-slate-450 flex items-center justify-between mt-1 pt-2 border-t border-slate-150 dark:border-slate-800/80">
-                <span className="flex items-center gap-1">
-                  <CalendarIcon className="w-3 h-3 text-slate-400" />
-                  <strong>{rule.nextTrigger}</strong>
                 </span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleTriggerPlan(rule);
-                  }}
-                  className="bg-primary hover:bg-primary/95 text-white font-bold text-[9px] px-2.5 py-1.5 rounded-custom-sm shadow-sm transition-colors cursor-pointer flex items-center gap-1"
-                >
-                  <RefreshCw className="w-3 h-3" />
-                  OT
-                </button>
+              </div>
+
+              {/* Next date + OT button */}
+              <div className="flex items-center justify-between mt-1 pt-2 border-t border-slate-100 dark:border-slate-800/50">
+                <div className="flex items-center gap-1 text-[10px] text-slate-450">
+                  <CalendarIcon className="w-3 h-3 text-slate-400" />
+                  <strong className="text-slate-600 dark:text-slate-300">
+                    {plan.prochaineDate || '—'}
+                  </strong>
+                </div>
+
+                {can(PERMISSIONS.PREVENTIVE_EXECUTE) && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onGenererOT(plan); }}
+                    className="flex items-center gap-1 bg-primary hover:bg-primary/90 text-white font-bold text-[9px] px-2.5 py-1.5 rounded-lg shadow-sm transition-colors cursor-pointer"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    Générer OT
+                  </button>
+                )}
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* Drag hint */}
+      {activePlanToDrag && (
+        <div className="px-3 py-2 border-t border-primary/20 bg-primary/5 text-[10px] text-primary font-bold text-center">
+          🎯 Cliquez sur un jour du calendrier pour replanifier
+        </div>
+      )}
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Equipment, Supplier, SparePart, Incident, WorkOrder, Campaign, Technician } from '../types/gmao';
+import { Equipment, Supplier, SparePart, Incident, WorkOrder, Campaign, Technician, PlanPreventif, TachePreventive } from '../types/gmao';
 
 const rawUrl = import.meta.env.VITE_API_URL || 'https://gmao-backend-a6r2.onrender.com';
 const API_URL = rawUrl.replace(/\/api\/?$/, '') + '/api';
@@ -337,4 +337,87 @@ export const fetchCampaigns = async (): Promise<Campaign[]> => {
         endDate: c.dateFin,
         status: c.etat === 2 ? 'En cours' : c.etat === 3 ? 'Terminée' : 'Planifiée'
     }));
+};
+
+
+// ── Plans Préventifs API ───────────────────────────────────────────────────
+
+const mapPlan = (p: any): PlanPreventif => ({
+    id: p.id,
+    titre: p.titre || '',
+    description: p.description,
+    typeDeclenchement: p.typeDeclenchement as 1 | 2 | 3,
+    frequence: p.frequence || 0,
+    uniteMesure: p.uniteMesure,
+    derniereDate: p.derniereDate?.split('T')[0],
+    prochaineDate: p.prochaineDate?.split('T')[0],
+    actif: p.actif ?? true,
+    equipementId: p.equipementId,
+    equipementNom: p.equipementNom,
+    equipementFamille: p.equipementFamille,
+    taches: (p.taches || []).map((t: any): TachePreventive => ({
+        id: t.id,
+        description: t.description,
+        ordre: t.ordre,
+        dureeEstimeeMinutes: t.dureeEstimeeMinutes,
+        estObligatoire: t.estObligatoire ?? true,
+    }))
+});
+
+export const fetchPlansPreventifs = async (): Promise<PlanPreventif[]> => {
+    const res = await axios.get(`${API_URL}/PlansPreventif`, getAuthHeaders());
+    return res.data.map(mapPlan);
+};
+
+export const createPlanPreventif = async (payload: Omit<PlanPreventif, 'id'>): Promise<PlanPreventif> => {
+    const body = {
+        equipementId:      payload.equipementId,
+        titre:             payload.titre,
+        description:       payload.description,
+        typeDeclenchement: payload.typeDeclenchement,
+        frequence:         payload.frequence,
+        uniteMesure:       payload.uniteMesure,
+        derniereDate:      payload.derniereDate ? new Date(payload.derniereDate).toISOString() : null,
+        prochaineDate:     payload.prochaineDate ? new Date(payload.prochaineDate).toISOString() : null,
+        taches:            (payload.taches || []).map(t => ({
+            description:         t.description,
+            dureeEstimeeMinutes: t.dureeEstimeeMinutes ?? null,
+            estObligatoire:      t.estObligatoire,
+        }))
+    };
+    const res = await axios.post(`${API_URL}/PlansPreventif`, body, getAuthHeaders());
+    // Refetch the created plan by id
+    const created = await axios.get(`${API_URL}/PlansPreventif/${res.data.id}`, getAuthHeaders());
+    return mapPlan(created.data);
+};
+
+export const updatePlanPreventif = async (id: number, payload: Omit<PlanPreventif, 'id'>): Promise<void> => {
+    const body = {
+        equipementId:      payload.equipementId,
+        titre:             payload.titre,
+        description:       payload.description,
+        typeDeclenchement: payload.typeDeclenchement,
+        frequence:         payload.frequence,
+        uniteMesure:       payload.uniteMesure,
+        derniereDate:      payload.derniereDate ? new Date(payload.derniereDate).toISOString() : null,
+        prochaineDate:     payload.prochaineDate ? new Date(payload.prochaineDate).toISOString() : null,
+        taches:            (payload.taches || []).map(t => ({
+            description:         t.description,
+            dureeEstimeeMinutes: t.dureeEstimeeMinutes ?? null,
+            estObligatoire:      t.estObligatoire,
+        }))
+    };
+    await axios.put(`${API_URL}/PlansPreventif/${id}`, body, getAuthHeaders());
+};
+
+export const genererOTPreventif = async (planId: number): Promise<{ otId: number; numeroOT: string; prochaineDate: string }> => {
+    const res = await axios.post(`${API_URL}/PlansPreventif/${planId}/generer-ot`, {}, getAuthHeaders());
+    return res.data;
+};
+
+export const replanifierPlanPreventif = async (planId: number, nouvelleDate: string): Promise<void> => {
+    await axios.put(`${API_URL}/PlansPreventif/${planId}/replanifier`,
+        { nouvelleDate: new Date(nouvelleDate).toISOString() },
+        getAuthHeaders()
+    );
 };
