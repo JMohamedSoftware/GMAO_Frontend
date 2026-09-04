@@ -11,7 +11,7 @@ import {
   saveSession,
   isTokenExpired,
 } from '../services/auth.service';
-import { loginApi, logoutApi, refreshTokenApi, getMeApi } from '../api/auth.api';
+import { loginApi, logoutApi, refreshTokenApi } from '../api/auth.api';
 
 // ---------- Initial State ----------
 
@@ -19,7 +19,7 @@ function getInitialState(): AuthState {
   const session = loadSession();
   if (!session) return { status: 'unauthenticated', session: null, error: null };
   if (isTokenExpired(session.accessToken)) {
-    // La session existe mais le token a expiré → on tente de refresh au montage
+    // Token expiré → on tente le refresh au montage
     return { status: 'idle', session, error: null };
   }
   return { status: 'authenticated', session, error: null };
@@ -37,17 +37,19 @@ export function useAuth() {
   const setError = (message: string) =>
     setState((s) => ({ ...s, status: 'error', error: message }));
 
-  // ── Refresh silencieux au démarrage (token expiré) ───
+  // ── Refresh silencieux au démarrage ──────────────────
+  // Le backend retourne un freshUser avec les permissions à jour.
+  // Le JWT Access Token dure 15 min → refresh fréquent = permissions fraîches
+  // sans besoin d'appel supplémentaire à /auth/me.
   useEffect(() => {
     if (state.status !== 'idle' || !state.session) return;
 
     const refresh = async () => {
       try {
-        // ✅ The backend returns a fresh user with up-to-date permissions
         const { accessToken, refreshToken, user: freshUser } = await refreshTokenApi({
           refreshToken: state.session!.refreshToken,
         });
-        // Use freshUser from response (has updated permissions) — NOT the cached session user
+        // freshUser contient les permissions à jour depuis le backend
         const updatedSession = buildSession(
           accessToken,
           refreshToken,
@@ -64,40 +66,10 @@ export function useAuth() {
     refresh();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Sync permissions depuis le backend au démarrage ──
-  // Si le token est encore valide, on appelle /auth/me pour récupérer
-  // les permissions fraîches (au cas où l'admin les aurait modifiées)
-  useEffect(() => {
-    if (state.status !== 'authenticated' || !state.session?.accessToken) return;
-
-    const syncPermissions = async () => {
-      try {
-        const freshUser = await getMeApi(state.session!.accessToken);
-        // Only update if permissions or role actually changed (avoid unnecessary re-renders)
-        const currentPerms = JSON.stringify(state.session!.user.permissions ?? []);
-        const freshPerms = JSON.stringify(freshUser.permissions ?? []);
-        if (currentPerms !== freshPerms || state.session!.user.role !== freshUser.role) {
-          const updatedSession = buildSession(
-            state.session!.accessToken,
-            state.session!.refreshToken,
-            freshUser
-          );
-          saveSession(updatedSession);
-          setState((s) => ({ ...s, session: updatedSession }));
-        }
-      } catch {
-        // Silently ignore — permissions will be stale but app remains functional
-      }
-    };
-
-    syncPermissions();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   // ── Login ────────────────────────────────────────────
   const login = useCallback(async (credentials: LoginRequest): Promise<boolean> => {
     setLoading();
     try {
-      // Appel réel au backend
       const response = await loginApi(credentials);
       const session = buildSession(
         response.accessToken,
@@ -134,13 +106,11 @@ export function useAuth() {
   const isLoading = state.status === 'loading';
 
   return {
-    // State
     authState: state,
     currentUser,
     isAuthenticated,
     isLoading,
     error: state.error,
-    // Actions
     login,
     logout,
   };
