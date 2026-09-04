@@ -11,9 +11,7 @@ import {
   saveSession,
   isTokenExpired,
 } from '../services/auth.service';
-import { loginApi, logoutApi, refreshTokenApi } from '../api/auth.api';
-
-const IS_DEV = import.meta.env.DEV;
+import { loginApi, logoutApi, refreshTokenApi, getMeApi } from '../api/auth.api';
 
 // ---------- Initial State ----------
 
@@ -39,19 +37,21 @@ export function useAuth() {
   const setError = (message: string) =>
     setState((s) => ({ ...s, status: 'error', error: message }));
 
-  // ── Refresh silencieux au démarrage ─────────────────
+  // ── Refresh silencieux au démarrage (token expiré) ───
   useEffect(() => {
     if (state.status !== 'idle' || !state.session) return;
 
     const refresh = async () => {
       try {
-        const { accessToken, refreshToken } = await refreshTokenApi({
+        // ✅ The backend returns a fresh user with up-to-date permissions
+        const { accessToken, refreshToken, user: freshUser } = await refreshTokenApi({
           refreshToken: state.session!.refreshToken,
         });
+        // Use freshUser from response (has updated permissions) — NOT the cached session user
         const updatedSession = buildSession(
           accessToken,
           refreshToken,
-          state.session!.user
+          freshUser ?? state.session!.user
         );
         saveSession(updatedSession);
         setState({ status: 'authenticated', session: updatedSession, error: null });
@@ -62,6 +62,35 @@ export function useAuth() {
     };
 
     refresh();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Sync permissions depuis le backend au démarrage ──
+  // Si le token est encore valide, on appelle /auth/me pour récupérer
+  // les permissions fraîches (au cas où l'admin les aurait modifiées)
+  useEffect(() => {
+    if (state.status !== 'authenticated' || !state.session?.accessToken) return;
+
+    const syncPermissions = async () => {
+      try {
+        const freshUser = await getMeApi(state.session!.accessToken);
+        // Only update if permissions or role actually changed (avoid unnecessary re-renders)
+        const currentPerms = JSON.stringify(state.session!.user.permissions ?? []);
+        const freshPerms = JSON.stringify(freshUser.permissions ?? []);
+        if (currentPerms !== freshPerms || state.session!.user.role !== freshUser.role) {
+          const updatedSession = buildSession(
+            state.session!.accessToken,
+            state.session!.refreshToken,
+            freshUser
+          );
+          saveSession(updatedSession);
+          setState((s) => ({ ...s, session: updatedSession }));
+        }
+      } catch {
+        // Silently ignore — permissions will be stale but app remains functional
+      }
+    };
+
+    syncPermissions();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Login ────────────────────────────────────────────
