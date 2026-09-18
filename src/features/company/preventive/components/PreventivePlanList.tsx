@@ -78,7 +78,7 @@ export const PreventivePlanList: React.FC<PreventivePlanListProps> = ({
       </div>
 
       {/* Plan list */}
-      <div className="flex flex-col gap-2 p-3 overflow-y-auto max-h-[calc(100vh-280px)] custom-scrollbar">
+      <div className="flex flex-col gap-2 p-3">
         {sorted.length === 0 && (
           <div className="text-center py-10 text-slate-400 text-xs">
             <CalendarIcon className="w-8 h-8 mx-auto mb-2 opacity-30" />
