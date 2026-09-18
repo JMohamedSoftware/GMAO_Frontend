@@ -38,7 +38,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, currentScreen,
       />
 
       {/* Screen Frame containing Navbar and active Screen */}
-      <div className="flex-1 flex flex-col min-h-screen p-4 gap-4 overflow-x-hidden ml-36 lg:ml-44">
+      <div className="flex-1 flex flex-col min-h-screen p-4 overflow-x-hidden ml-36 lg:ml-44">
         {/* Glass Top Navbar */}
         <Navbar 
           currentScreen={currentScreen} 
@@ -47,7 +47,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, currentScreen,
         />
 
         {/* Dynamic Screen Slot */}
-        <main className="flex-1 w-full relative">
+        <main className="flex-1 w-full relative pt-20">
           {children}
         </main>
       </div>
