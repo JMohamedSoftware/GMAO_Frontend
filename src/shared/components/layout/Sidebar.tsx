@@ -84,7 +84,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate }) =
   const pendingOts = workOrders.filter(ot => ot.status === 'En attente' || ot.status === 'En cours').length;
 
   return (
-    <aside className="w-32 lg:w-40 h-[calc(100vh-2rem)] sticky top-4 ml-4 glass-panel rounded-custom-xl border border-white/40 dark:border-slate-800/40 p-3 flex flex-col justify-between shadow-lg select-none z-30 overflow-y-auto custom-scrollbar">
+    <aside className="w-32 lg:w-40 h-[calc(100vh-2rem)] fixed top-4 left-4 glass-panel rounded-custom-xl border border-white/40 dark:border-slate-800/40 p-3 flex flex-col justify-between shadow-lg select-none z-30 overflow-y-auto custom-scrollbar">
       <div className="flex flex-col items-center">
         {/* Brand / Logo */}
         <div className="flex flex-col items-center gap-2 mb-6 mt-2">
