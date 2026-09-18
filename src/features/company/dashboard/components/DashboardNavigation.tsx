@@ -20,7 +20,7 @@ export const DashboardNavigation: React.FC<DashboardNavigationProps> = ({ onNavi
   const { can } = usePermissions();
 
   return (
-    <div className="glass-panel rounded-custom-lg border border-white/40 dark:border-slate-850 p-5 shadow-sm">
+    <div className="glass-panel sticky top-5 rounded-custom-lg border border-white/40 dark:border-slate-850 p-5 shadow-sm">
       <h3 className="text-xs font-bold text-slate-450 uppercase tracking-wider mb-4">
         Mes menus favoris
       </h3>

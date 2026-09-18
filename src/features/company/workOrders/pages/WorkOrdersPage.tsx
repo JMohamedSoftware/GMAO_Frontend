@@ -91,8 +91,8 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
   // Filter orders
   const filteredOts = workOrders.filter(ot => {
     if (isTechnicien) {
-      const tech = technicians.find(t => t.name === currentUser?.name);
-      if (tech && ot.technicianId !== tech.id) return false;
+      // Compare directly by user ID (both sides are string representations of the backend userId)
+      if (ot.technicianId !== currentUser?.id) return false;
     }
 
     const eq = equipments.find(e => e.id === ot.equipmentId);
