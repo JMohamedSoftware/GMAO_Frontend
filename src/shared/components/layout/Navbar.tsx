@@ -9,11 +9,11 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ currentScreen, onNavigate, onOpenCommandMenu }) => {
-  const { 
-    notifications, 
-    markNotificationAsRead, 
+  const {
+    notifications,
+    markNotificationAsRead,
     markAllNotificationsAsRead,
-    currentUser 
+    currentUser
   } = useGmao();
 
   const [showNotifications, setShowNotifications] = useState(false);
@@ -21,47 +21,47 @@ export const Navbar: React.FC<NavbarProps> = ({ currentScreen, onNavigate, onOpe
   const getBreadcrumbs = () => {
     const parts = currentScreen.split('-');
     const mainScreen = parts[0];
-    
+
     const breadcrumbs = [{ label: 'Accueil', action: () => onNavigate('dashboard') }];
-    
+
     switch (mainScreen) {
       case 'dashboard':
-        breadcrumbs.push({ label: 'Tableau de Bord', action: () => {} });
+        breadcrumbs.push({ label: 'Tableau de Bord', action: () => { } });
         break;
       case 'equipment':
         breadcrumbs.push({ label: 'Équipements', action: () => onNavigate('equipment') });
         if (parts[1]) {
-          breadcrumbs.push({ label: `Fiche ${parts[1]}`, action: () => {} });
+          breadcrumbs.push({ label: `Fiche ${parts[1]}`, action: () => { } });
         }
         break;
       case 'preventive':
-        breadcrumbs.push({ label: 'Maintenance Préventive', action: () => {} });
+        breadcrumbs.push({ label: 'Maintenance Préventive', action: () => { } });
         break;
       case 'corrective':
-        breadcrumbs.push({ label: 'Incidents & Kanban', action: () => {} });
+        breadcrumbs.push({ label: 'Incidents & Kanban', action: () => { } });
         break;
       case 'workorders':
         breadcrumbs.push({ label: 'Ordres de Travail', action: () => onNavigate('workorders') });
         if (parts[1]) {
-          breadcrumbs.push({ label: `Détail ${parts[1]}`, action: () => {} });
+          breadcrumbs.push({ label: `Détail ${parts[1]}`, action: () => { } });
         }
         break;
       case 'inventory':
-        breadcrumbs.push({ label: 'Stock de Pièces', action: () => {} });
+        breadcrumbs.push({ label: 'Stock de Pièces', action: () => { } });
         break;
       case 'suppliers':
-        breadcrumbs.push({ label: 'Fournisseurs', action: () => {} });
+        breadcrumbs.push({ label: 'Fournisseurs', action: () => { } });
         break;
       case 'reports':
-        breadcrumbs.push({ label: 'Rapports & Indicateurs', action: () => {} });
+        breadcrumbs.push({ label: 'Rapports & Indicateurs', action: () => { } });
         break;
       case 'admin':
-        breadcrumbs.push({ label: 'Administration', action: () => {} });
+        breadcrumbs.push({ label: 'Administration', action: () => { } });
         break;
       default:
-        breadcrumbs.push({ label: currentScreen, action: () => {} });
+        breadcrumbs.push({ label: currentScreen, action: () => { } });
     }
-    
+
     return breadcrumbs;
   };
 
@@ -78,18 +78,17 @@ export const Navbar: React.FC<NavbarProps> = ({ currentScreen, onNavigate, onOpe
   };
 
   return (
-    <header className="fixed top-4 left-40 lg:left-48 right-4 h-16 glass-panel rounded-custom-lg border border-white/40 dark:border-slate-800/40 px-6 flex justify-between items-center shadow-sm z-40 select-none">
-      
+    <header className="fixed top-4 left-4 right-4 h-16 glass-panel rounded-custom-lg border border-white/40 dark:border-slate-800/40 px-6 flex justify-between items-center shadow-sm z-40 select-none">
+
       {/* Breadcrumb Path */}
       <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400">
         {breadcrumbs.map((crumb, idx) => (
           <React.Fragment key={crumb.label}>
             {idx > 0 && <span className="text-slate-350 dark:text-slate-600">/</span>}
-            <button 
+            <button
               onClick={crumb.action}
-              className={`hover:text-primary transition-colors cursor-pointer ${
-                idx === breadcrumbs.length - 1 ? 'text-slate-850 dark:text-slate-200 font-bold' : ''
-              }`}
+              className={`hover:text-primary transition-colors cursor-pointer ${idx === breadcrumbs.length - 1 ? 'text-slate-850 dark:text-slate-200 font-bold' : ''
+                }`}
             >
               {crumb.label}
             </button>
@@ -99,9 +98,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentScreen, onNavigate, onOpe
 
       {/* Utilities */}
       <div className="flex items-center gap-4">
-        
+
         {/* Raycast Trigger Search Input */}
-        <div 
+        <div
           onClick={onOpenCommandMenu}
           className="w-80 h-9.5 rounded-custom-sm bg-white/40 dark:bg-slate-900/10 border border-slate-200/50 dark:border-slate-800/50 hover:border-slate-300 dark:hover:border-slate-700/80 px-3 flex items-center justify-between text-xs text-slate-400 cursor-pointer shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]"
         >
@@ -117,11 +116,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentScreen, onNavigate, onOpe
 
         {/* Notifications Center */}
         <div className="relative">
-          <button 
+          <button
             onClick={() => setShowNotifications(!showNotifications)}
-            className={`p-2.5 rounded-custom-sm bg-white/40 dark:bg-slate-900/10 border border-slate-200/50 dark:border-slate-800/50 hover:bg-white/60 text-slate-650 dark:text-slate-355 transition relative ${
-              showNotifications ? 'bg-white border-primary/50 text-primary' : ''
-            }`}
+            className={`p-2.5 rounded-custom-sm bg-white/40 dark:bg-slate-900/10 border border-slate-200/50 dark:border-slate-800/50 hover:bg-white/60 text-slate-650 dark:text-slate-355 transition relative ${showNotifications ? 'bg-white border-primary/50 text-primary' : ''
+              }`}
           >
             <Bell className="w-4 h-4" />
             {unreadNotifs.length > 0 && (
@@ -137,7 +135,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentScreen, onNavigate, onOpe
                   Centre de Notifications ({unreadNotifs.length})
                 </span>
                 {unreadNotifs.length > 0 && (
-                  <button 
+                  <button
                     onClick={markAllNotificationsAsRead}
                     className="text-[10px] text-primary hover:underline font-bold"
                   >
@@ -155,7 +153,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentScreen, onNavigate, onOpe
                 ) : (
                   <div className="flex flex-col gap-1">
                     {notifications.map(notif => (
-                      <div 
+                      <div
                         key={notif.id}
                         onClick={() => {
                           markNotificationAsRead(notif.id);
@@ -165,11 +163,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentScreen, onNavigate, onOpe
                           if (notif.type === 'stock') onNavigate('inventory');
                           setShowNotifications(false);
                         }}
-                        className={`p-2 rounded-custom-sm flex items-start gap-2.5 transition-colors cursor-pointer text-xs ${
-                          notif.read 
-                            ? 'bg-transparent hover:bg-slate-100/50 dark:hover:bg-slate-800/20 text-slate-500' 
+                        className={`p-2 rounded-custom-sm flex items-start gap-2.5 transition-colors cursor-pointer text-xs ${notif.read
+                            ? 'bg-transparent hover:bg-slate-100/50 dark:hover:bg-slate-800/20 text-slate-500'
                             : 'bg-primary/5 dark:bg-primary/5 hover:bg-primary/10 text-slate-800 dark:text-slate-100 font-medium'
-                        }`}
+                          }`}
                       >
                         <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${getSeverityColor(notif.severity)}`} />
                         <div className="flex-1 overflow-hidden">
@@ -180,7 +177,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentScreen, onNavigate, onOpe
                           </span>
                         </div>
                         {!notif.read && (
-                          <button 
+                          <button
                             onClick={(e) => {
                               e.stopPropagation();
                               markNotificationAsRead(notif.id);
