@@ -208,8 +208,8 @@ export const Preventive: React.FC<PreventiveProps> = () => {
           <span className="ml-3 text-slate-500 text-sm">Chargement des plans préventifs…</span>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <div className="lg:col-span-1 flex flex-col gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-stretch">
+          <div className="lg:col-span-1 flex flex-col h-full">
             <PreventivePlanList
               plans={plans}
               equipments={equipments}
