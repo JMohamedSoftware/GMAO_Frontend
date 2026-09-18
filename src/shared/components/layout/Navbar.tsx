@@ -78,7 +78,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentScreen, onNavigate, onOpe
   };
 
   return (
-    <header className="w-full h-16 glass-panel rounded-custom-lg border border-white/40 dark:border-slate-800/40 px-6 flex justify-between items-center shadow-sm relative z-40 select-none">
+    <header className="w-full h-16 glass-panel rounded-custom-lg border border-white/40 dark:border-slate-800/40 px-6 flex justify-between items-center shadow-sm sticky top-4 z-40 select-none">
       
       {/* Breadcrumb Path */}
       <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400">

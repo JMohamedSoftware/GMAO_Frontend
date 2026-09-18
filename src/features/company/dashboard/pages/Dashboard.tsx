@@ -29,7 +29,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
     const fetchTree = async () => {
       try {
         const roots = await localisationsApi.getTree();
-        
+
         const buildNode = (loc: Localisation): any => {
           const eqsInLoc = equipments.filter(e => e.localisationId === loc.id);
           const eqNodes = eqsInLoc.map(e => ({ name: `${e.id} - ${e.name}`, eqId: e.id }));
@@ -41,7 +41,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
         };
 
         const rootChildren = roots.map(buildNode);
-        
+
         // If there are equipments with NO localisation, group them under "Non assignés"
         const eqsWithoutLoc = equipments.filter(e => !e.localisationId);
         if (eqsWithoutLoc.length > 0) {
@@ -50,7 +50,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
             children: eqsWithoutLoc.map(e => ({ name: `${e.id} - ${e.name}`, eqId: e.id }))
           });
         }
-        
+
         setDynamicTree({
           name: 'Usine / Parc Global',
           children: rootChildren
@@ -60,7 +60,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
         console.error('Failed to fetch localisations tree', err);
       }
     };
-    
+
     // Refresh tree if equipments change or on mount
     fetchTree();
   }, [equipments]);
@@ -128,20 +128,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
         </div>
       </div>
 
-      {/* Dimo Maint Grid Layout — 3-col: nav | main | right */}
+      {/* Dimo Maint Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-
-        {/* LEFT sticky nav — spans both rows (col-span-3) */}
-        <div className="lg:col-span-3">
-          <div className="sticky top-5">
-            <DashboardNavigation onNavigate={onNavigate} />
-          </div>
+        {/* ROW 1 LEFT: Mes menus favoris grid (Col-span 8) */}
+        <div className="lg:col-span-8 flex flex-col gap-6">
+          <DashboardNavigation onNavigate={onNavigate} />
         </div>
 
-        {/* CENTER main column (col-span-6) */}
-        <div className="lg:col-span-6 flex flex-col gap-6">
-          {/* Stats row */}
-          <DashboardStats 
+        {/* ROW 1 RIGHT: DI/BT counters only (Col-span 4) */}
+        <div className="lg:col-span-4 flex flex-col gap-4">
+          <DashboardStats
             diATraiter={diATraiter}
             diEnCours={diEnCours}
             diRealise={diRealise}
@@ -150,11 +146,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
             btFait={btFait}
             onNavigate={onNavigate}
           />
+        </div>
 
-          {/* Arborescence */}
+        {/* ROW 2: Arborescence (left 8 cols) + Quick-peek panel (right 4 cols) */}
+        <div className="lg:col-span-8 flex flex-col gap-6">
           {can(PERMISSIONS.EQUIPMENT_VIEW) && (
             dynamicTree ? (
-              <DashboardTree 
+              <DashboardTree
                 factoryTree={dynamicTree}
                 equipments={equipments}
                 selectedDashboardEq={selectedDashboardEq}
@@ -170,20 +168,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
           )}
         </div>
 
-        {/* RIGHT column: DI Form & Unassigned OTs (col-span-3) */}
-        <div className="lg:col-span-3 flex flex-col gap-4">
-          <DashboardRecentActivities 
+        {/* ROW 2 RIGHT: Demande d'intervention Form & Unassigned OTs (Col-span 4) */}
+        <div className="lg:col-span-4 flex flex-col gap-4">
+          <DashboardRecentActivities
             equipments={equipments}
             unassignedOts={unassignedOts}
             addIncident={addIncident}
             onNavigate={onNavigate}
           />
         </div>
-
       </div>
 
       {/* Bottom section: Collapsible Supervision Visualizer & Performance charts */}
-      <DashboardCharts 
+      <DashboardCharts
         monthlyTrendsData={monthlyTrendsData}
         btFait={btFait}
         btEnCours={btEnCours}

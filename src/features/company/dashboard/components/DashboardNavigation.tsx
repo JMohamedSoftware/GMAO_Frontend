@@ -25,7 +25,7 @@ export const DashboardNavigation: React.FC<DashboardNavigationProps> = ({ onNavi
         Mes menus favoris
       </h3>
 
-      <div className="grid grid-cols-2 gap-3 text-white text-[11px] font-bold">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-white text-[11px] font-bold">
         {/* Red DI creation */}
         {can(PERMISSIONS.INCIDENT_CREATE) && (
           <button
