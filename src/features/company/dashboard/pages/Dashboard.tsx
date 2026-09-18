@@ -128,15 +128,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
         </div>
       </div>
 
-      {/* Dimo Maint Grid Layout */}
+      {/* Dimo Maint Grid Layout — 3-col: nav | main | right */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* ROW 1 LEFT: Mes menus favoris grid (Col-span 8) */}
-        <div className="lg:col-span-8 flex flex-col gap-6">
-          <DashboardNavigation onNavigate={onNavigate} />
+
+        {/* LEFT sticky nav — spans both rows (col-span-3) */}
+        <div className="lg:col-span-3">
+          <div className="sticky top-5">
+            <DashboardNavigation onNavigate={onNavigate} />
+          </div>
         </div>
 
-        {/* ROW 1 RIGHT: DI/BT counters only (Col-span 4) */}
-        <div className="lg:col-span-4 flex flex-col gap-4">
+        {/* CENTER main column (col-span-6) */}
+        <div className="lg:col-span-6 flex flex-col gap-6">
+          {/* Stats row */}
           <DashboardStats 
             diATraiter={diATraiter}
             diEnCours={diEnCours}
@@ -146,10 +150,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
             btFait={btFait}
             onNavigate={onNavigate}
           />
-        </div>
 
-        {/* ROW 2: Arborescence (left 8 cols) + Quick-peek panel (right 4 cols) */}
-        <div className="lg:col-span-8 flex flex-col gap-6">
+          {/* Arborescence */}
           {can(PERMISSIONS.EQUIPMENT_VIEW) && (
             dynamicTree ? (
               <DashboardTree 
@@ -168,8 +170,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
           )}
         </div>
 
-        {/* ROW 2 RIGHT: Demande d'intervention Form & Unassigned OTs (Col-span 4) */}
-        <div className="lg:col-span-4 flex flex-col gap-4">
+        {/* RIGHT column: DI Form & Unassigned OTs (col-span-3) */}
+        <div className="lg:col-span-3 flex flex-col gap-4">
           <DashboardRecentActivities 
             equipments={equipments}
             unassignedOts={unassignedOts}
@@ -177,6 +179,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
             onNavigate={onNavigate}
           />
         </div>
+
       </div>
 
       {/* Bottom section: Collapsible Supervision Visualizer & Performance charts */}
