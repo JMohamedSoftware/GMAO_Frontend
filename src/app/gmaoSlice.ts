@@ -479,6 +479,19 @@ export const gmaoSlice = createSlice({
             inc.workOrderId = action.payload.workOrder.id;
           }
         }
+        // Notify the assigned technician
+        if (action.payload.workOrder.technicianId) {
+          state.notifications.unshift({
+            id: `NOT-${Date.now()}`,
+            type: 'workorder',
+            severity: 'info',
+            title: '📋 Nouvel OT assigné',
+            message: `L'OT « ${action.payload.workOrder.title} » vous a été assigné`,
+            date: new Date().toISOString(),
+            read: false,
+            targetUserId: action.payload.workOrder.technicianId,
+          });
+        }
       }
     });
   }

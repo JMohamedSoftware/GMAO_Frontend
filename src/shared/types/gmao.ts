@@ -155,6 +155,7 @@ export interface Notification {
   message: string;
   date: string;
   read: boolean;
+  targetUserId?: string;   // if set, only shown to this user
 }
 
 export interface User {

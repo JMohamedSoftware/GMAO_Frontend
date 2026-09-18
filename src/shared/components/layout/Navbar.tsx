@@ -66,7 +66,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentScreen, onNavigate, onOpe
   };
 
   const breadcrumbs = getBreadcrumbs();
-  const unreadNotifs = notifications.filter(n => !n.read);
+
+  // Each user sees: global notifications + notifications targeted specifically to them
+  const visibleNotifs = notifications.filter(n =>
+    !n.targetUserId || n.targetUserId === currentUser?.id
+  );
+  const unreadNotifs = visibleNotifs.filter(n => !n.read);
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -146,13 +151,13 @@ export const Navbar: React.FC<NavbarProps> = ({ currentScreen, onNavigate, onOpe
 
               {/* Notification list */}
               <div className="max-h-72 overflow-y-auto py-1">
-                {notifications.length === 0 ? (
+                {visibleNotifs.length === 0 ? (
                   <div className="py-8 text-center text-xs text-slate-400">
                     Aucune notification active
                   </div>
                 ) : (
                   <div className="flex flex-col gap-1">
-                    {notifications.map(notif => (
+                    {visibleNotifs.map(notif => (
                       <div
                         key={notif.id}
                         onClick={() => {
