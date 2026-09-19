@@ -410,6 +410,8 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
         setNewEqId={setNewEqId}
         newTechId={newTechId}
         setNewTechId={setNewTechId}
+        isSubmitting={isSubmitting}
+        submitError={submitError}
       />
     </div>
   );

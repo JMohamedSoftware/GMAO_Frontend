@@ -1,6 +1,6 @@
 import React from 'react';
-import { Wrench, X } from 'lucide-react';
-import { WorkOrder, Equipment, Technician, Incident } from '@/shared/types/gmao';
+import { Wrench, X, Loader2 } from 'lucide-react';
+import { WorkOrder, Equipment, Technician } from '@/shared/types/gmao';
 
 interface WorkOrderFormProps {
   show: boolean;
@@ -20,6 +20,8 @@ interface WorkOrderFormProps {
   setNewEqId: (v: string) => void;
   newTechId: string;
   setNewTechId: (v: string) => void;
+  isSubmitting?: boolean;
+  submitError?: string | null;
 }
 
 export const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
@@ -39,7 +41,9 @@ export const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
   newEqId,
   setNewEqId,
   newTechId,
-  setNewTechId
+  setNewTechId,
+  isSubmitting = false,
+  submitError,
 }) => {
   if (!show) return null;
 
@@ -145,19 +149,29 @@ export const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
             </div>
           </div>
 
+          {/* Error banner */}
+          {submitError && (
+            <div className="px-3 py-2 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded text-[10px] text-rose-700 dark:text-rose-400 font-semibold flex items-center gap-2">
+              <span>⚠️ {submitError}</span>
+            </div>
+          )}
+
           <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-slate-150 dark:border-slate-800/80">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-slate-200 text-slate-650 hover:bg-slate-100 rounded font-bold"
+              disabled={isSubmitting}
+              className="px-4 py-2 border border-slate-200 text-slate-650 hover:bg-slate-100 rounded font-bold disabled:opacity-50"
             >
               Annuler
             </button>
             <button
               type="submit"
-              className="px-5 py-2 bg-primary hover:bg-primary/95 text-white rounded font-bold shadow-md shadow-primary/10"
+              disabled={isSubmitting}
+              className="px-5 py-2 bg-primary hover:bg-primary/95 text-white rounded font-bold shadow-md shadow-primary/10 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Générer le Bon OT
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              {isSubmitting ? 'Création en cours...' : 'Générer le Bon OT'}
             </button>
           </div>
         </form>

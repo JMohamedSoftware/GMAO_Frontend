@@ -139,7 +139,7 @@ export const IncidentList: React.FC<IncidentListProps> = ({
 
                       {/* Interactive transitions block inside card */}
                       <div className="flex gap-1.5 mt-1 z-10">
-                        {can(PERMISSIONS.INCIDENT_UPDATE) && inc.status === 'Nouveau' && (
+                        {(can(PERMISSIONS.INCIDENT_UPDATE) || can(PERMISSIONS.INCIDENT_VALIDATE)) && inc.status === 'Nouveau' && (
                           <>
                             <button
                               title="Valider cet incident"
@@ -166,7 +166,7 @@ export const IncidentList: React.FC<IncidentListProps> = ({
                           </>
                         )}
 
-                        {can(PERMISSIONS.INCIDENT_UPDATE) && inc.status === 'Validé' && (
+                        {(can(PERMISSIONS.INCIDENT_UPDATE) || can(PERMISSIONS.INCIDENT_VALIDATE)) && inc.status === 'Validé' && (
                           <button
                             onClick={() => onOpenCreateOtWithIncident(inc)}
                             className="w-full py-1 rounded bg-primary text-white hover:bg-primary/95 transition text-[9px] font-bold flex items-center justify-center gap-1 shadow-sm cursor-pointer"
