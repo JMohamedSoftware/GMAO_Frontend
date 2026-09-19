@@ -28,6 +28,7 @@ export const fetchEquipments = async (): Promise<Equipment[]> => {
         endOfWarranty: e.dateFinGarantie,
         commissionDate: e.dateMiseEnService || new Date().toISOString(),
         localisationId: e.localisationId,
+        localisation: e.localisationNom ? { id: e.localisationId, nom: e.localisationNom } : undefined,
         criticality: e.criticite === 1 ? 'Faible' : e.criticite === 2 ? 'Moyenne' : e.criticite === 3 ? 'Haute' : 'Critique',
         status: e.etat === 1 ? 'En service' : e.etat === 2 ? 'En panne' : e.etat === 3 ? 'En maintenance' : 'Hors service',
         healthIndex: 100,
