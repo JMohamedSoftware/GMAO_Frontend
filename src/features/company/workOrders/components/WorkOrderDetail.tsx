@@ -392,7 +392,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
                 </span>
               </div>
             )}
-            {can(PERMISSIONS.WORKORDER_UPDATE, [Number(activeOt.technicianId), Number(activeOt.assignedBy)]) && activeOt.status === 'Affecté' && (
+            {can(PERMISSIONS.WORKORDER_START, [Number(activeOt.technicianId), Number(activeOt.assignedBy)]) && activeOt.status === 'Affecté' && (
               <button
                 onClick={() => updateWorkOrderStatus(activeOt.id, 'En cours')}
                 className="w-full py-2 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-lg shadow-sm flex items-center justify-center gap-2"
@@ -402,14 +402,17 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
               </button>
             )}
 
-            {can(PERMISSIONS.WORKORDER_UPDATE, [Number(activeOt.technicianId), Number(activeOt.assignedBy)]) && activeOt.status === 'En cours' && (
+            {(can(PERMISSIONS.WORKORDER_SUSPEND, [Number(activeOt.technicianId), Number(activeOt.assignedBy)]) || can(PERMISSIONS.WORKORDER_FINISH, [Number(activeOt.technicianId), Number(activeOt.assignedBy)])) && activeOt.status === 'En cours' && (
               <div className="flex gap-2 mt-1">
+                {can(PERMISSIONS.WORKORDER_SUSPEND, [Number(activeOt.technicianId), Number(activeOt.assignedBy)]) && (
                 <button
                   onClick={() => updateWorkOrderStatus(activeOt.id, 'Suspendu')}
                   className="flex-1 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg shadow-sm"
                 >
                   Pause
                 </button>
+                )}
+                {can(PERMISSIONS.WORKORDER_FINISH, [Number(activeOt.technicianId), Number(activeOt.assignedBy)]) && (
                 <button
                   onClick={() => {
                     const el = document.getElementById('cloture-section');
@@ -419,10 +422,11 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
                 >
                   Terminer
                 </button>
+                )}
               </div>
             )}
 
-            {can(PERMISSIONS.WORKORDER_UPDATE, [Number(activeOt.technicianId), Number(activeOt.assignedBy)]) && activeOt.status === 'Suspendu' && (
+            {can(PERMISSIONS.WORKORDER_START, [Number(activeOt.technicianId), Number(activeOt.assignedBy)]) && activeOt.status === 'Suspendu' && (
               <button
                 onClick={() => updateWorkOrderStatus(activeOt.id, 'En cours')}
                 className="w-full py-2 bg-primary hover:bg-primary/95 text-white font-bold rounded-lg shadow-sm"
