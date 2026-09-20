@@ -35,6 +35,7 @@ export const PreventiveModal: React.FC<PreventiveModalProps> = ({
   editingPlan, equipments, onSave, onClose
 }) => {
   const isEdit = Boolean(editingPlan);
+  const todayStr = new Date().toISOString().split('T')[0];
 
   // Form state
   const [titre,             setTitre]           = useState('');
@@ -316,6 +317,7 @@ export const PreventiveModal: React.FC<PreventiveModalProps> = ({
                   </label>
                   <input
                     type="date"
+                    max={todayStr}
                     value={derniereDate}
                     onChange={e => setDerniereDate(e.target.value)}
                     className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-primary/30"
@@ -327,6 +329,7 @@ export const PreventiveModal: React.FC<PreventiveModalProps> = ({
                   </label>
                   <input
                     type="date"
+                    min={todayStr}
                     value={prochaineDate}
                     onChange={e => setProchaineDate(e.target.value)}
                     className={`w-full border rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-primary/30 transition ${errors.prochaineDate ? 'border-rose-400' : 'border-slate-200 dark:border-slate-700'}`}
