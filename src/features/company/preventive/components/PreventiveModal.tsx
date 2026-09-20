@@ -52,6 +52,7 @@ export const PreventiveModal: React.FC<PreventiveModalProps> = ({
   const [saving,  setSaving]  = useState(false);
   const [errors,  setErrors]  = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState<'info' | 'taches'>('info');
+  const [saison, setSaison] = useState<'Printemps' | 'Été' | 'Automne' | 'Hiver'>('Printemps');
 
   // Populate on edit
   useEffect(() => {
@@ -71,6 +72,13 @@ export const PreventiveModal: React.FC<PreventiveModalProps> = ({
     }
   }, [editingPlan]);
 
+  // Auto-reset unit when type changes
+  useEffect(() => {
+    if (typeDeclenchement === 2) setUniteMesure('heures');
+    else if (typeDeclenchement === 1) setUniteMesure('jours');
+    // Saisonnier: unit not relevant
+  }, [typeDeclenchement]);
+
   // Auto-compute prochaine date when derniereDate or frequence changes
   useEffect(() => {
     if (!derniereDate || !frequence) return;
@@ -87,7 +95,7 @@ export const PreventiveModal: React.FC<PreventiveModalProps> = ({
     const e: Record<string, string> = {};
     if (!titre.trim())          e.titre = 'Le titre est obligatoire';
     if (!equipementId)          e.equipementId = 'Sélectionnez un équipement';
-    if (!frequence || frequence <= 0) e.frequence = 'La fréquence doit être > 0';
+    if (typeDeclenchement !== 3 && (!frequence || frequence <= 0)) e.frequence = 'La fréquence doit être > 0';
     if (!prochaineDate)         e.prochaineDate = 'La prochaine date est obligatoire';
     const tachesInvalides = taches.some(t => !t.description.trim());
     if (tachesInvalides)        e.taches = 'Toutes les tâches doivent avoir une description';
@@ -101,11 +109,13 @@ export const PreventiveModal: React.FC<PreventiveModalProps> = ({
     try {
       await onSave({
         titre,
-        description: description || undefined,
+        description: typeDeclenchement === 3
+          ? `Saison: ${saison}${description ? ' — ' + description : ''}`
+          : description || undefined,
         equipementId: equipementId as number,
         typeDeclenchement,
-        frequence,
-        uniteMesure,
+        frequence: typeDeclenchement === 3 ? 1 : frequence,
+        uniteMesure: typeDeclenchement === 3 ? 'saisonnier' : uniteMesure,
         derniereDate: derniereDate || undefined,
         prochaineDate,
         actif: true,
@@ -262,52 +272,129 @@ export const PreventiveModal: React.FC<PreventiveModalProps> = ({
                 </div>
               </div>
 
-              {/* Fréquence */}
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                  Fréquence <span className="text-rose-500">*</span>
-                </label>
+              {/* Fréquence — conditional on type */}
 
-                {/* Presets */}
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {FREQ_PRESETS.filter(p =>
-                    typeDeclenchement === 2 ? p.uniteMesure === 'heures' : p.uniteMesure !== 'heures'
-                  ).map(p => (
-                    <button
-                      key={p.label}
-                      onClick={() => applyPreset(p)}
-                      className={`text-[10px] font-bold px-2.5 py-1 rounded-full border transition cursor-pointer ${
-                        frequence === p.frequence && uniteMesure === p.uniteMesure
-                          ? 'bg-primary text-white border-primary'
-                          : 'border-slate-200 dark:border-slate-700 text-slate-500 hover:border-primary hover:text-primary'
-                      }`}
+              {/* Type 1: Périodique — time-based frequency */}
+              {typeDeclenchement === 1 && (
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                    Fréquence <span className="text-rose-500">*</span>
+                    <span className="ml-2 text-[9px] font-normal text-slate-400 normal-case tracking-normal">
+                      Intervalle de temps entre chaque intervention
+                    </span>
+                  </label>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {FREQ_PRESETS.filter(p => p.uniteMesure !== 'heures').map(p => (
+                      <button
+                        key={p.label}
+                        onClick={() => applyPreset(p)}
+                        className={`text-[10px] font-bold px-2.5 py-1 rounded-full border transition cursor-pointer ${
+                          frequence === p.frequence && uniteMesure === p.uniteMesure
+                            ? 'bg-sky-500 text-white border-sky-500'
+                            : 'border-slate-200 dark:border-slate-700 text-slate-500 hover:border-sky-400 hover:text-sky-600'
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      min={1}
+                      value={frequence}
+                      onChange={e => setFrequence(parseInt(e.target.value) || 1)}
+                      className={`w-28 border rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-sky-400/30 transition ${errors.frequence ? 'border-rose-400' : 'border-slate-200 dark:border-slate-700'}`}
+                    />
+                    <select
+                      value={uniteMesure}
+                      onChange={e => setUniteMesure(e.target.value)}
+                      className="flex-1 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-sky-400/30"
                     >
-                      {p.label}
-                    </button>
-                  ))}
+                      <option value="jours">Jours</option>
+                      <option value="semaines">Semaines</option>
+                      <option value="mois">Mois</option>
+                    </select>
+                  </div>
+                  {errors.frequence && <p className="text-rose-500 text-[10px] mt-1">{errors.frequence}</p>}
                 </div>
+              )}
 
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    min={1}
-                    value={frequence}
-                    onChange={e => setFrequence(parseInt(e.target.value) || 1)}
-                    className={`w-28 border rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-primary/30 transition ${errors.frequence ? 'border-rose-400' : 'border-slate-200 dark:border-slate-700'}`}
-                  />
-                  <select
-                    value={uniteMesure}
-                    onChange={e => setUniteMesure(e.target.value)}
-                    className="flex-1 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-primary/30"
-                  >
-                    <option value="jours">Jours</option>
-                    <option value="semaines">Semaines</option>
-                    <option value="mois">Mois</option>
-                    <option value="heures">Heures machine</option>
-                  </select>
+              {/* Type 2: Compteur — hours-based */}
+              {typeDeclenchement === 2 && (
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                    Seuil compteur <span className="text-rose-500">*</span>
+                    <span className="ml-2 text-[9px] font-normal text-slate-400 normal-case tracking-normal">
+                      Nbre d'heures de fonctionnement entre chaque intervention
+                    </span>
+                  </label>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {FREQ_PRESETS.filter(p => p.uniteMesure === 'heures').map(p => (
+                      <button
+                        key={p.label}
+                        onClick={() => applyPreset(p)}
+                        className={`text-[10px] font-bold px-2.5 py-1 rounded-full border transition cursor-pointer ${
+                          frequence === p.frequence
+                            ? 'bg-amber-500 text-white border-amber-500'
+                            : 'border-slate-200 dark:border-slate-700 text-slate-500 hover:border-amber-400 hover:text-amber-600'
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="number"
+                      min={1}
+                      value={frequence}
+                      onChange={e => setFrequence(parseInt(e.target.value) || 1)}
+                      className={`w-32 border rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-amber-400/30 transition ${errors.frequence ? 'border-rose-400' : 'border-slate-200 dark:border-slate-700'}`}
+                    />
+                    <span className="text-sm font-bold text-amber-600 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-3 py-2.5 rounded-lg">
+                      Heures machine
+                    </span>
+                  </div>
+                  {errors.frequence && <p className="text-rose-500 text-[10px] mt-1">{errors.frequence}</p>}
                 </div>
-                {errors.frequence && <p className="text-rose-500 text-[10px] mt-1">{errors.frequence}</p>}
-              </div>
+              )}
+
+              {/* Type 3: Saisonnier — season selector */}
+              {typeDeclenchement === 3 && (
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                    Saison d'intervention <span className="text-rose-500">*</span>
+                    <span className="ml-2 text-[9px] font-normal text-slate-400 normal-case tracking-normal">
+                      Maintenance effectuée une fois par an à cette saison
+                    </span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      { val: 'Printemps' as const, icon: '🌱', desc: 'Mars – Mai' },
+                      { val: 'Été'       as const, icon: '☀️', desc: 'Juin – Août' },
+                      { val: 'Automne'   as const, icon: '🍂', desc: 'Sept – Nov' },
+                      { val: 'Hiver'     as const, icon: '❄️', desc: 'Déc – Fév' },
+                    ]).map(s => (
+                      <button
+                        key={s.val}
+                        onClick={() => setSaison(s.val)}
+                        className={`flex items-center gap-2 px-3 py-2.5 border rounded-xl text-sm font-bold transition cursor-pointer ${
+                          saison === s.val
+                            ? 'bg-purple-500 text-white border-purple-500 ring-2 ring-offset-1 ring-purple-300'
+                            : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-purple-300'
+                        }`}
+                      >
+                        <span className="text-lg">{s.icon}</span>
+                        <div className="text-left">
+                          <div>{s.val}</div>
+                          <div className={`text-[9px] font-normal ${saison === s.val ? 'text-purple-100' : 'text-slate-400'}`}>{s.desc}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Dates */}
               <div className="grid grid-cols-2 gap-3">
