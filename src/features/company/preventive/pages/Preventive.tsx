@@ -38,6 +38,7 @@ export const Preventive: React.FC<PreventiveProps> = () => {
   const [showModal,       setShowModal]       = useState(false);
   const [editingPlan,     setEditingPlan]     = useState<PlanPreventif | null>(null);
   const [duplicatePlanData, setDuplicatePlanData] = useState<PlanPreventif | null>(null);
+  const [rescheduleConfirmDate, setRescheduleConfirmDate] = useState<string | null>(null);
 
   // Calendar filters
   const [filterEq,   setFilterEq]   = useState('');
@@ -72,12 +73,25 @@ export const Preventive: React.FC<PreventiveProps> = () => {
   const handleDropOnDay = (dateStr: string) => {
     if (!activeDragPlan || !dateStr) return;
     
-    // Instead of rescheduling directly, we prepare to duplicate the plan for the dropped date
-    setDuplicatePlanData({ ...activeDragPlan, prochaineDate: dateStr });
-    setEditingPlan(null); // Ensure we are in "Create" mode
-    setShowModal(true);
-    
+    setSelectedPlan(activeDragPlan);
+    setRescheduleConfirmDate(dateStr);
     setActiveDragPlan(null);
+  };
+
+  const handleConfirmReschedule = async () => {
+    if (!selectedPlan || !rescheduleConfirmDate) return;
+    try {
+      await reschedule(selectedPlan.id, rescheduleConfirmDate);
+      showToast(`📅 Plan replanifié au ${rescheduleConfirmDate}`, 'success');
+    } catch {
+      showToast('Erreur lors de la replanification', 'error');
+    }
+    setRescheduleConfirmDate(null);
+    setSelectedPlan(null);
+  };
+
+  const handleCancelReschedule = () => {
+    setRescheduleConfirmDate(null);
   };
 
   const handleSavePlan = async (dto: CreatePlanDto) => {
@@ -255,10 +269,13 @@ export const Preventive: React.FC<PreventiveProps> = () => {
 
       <PreventiveDrawer
         plan={selectedPlan}
-        onClose={() => { setSelectedPlan(null); setActiveDragPlan(null); }}
+        onClose={() => { setSelectedPlan(null); setActiveDragPlan(null); setRescheduleConfirmDate(null); }}
         onEdit={handleOpenEdit}
         onGenererOT={handleGenererOT}
         can={can}
+        rescheduleConfirmDate={rescheduleConfirmDate}
+        onConfirmReschedule={handleConfirmReschedule}
+        onCancelReschedule={handleCancelReschedule}
       />
 
       {showModal && (
