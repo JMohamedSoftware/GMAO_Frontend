@@ -209,16 +209,18 @@ export const Preventive: React.FC<PreventiveProps> = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-stretch">
-          <div className="lg:col-span-1 flex flex-col h-full">
-            <PreventivePlanList
-              plans={plans}
-              equipments={equipments}
-              activePlanToDrag={activeDragPlan}
-              onSelectPlan={p => { setActiveDragPlan(p); setSelectedPlan(p); }}
-              onGenererOT={handleGenererOT}
-              onNewPlan={handleOpenCreate}
-              can={can}
-            />
+          <div className="lg:col-span-1 relative min-h-[500px]">
+            <div className="absolute inset-0 flex flex-col">
+              <PreventivePlanList
+                plans={plans}
+                equipments={equipments}
+                activePlanToDrag={activeDragPlan}
+                onSelectPlan={p => { setActiveDragPlan(p); setSelectedPlan(p); }}
+                onGenererOT={handleGenererOT}
+                onNewPlan={handleOpenCreate}
+                can={can}
+              />
+            </div>
           </div>
 
           <PreventiveCalendar
