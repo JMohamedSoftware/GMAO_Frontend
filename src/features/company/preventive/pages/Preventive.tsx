@@ -142,6 +142,7 @@ export const Preventive: React.FC<PreventiveProps> = () => {
   const goToPrevMonth = () => setCurrentMonth(p => new Date(p.getFullYear(), p.getMonth() - 1, 1));
   const goToNextMonth = () => setCurrentMonth(p => new Date(p.getFullYear(), p.getMonth() + 1, 1));
   const goToToday    = () => { const n = new Date(); setCurrentMonth(new Date(n.getFullYear(), n.getMonth(), 1)); };
+  const setMonthYear = (month: number, year: number) => setCurrentMonth(new Date(year, month, 1));
 
   // Coverage stats
   const monthKey = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`;
@@ -228,6 +229,7 @@ export const Preventive: React.FC<PreventiveProps> = () => {
             goToPrevMonth={goToPrevMonth}
             goToNextMonth={goToNextMonth}
             goToToday={goToToday}
+            setMonthYear={setMonthYear}
             capitalizedMonthLabel={capitalizedMonthLabel}
             calendarCells={buildCalendarCells()}
             getEventsForDay={getEventsForDay}

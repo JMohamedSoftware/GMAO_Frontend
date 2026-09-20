@@ -17,6 +17,7 @@ interface PreventiveCalendarProps {
   goToPrevMonth: () => void;
   goToNextMonth: () => void;
   goToToday: () => void;
+  setMonthYear: (month: number, year: number) => void;
   capitalizedMonthLabel: string;
   calendarCells: { dateStr: string; dayNum: number }[];
   getEventsForDay: (dateStr: string) => CalendarEvent[];
@@ -40,7 +41,7 @@ interface PreventiveCalendarProps {
 }
 
 export const PreventiveCalendar: React.FC<PreventiveCalendarProps> = ({
-  currentMonth, goToPrevMonth, goToNextMonth, goToToday, capitalizedMonthLabel,
+  currentMonth, goToPrevMonth, goToNextMonth, goToToday, setMonthYear, capitalizedMonthLabel,
   calendarCells, getEventsForDay, getPriorityColor, handleDropOnDay, onEventClick,
   activePlanToDrag, todayDateStr,
   filterEq, setFilterEq, filterFam, setFilterFam,
@@ -104,24 +105,62 @@ export const PreventiveCalendar: React.FC<PreventiveCalendarProps> = ({
       <div className="glass-panel p-5 rounded-custom-lg border border-white/40 dark:border-slate-800/40 shadow-sm flex flex-col justify-between flex-1">
 
         {/* Calendar Controls */}
-        <div className="flex items-center justify-between mb-6 px-1">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 px-1">
+          
+          {/* Controls: Month/Year Dropdowns */}
           <div className="flex items-center gap-3">
             <CalendarIcon className="w-5 h-5 text-primary" />
-            <h3 className="text-sm font-bold text-slate-850 dark:text-slate-100">
-              {capitalizedMonthLabel}
-            </h3>
+            <div className="flex gap-2">
+              <select
+                value={currentMonth.getMonth()}
+                onChange={(e) => setMonthYear(Number(e.target.value), currentMonth.getFullYear())}
+                className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-850 dark:text-slate-100 text-sm px-3 py-1.5 rounded-lg outline-none font-bold shadow-sm cursor-pointer hover:border-primary/50 transition-colors"
+              >
+                {['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'].map((m, idx) => {
+                  const nDate = new Date();
+                  const isDisabled = currentMonth.getFullYear() === nDate.getFullYear() && idx < nDate.getMonth();
+                  return (
+                    <option key={m} value={idx} disabled={isDisabled}>
+                      {m}
+                    </option>
+                  );
+                })}
+              </select>
+
+              <select
+                value={currentMonth.getFullYear()}
+                onChange={(e) => setMonthYear(currentMonth.getMonth(), Number(e.target.value))}
+                className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-850 dark:text-slate-100 text-sm px-3 py-1.5 rounded-lg outline-none font-bold shadow-sm cursor-pointer hover:border-primary/50 transition-colors"
+              >
+                {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() + i).map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          <div className="flex gap-1.5 border border-slate-200/50 dark:border-slate-800/50 rounded-lg overflow-hidden bg-white/40 dark:bg-slate-900/10 p-0.5">
-            <button onClick={goToPrevMonth} className="p-1 text-slate-500 hover:bg-slate-150 rounded cursor-pointer">
-              <ChevronLeft className="w-4 h-4" />
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={goToToday} 
+              className="text-xs font-bold text-primary hover:text-primary/80 transition-colors cursor-pointer"
+            >
+              Aller à aujourd'hui
             </button>
-            <button onClick={goToToday} className="text-[10px] font-bold text-slate-550 px-2.5 hover:bg-slate-150 rounded cursor-pointer">
-              Aujourd'hui
-            </button>
-            <button onClick={goToNextMonth} className="p-1 text-slate-500 hover:bg-slate-150 rounded cursor-pointer">
-              <ChevronRight className="w-4 h-4" />
-            </button>
+            <div className="flex gap-1 border border-slate-200/50 dark:border-slate-800/50 rounded-lg overflow-hidden bg-white/40 dark:bg-slate-900/10 p-0.5">
+              <button 
+                onClick={goToPrevMonth} 
+                disabled={currentMonth.getFullYear() === new Date().getFullYear() && currentMonth.getMonth() <= new Date().getMonth()}
+                className="p-1.5 text-slate-500 hover:bg-slate-150 rounded cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button 
+                onClick={goToNextMonth} 
+                className="p-1.5 text-slate-500 hover:bg-slate-150 rounded cursor-pointer transition-colors"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
 
