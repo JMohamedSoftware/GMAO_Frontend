@@ -37,7 +37,6 @@ export const Preventive: React.FC<PreventiveProps> = () => {
   const [activeDragPlan,  setActiveDragPlan]  = useState<PlanPreventif | null>(null);
   const [showModal,       setShowModal]       = useState(false);
   const [editingPlan,     setEditingPlan]     = useState<PlanPreventif | null>(null);
-  const [duplicatePlanData, setDuplicatePlanData] = useState<PlanPreventif | null>(null);
   const [rescheduleConfirmDate, setRescheduleConfirmDate] = useState<string | null>(null);
 
   // Calendar filters
@@ -105,17 +104,15 @@ export const Preventive: React.FC<PreventiveProps> = () => {
       }
       setShowModal(false);
       setEditingPlan(null);
-      setDuplicatePlanData(null);
     } catch {
       showToast('Erreur lors de la sauvegarde', 'error');
     }
   };
 
-  const handleOpenCreate = () => { setEditingPlan(null); setDuplicatePlanData(null); setShowModal(true); };
+  const handleOpenCreate = () => { setEditingPlan(null); setShowModal(true); };
 
   const handleOpenEdit = (plan: PlanPreventif) => {
     setEditingPlan(plan);
-    setDuplicatePlanData(null);
     setShowModal(true);
     setSelectedPlan(null);
   };
@@ -281,10 +278,9 @@ export const Preventive: React.FC<PreventiveProps> = () => {
       {showModal && (
         <PreventiveModal
           editingPlan={editingPlan}
-          duplicatePlan={duplicatePlanData}
           equipments={equipments}
           onSave={handleSavePlan}
-          onClose={() => { setShowModal(false); setEditingPlan(null); setDuplicatePlanData(null); }}
+          onClose={() => { setShowModal(false); setEditingPlan(null); }}
         />
       )}
     </div>
