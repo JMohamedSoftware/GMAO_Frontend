@@ -37,6 +37,7 @@ export const Preventive: React.FC<PreventiveProps> = () => {
   const [activeDragPlan,  setActiveDragPlan]  = useState<PlanPreventif | null>(null);
   const [showModal,       setShowModal]       = useState(false);
   const [editingPlan,     setEditingPlan]     = useState<PlanPreventif | null>(null);
+  const [duplicatePlanData, setDuplicatePlanData] = useState<PlanPreventif | null>(null);
 
   // Calendar filters
   const [filterEq,   setFilterEq]   = useState('');
@@ -68,14 +69,14 @@ export const Preventive: React.FC<PreventiveProps> = () => {
     }
   };
 
-  const handleDropOnDay = async (dateStr: string) => {
+  const handleDropOnDay = (dateStr: string) => {
     if (!activeDragPlan || !dateStr) return;
-    try {
-      await reschedule(activeDragPlan.id, dateStr);
-      showToast(`📅 Plan replanifié au ${dateStr}`, 'success');
-    } catch {
-      showToast('Erreur lors de la replanification', 'error');
-    }
+    
+    // Instead of rescheduling directly, we prepare to duplicate the plan for the dropped date
+    setDuplicatePlanData({ ...activeDragPlan, prochaineDate: dateStr });
+    setEditingPlan(null); // Ensure we are in "Create" mode
+    setShowModal(true);
+    
     setActiveDragPlan(null);
   };
 
@@ -90,15 +91,17 @@ export const Preventive: React.FC<PreventiveProps> = () => {
       }
       setShowModal(false);
       setEditingPlan(null);
+      setDuplicatePlanData(null);
     } catch {
       showToast('Erreur lors de la sauvegarde', 'error');
     }
   };
 
-  const handleOpenCreate = () => { setEditingPlan(null); setShowModal(true); };
+  const handleOpenCreate = () => { setEditingPlan(null); setDuplicatePlanData(null); setShowModal(true); };
 
   const handleOpenEdit = (plan: PlanPreventif) => {
     setEditingPlan(plan);
+    setDuplicatePlanData(null);
     setShowModal(true);
     setSelectedPlan(null);
   };
@@ -261,9 +264,10 @@ export const Preventive: React.FC<PreventiveProps> = () => {
       {showModal && (
         <PreventiveModal
           editingPlan={editingPlan}
+          duplicatePlan={duplicatePlanData}
           equipments={equipments}
           onSave={handleSavePlan}
-          onClose={() => { setShowModal(false); setEditingPlan(null); }}
+          onClose={() => { setShowModal(false); setEditingPlan(null); setDuplicatePlanData(null); }}
         />
       )}
     </div>

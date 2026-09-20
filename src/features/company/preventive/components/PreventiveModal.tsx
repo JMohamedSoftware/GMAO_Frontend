@@ -7,6 +7,7 @@ import type { PlanPreventif, TachePreventive, CreatePlanDto } from '../types/pre
 
 interface PreventiveModalProps {
   editingPlan: PlanPreventif | null;
+  duplicatePlan?: PlanPreventif | null;
   equipments: any[];
   onSave: (payload: CreatePlanDto) => Promise<void>;
   onClose: () => void;
@@ -32,7 +33,7 @@ const TACHE_TEMPLATES: Record<string, string[]> = {
 };
 
 export const PreventiveModal: React.FC<PreventiveModalProps> = ({
-  editingPlan, equipments, onSave, onClose
+  editingPlan, duplicatePlan, equipments, onSave, onClose
 }) => {
   const isEdit = Boolean(editingPlan);
   const todayStr = new Date().toISOString().split('T')[0];
@@ -69,8 +70,21 @@ export const PreventiveModal: React.FC<PreventiveModalProps> = ({
         ? editingPlan.taches.map(t => ({ description: t.description, dureeEstimeeMinutes: t.dureeEstimeeMinutes, estObligatoire: t.estObligatoire }))
         : [{ description: '', dureeEstimeeMinutes: undefined, estObligatoire: true }]
       );
+    } else if (duplicatePlan) {
+      setTitre(`${duplicatePlan.titre} (Copie)`);
+      setDescription(duplicatePlan.description || '');
+      setEquipementId(duplicatePlan.equipementId);
+      setTypeDeclenchement(duplicatePlan.typeDeclenchement);
+      setFrequence(duplicatePlan.frequence);
+      setUniteMesure(duplicatePlan.uniteMesure || 'jours');
+      setDerniereDate(duplicatePlan.derniereDate || '');
+      setProchaineDate(duplicatePlan.prochaineDate || '');
+      setTaches(duplicatePlan.taches.length > 0
+        ? duplicatePlan.taches.map(t => ({ description: t.description, dureeEstimeeMinutes: t.dureeEstimeeMinutes, estObligatoire: t.estObligatoire }))
+        : [{ description: '', dureeEstimeeMinutes: undefined, estObligatoire: true }]
+      );
     }
-  }, [editingPlan]);
+  }, [editingPlan, duplicatePlan]);
 
   // Auto-reset unit when type changes
   useEffect(() => {
