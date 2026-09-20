@@ -176,19 +176,22 @@ export const PreventiveCalendar: React.FC<PreventiveCalendarProps> = ({
             const hasDay = cell.dayNum > 0;
             const events = getEventsForDay(cell.dateStr);
             const isToday = cell.dateStr === todayDateStr;
-            const isDragTarget = activePlanToDrag && hasDay;
+            const isPastDay = cell.dateStr < todayDateStr;
+            const isDragTarget = activePlanToDrag && hasDay && !isPastDay;
 
             return (
               <div
                 key={idx}
-                onClick={() => hasDay && handleDropOnDay(cell.dateStr)}
+                onClick={() => hasDay && !isPastDay && handleDropOnDay(cell.dateStr)}
                 className={`min-h-[90px] border rounded-custom-sm p-1.5 flex flex-col gap-1.5 transition-all select-none ${
                   !hasDay
                     ? 'bg-transparent border-transparent cursor-default'
                     : isToday
                       ? 'border-primary bg-primary/5 shadow-[inset_0_0_10px_rgba(37,99,235,0.05)]'
-                      : 'border-slate-200/50 dark:border-slate-850 bg-white/40 dark:bg-slate-900/10 hover:border-slate-300 dark:hover:border-slate-800'
-                } ${isDragTarget ? 'ring-2 ring-primary/20 cursor-pointer border-dashed border-primary/50' : ''}`}
+                      : isPastDay 
+                        ? 'border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 opacity-70 cursor-not-allowed'
+                        : 'border-slate-200/50 dark:border-slate-850 bg-white/40 dark:bg-slate-900/10 hover:border-slate-300 dark:hover:border-slate-800 cursor-pointer'
+                } ${isDragTarget ? 'ring-2 ring-primary/20 cursor-pointer border-dashed border-primary/50 bg-primary/5' : ''}`}
               >
                 {/* Day number */}
                 <div className="flex justify-between items-center">

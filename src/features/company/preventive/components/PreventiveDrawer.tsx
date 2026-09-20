@@ -9,9 +9,6 @@ interface PreventiveDrawerProps {
   onEdit: (plan: PlanPreventif) => void;
   onGenererOT: (plan: PlanPreventif) => void;
   can: (permission: any) => boolean;
-  rescheduleConfirmDate?: string | null;
-  onConfirmReschedule?: () => void;
-  onCancelReschedule?: () => void;
 }
 
 const triggerInfo = (type: 1 | 2 | 3) => {
@@ -26,8 +23,7 @@ const daysDiff = (dateStr?: string) => {
 };
 
 export const PreventiveDrawer: React.FC<PreventiveDrawerProps> = ({
-  plan, onClose, onEdit, onGenererOT, can,
-  rescheduleConfirmDate, onConfirmReschedule, onCancelReschedule
+  plan, onClose, onEdit, onGenererOT, can
 }) => {
   if (!plan) return null;
 
@@ -56,37 +52,9 @@ export const PreventiveDrawer: React.FC<PreventiveDrawerProps> = ({
       {/* Body */}
       <div className="p-5 flex-1 overflow-y-auto flex flex-col gap-5 text-sm custom-scrollbar">
 
-        {rescheduleConfirmDate && onConfirmReschedule && onCancelReschedule && (
-          <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 flex flex-col gap-3">
-            <div className="flex items-start gap-3 text-primary-900 dark:text-primary-100">
-              <CalendarIcon className="w-5 h-5 mt-0.5 text-primary" />
-              <div>
-                <p className="font-semibold mb-1">Confirmer la replanification ?</p>
-                <p className="text-sm opacity-80">
-                  Voulez-vous déplacer ce plan au <strong className="font-semibold">{rescheduleConfirmDate}</strong> ?
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-2 justify-end mt-1">
-              <button 
-                onClick={onCancelReschedule}
-                className="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
-              >
-                Annuler
-              </button>
-              <button 
-                onClick={onConfirmReschedule}
-                className="px-3 py-1.5 rounded-lg text-sm font-medium bg-primary text-white hover:bg-primary-600 transition shadow-sm"
-              >
-                Confirmer
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* Title + status */}
         <div>
-          {(isOverdue || isUrgent) && !rescheduleConfirmDate && (
+          {(isOverdue || isUrgent) && (
             <div className={`text-[10px] font-bold px-2.5 py-1 rounded-full inline-flex items-center gap-1 mb-2 ${
               isOverdue ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
             }`}>

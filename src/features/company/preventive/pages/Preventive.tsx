@@ -37,7 +37,6 @@ export const Preventive: React.FC<PreventiveProps> = () => {
   const [activeDragPlan,  setActiveDragPlan]  = useState<PlanPreventif | null>(null);
   const [showModal,       setShowModal]       = useState(false);
   const [editingPlan,     setEditingPlan]     = useState<PlanPreventif | null>(null);
-  const [rescheduleConfirmDate, setRescheduleConfirmDate] = useState<string | null>(null);
 
   // Calendar filters
   const [filterEq,   setFilterEq]   = useState('');
@@ -69,28 +68,20 @@ export const Preventive: React.FC<PreventiveProps> = () => {
     }
   };
 
-  const handleDropOnDay = (dateStr: string) => {
+  const handleDropOnDay = async (dateStr: string) => {
     if (!activeDragPlan || !dateStr) return;
     
-    setSelectedPlan(activeDragPlan);
-    setRescheduleConfirmDate(dateStr);
-    setActiveDragPlan(null);
-  };
-
-  const handleConfirmReschedule = async () => {
-    if (!selectedPlan || !rescheduleConfirmDate) return;
-    try {
-      await reschedule(selectedPlan.id, rescheduleConfirmDate);
-      showToast(`📅 Plan replanifié au ${rescheduleConfirmDate}`, 'success');
-    } catch {
-      showToast('Erreur lors de la replanification', 'error');
+    const confirm = window.confirm(`Confirmez-vous le report de ce plan au ${dateStr} ?`);
+    if (confirm) {
+      try {
+        await reschedule(activeDragPlan.id, dateStr);
+        showToast(`📅 Plan replanifié au ${dateStr}`, 'success');
+      } catch {
+        showToast('Erreur lors de la replanification', 'error');
+      }
     }
-    setRescheduleConfirmDate(null);
-    setSelectedPlan(null);
-  };
-
-  const handleCancelReschedule = () => {
-    setRescheduleConfirmDate(null);
+    
+    setActiveDragPlan(null);
   };
 
   const handleSavePlan = async (dto: CreatePlanDto) => {
@@ -266,13 +257,10 @@ export const Preventive: React.FC<PreventiveProps> = () => {
 
       <PreventiveDrawer
         plan={selectedPlan}
-        onClose={() => { setSelectedPlan(null); setActiveDragPlan(null); setRescheduleConfirmDate(null); }}
+        onClose={() => { setSelectedPlan(null); setActiveDragPlan(null); }}
         onEdit={handleOpenEdit}
         onGenererOT={handleGenererOT}
         can={can}
-        rescheduleConfirmDate={rescheduleConfirmDate}
-        onConfirmReschedule={handleConfirmReschedule}
-        onCancelReschedule={handleCancelReschedule}
       />
 
       {showModal && (
