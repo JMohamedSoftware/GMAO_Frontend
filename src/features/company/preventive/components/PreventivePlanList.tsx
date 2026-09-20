@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar as CalendarIcon, RefreshCw, Plus, Clock, Zap, Layers } from 'lucide-react';
+import { Calendar as CalendarIcon, RefreshCw, Plus, Clock, Zap, Layers, Info } from 'lucide-react';
 import type { PlanPreventif } from '../types/preventive.types';
 import { PERMISSIONS } from '@/shared/permissions';
 
@@ -8,6 +8,7 @@ interface PreventivePlanListProps {
   equipments: any[];
   activePlanToDrag: PlanPreventif | null;
   onSelectPlan: (plan: PlanPreventif) => void;
+  onViewDetails?: (plan: PlanPreventif) => void;
   onGenererOT: (plan: PlanPreventif) => void;
   onNewPlan: () => void;
   can: (permission: any) => boolean;
@@ -44,7 +45,7 @@ const daysLabel = (dateStr?: string) => {
 };
 
 export const PreventivePlanList: React.FC<PreventivePlanListProps> = ({
-  plans, equipments, activePlanToDrag, onSelectPlan, onGenererOT, onNewPlan, can
+  plans, equipments, activePlanToDrag, onSelectPlan, onViewDetails, onGenererOT, onNewPlan, can
 }) => {
   const sorted = [...plans].sort((a, b) => {
     if (!a.prochaineDate) return 1;
@@ -113,6 +114,15 @@ export const PreventivePlanList: React.FC<PreventivePlanListProps> = ({
                 <span className={`flex-shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold border ${badgeClass}`}>
                   {daysLabel(plan.prochaineDate)}
                 </span>
+                <div className="flex-1" />
+                {onViewDetails && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onViewDetails(plan); }}
+                    className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                  >
+                    <Info className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
 
               <p className="text-[11px] font-bold text-slate-700 dark:text-slate-200 leading-tight mb-1.5 line-clamp-2">

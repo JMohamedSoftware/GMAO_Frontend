@@ -37,6 +37,7 @@ export const Preventive: React.FC<PreventiveProps> = () => {
   const [activeDragPlan,  setActiveDragPlan]  = useState<PlanPreventif | null>(null);
   const [showModal,       setShowModal]       = useState(false);
   const [editingPlan,     setEditingPlan]     = useState<PlanPreventif | null>(null);
+  const [confirmRescheduleData, setConfirmRescheduleData] = useState<{ planId: number; dateStr: string } | null>(null);
 
   // Calendar filters
   const [filterEq,   setFilterEq]   = useState('');
@@ -68,19 +69,10 @@ export const Preventive: React.FC<PreventiveProps> = () => {
     }
   };
 
-  const handleDropOnDay = async (dateStr: string) => {
+  const handleDropOnDay = (dateStr: string) => {
     if (!activeDragPlan || !dateStr) return;
     
-    const confirm = window.confirm(`Confirmez-vous le report de ce plan au ${dateStr} ?`);
-    if (confirm) {
-      try {
-        await reschedule(activeDragPlan.id, dateStr);
-        showToast(`📅 Plan replanifié au ${dateStr}`, 'success');
-      } catch {
-        showToast('Erreur lors de la replanification', 'error');
-      }
-    }
-    
+    setConfirmRescheduleData({ planId: activeDragPlan.id, dateStr });
     setActiveDragPlan(null);
   };
 
@@ -221,7 +213,8 @@ export const Preventive: React.FC<PreventiveProps> = () => {
                 plans={plans}
                 equipments={equipments}
                 activePlanToDrag={activeDragPlan}
-                onSelectPlan={p => { setActiveDragPlan(p); setSelectedPlan(p); }}
+                onSelectPlan={p => setActiveDragPlan(p)}
+                onViewDetails={p => setSelectedPlan(p)}
                 onGenererOT={handleGenererOT}
                 onNewPlan={handleOpenCreate}
                 can={can}
@@ -270,6 +263,42 @@ export const Preventive: React.FC<PreventiveProps> = () => {
           onSave={handleSavePlan}
           onClose={() => { setShowModal(false); setEditingPlan(null); }}
         />
+      )}
+
+      {/* Confirmation Modal */}
+      {confirmRescheduleData && (
+        <div className="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease-out]">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden border border-slate-200 dark:border-slate-800 animate-[slideUp_0.2s_ease-out]">
+            <div className="p-6">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Confirmer la replanification</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                Voulez-vous vraiment reporter ce plan au <strong className="text-slate-700 dark:text-slate-200">{confirmRescheduleData.dateStr}</strong> ?
+              </p>
+            </div>
+            <div className="bg-slate-50 dark:bg-slate-800/50 px-6 py-4 flex justify-end gap-3 border-t border-slate-100 dark:border-slate-800/80">
+              <button
+                onClick={() => setConfirmRescheduleData(null)}
+                className="px-4 py-2 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    await reschedule(confirmRescheduleData.planId, confirmRescheduleData.dateStr);
+                    showToast(`📅 Plan replanifié au ${confirmRescheduleData.dateStr}`, 'success');
+                  } catch {
+                    showToast('Erreur lors de la replanification', 'error');
+                  }
+                  setConfirmRescheduleData(null);
+                }}
+                className="px-4 py-2 rounded-xl text-sm font-bold bg-primary hover:bg-primary/90 text-white shadow-sm transition cursor-pointer"
+              >
+                Confirmer
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
