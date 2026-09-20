@@ -1,6 +1,6 @@
 import { useAppSelector, useAppDispatch } from '@/app/hooks';
 import * as actions from '@/app/gmaoSlice';
-import { createIncidentAsync, updateIncidentStatusAsync, fetchTenantsAsync, createTenantAsync, updateTenantAsync } from '@/app/gmaoSlice';
+import { createIncidentAsync, updateIncidentStatusAsync, updateWorkOrderStatusAsync, fetchTenantsAsync, createTenantAsync, updateTenantAsync } from '@/app/gmaoSlice';
 import { AppRole } from '@/shared/permissions';
 import { Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount, User, Tenant } from '@/shared/types/gmao';
 import { useEffect } from 'react';
@@ -90,7 +90,16 @@ export const useGmao = () => {
       return result;
     },
     addWorkOrder: (ot: Omit<WorkOrder, 'id' | 'createdDate' | 'status' | 'partsUsed' | 'durationMinutes' | 'externalCost'>, incidentId?: string) => dispatch(actions.addWorkOrder({ot, incidentId})),
-    updateWorkOrderStatus: (id: string, status: WorkOrder['status'], updates?: Partial<WorkOrder>) => dispatch(actions.updateWorkOrderStatus({id, status, updates})),
+    updateWorkOrderStatus: async (id: string, status: WorkOrder['status'], updates?: Partial<WorkOrder>) => {
+      const activeTenantLocal = state.tenants.find(t => t.id === state.currentTenantId);
+      const fullOt = activeTenantLocal?.workOrders.find(o => o.id === id);
+      if (!fullOt) {
+        dispatch(actions.updateWorkOrderStatus({id, status, updates}));
+        return;
+      }
+      const result = await dispatch(updateWorkOrderStatusAsync({ id, status, fullOt, updates }));
+      return result;
+    },
     addPartMovement: (ref: string, qty: number, type: 'in' | 'out', otId?: string) => dispatch(actions.addPartMovement({ref, qty, type, otId})),
     updatePart: (updated: SparePart) => dispatch(actions.updatePart(updated)),
     addSupplier: (sup: Supplier) => dispatch(actions.addSupplier(sup)),

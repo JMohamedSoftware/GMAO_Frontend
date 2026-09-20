@@ -324,7 +324,49 @@ export const createWorkOrderApi = async (payload: CreateWorkOrderPayload): Promi
     };
 };
 
+export const patchWorkOrderStatusApi = async (
+    id: string,
+    status: WorkOrder['status'],
+    fullOt: WorkOrder,
+    updates?: Partial<WorkOrder>
+): Promise<void> => {
+    const merged = { ...fullOt, ...updates, status };
+    
+    let statutOt = 1; // Brouillon
+    switch(merged.status) {
+        case 'En attente': statutOt = 2; break;
+        case 'Affecté': statutOt = 2; break; // Map 'Affecté' and 'En attente' to 2 (EnAttente/Affecte)
+        case 'En cours': statutOt = 3; break;
+        case 'Suspendu': statutOt = 4; break;
+        case 'Terminé': statutOt = 5; break;
+        case 'Clôturé': statutOt = 6; break;
+    }
 
+    const body = {
+        id: parseInt(id, 10),
+        numeroOT: merged.title || `OT-${id}`,
+        demandeId: merged.incidentId ? parseInt(merged.incidentId, 10) : null,
+        equipementId: parseInt(merged.equipmentId, 10),
+        responsableId: merged.assignedBy ? parseInt(merged.assignedBy, 10) : 1,
+        technicienId: merged.technicianId ? parseInt(merged.technicianId, 10) : null,
+        priorite: otPriorityToInt(merged.priority),
+        typeMaintenance: typeToInt(merged.type),
+        statut: statutOt,
+        dateCreation: merged.createdDate,
+        dateDebutPrevue: null,
+        dateFinPrevue: null,
+        dateDebutReelle: merged.startDate || null,
+        dateFinReelle: merged.endDate || null,
+        description: merged.description,
+        instructions: merged.solution || null,
+        coutMainOeuvre: null,
+        coutPieces: merged.externalCost || null,
+        coutSousTraitance: null,
+        campagneId: null,
+    };
+    
+    await axios.put(`${API_URL}/OrdresTravail/${id}`, body, getAuthHeaders());
+};
 
 export const fetchWorkOrders = async (): Promise<WorkOrder[]> => {
     const response = await axios.get(`${API_URL}/OrdresTravail`, getAuthHeaders());

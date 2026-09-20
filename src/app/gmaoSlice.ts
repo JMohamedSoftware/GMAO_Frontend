@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { Tenant, User, Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount } from '@/shared/types/gmao';
 import { AppRole } from '@/shared/permissions';
-import { fetchEquipments, fetchSuppliers, fetchParts, fetchIncidents, fetchWorkOrders, fetchCampaigns, fetchTechnicians, fetchUsers, fetchTenants, createTenantApi, updateTenantApi, createIncidentApi, patchIncidentStatusApi, CreateIncidentPayload, createWorkOrderApi, CreateWorkOrderPayload } from '@/shared/api/dataFetch.api';
+import { fetchEquipments, fetchSuppliers, fetchParts, fetchIncidents, fetchWorkOrders, fetchCampaigns, fetchTechnicians, fetchUsers, fetchTenants, createTenantApi, updateTenantApi, createIncidentApi, patchIncidentStatusApi, CreateIncidentPayload, createWorkOrderApi, CreateWorkOrderPayload, patchWorkOrderStatusApi } from '@/shared/api/dataFetch.api';
 
 interface GmaoState {
   tenants: Tenant[];
@@ -146,6 +146,16 @@ export const createWorkOrderAsync = createAsyncThunk(
     return { workOrder, incidentId: payload.incidentId };
   }
 );
+
+/** PUT /api/OrdresTravail/{id} — update status/data on backend, then sync to Redux */
+export const updateWorkOrderStatusAsync = createAsyncThunk(
+  'gmao/updateWorkOrderStatus',
+  async (payload: { id: string; status: WorkOrder['status']; fullOt: WorkOrder; updates?: Partial<WorkOrder> }) => {
+    await patchWorkOrderStatusApi(payload.id, payload.status, payload.fullOt, payload.updates);
+    return { id: payload.id, status: payload.status, updates: payload.updates };
+  }
+);
+
 export const gmaoSlice = createSlice({
   name: 'gmao',
   initialState,
@@ -491,6 +501,33 @@ export const gmaoSlice = createSlice({
             read: false,
             targetUserId: action.payload.workOrder.technicianId,
           });
+        }
+      }
+    });
+
+    // When an OT status is updated on the backend, mirror it in local state
+    builder.addCase(updateWorkOrderStatusAsync.fulfilled, (state, action) => {
+      const tenant = state.tenants.find(t => t.id === state.currentTenantId);
+      if (tenant) {
+        const ot = tenant.workOrders.find(o => o.id === action.payload.id);
+        if (ot) {
+          ot.status = action.payload.status;
+          if (action.payload.updates) Object.assign(ot, action.payload.updates);
+          
+          if (ot.status === 'En cours' && !ot.startDate) {
+            ot.startDate = new Date().toISOString();
+            const eq = tenant.equipments.find(e => e.id === ot.equipmentId);
+            if (eq) eq.status = 'En maintenance';
+          } else if (ot.status === 'Terminé' && !ot.endDate) {
+            ot.endDate = new Date().toISOString();
+            const eq = tenant.equipments.find(e => e.id === ot.equipmentId);
+            if (eq) { eq.status = 'En service'; eq.healthIndex = 95; }
+          }
+
+          if ((ot.status === 'Terminé' || ot.status === 'Clôturé') && ot.technicianId) {
+            const tech = tenant.technicians.find(t => t.id === ot.technicianId);
+            if (tech) tech.status = 'Disponible';
+          }
         }
       }
     });
