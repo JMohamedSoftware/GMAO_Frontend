@@ -39,6 +39,7 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
     technicians, 
     parts, 
     currentUser,
+    equipes,
     updateWorkOrderStatus 
   } = useGmao();
 
