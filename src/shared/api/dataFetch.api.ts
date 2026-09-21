@@ -126,7 +126,7 @@ export const fetchUsers = async (): Promise<UserAccount[]> => {
         id: u.id?.toString(),
         name: `${u.prenom} ${u.nom}`.trim(),
         email: u.email,
-        role: mapRoleIdToName(u.roleId),
+        role: u.role?.nom || mapRoleIdToName(u.roleId),
         status: u.isActive !== false ? 'Actif' : 'Inactif',
         avatar: u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(`${u.prenom}+${u.nom}`)}&background=e11d48&color=fff&size=150`,
         phone: u.telephone,

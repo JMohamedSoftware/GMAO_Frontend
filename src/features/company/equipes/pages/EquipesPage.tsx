@@ -39,7 +39,7 @@ export const EquipesPage: React.FC = () => {
   const [form, setForm] = useState<EquipeFormData>(emptyForm());
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
-  const chefEquipeUsers = users.filter(u => u.role === "Chef d\u0027\u00e9quipe");
+  const chefEquipeUsers = users.filter(u => u.role === "Chef d'équipe" || u.role === "Chef d'equipe" || u.role === "Chef d\u0027\u00e9quipe" || u.role?.includes("Chef d"));
 
   const getColorDef = (colorClass?: string) =>
     COLORS.find(c => c.bg === colorClass) || DEFAULT_COLOR;
