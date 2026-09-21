@@ -32,7 +32,7 @@ const emptyForm = (): EquipeFormData => ({
 
 export const EquipesPage: React.FC = () => {
   const { equipes, users, technicians, addEquipe, updateEquipe, deleteEquipe } = useGmao();
-  const { isResponsable } = usePermissions();
+  const { isManagerLevel } = usePermissions();
 
   const [showModal, setShowModal] = useState(false);
   const [editEquipe, setEditEquipe] = useState<Equipe | null>(null);
@@ -84,7 +84,7 @@ export const EquipesPage: React.FC = () => {
             Organisez les techniciens par equipe avec leur chef referent
           </p>
         </div>
-        {isResponsable && (
+        {isManagerLevel && (
           <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/90 text-white font-bold text-xs rounded-custom-sm shadow-md hover-lift cursor-pointer">
             <Plus className="w-4 h-4" /> Nouvelle Equipe
           </button>
@@ -134,7 +134,7 @@ export const EquipesPage: React.FC = () => {
                     {eq.description && <p className="text-[10px] text-slate-400 mt-0.5">{eq.description}</p>}
                   </div>
                 </div>
-                {isResponsable && (
+                {isManagerLevel && (
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button onClick={() => openEdit(eq)} className="p-1.5 rounded-lg bg-slate-100 hover:bg-primary hover:text-white dark:bg-slate-800 text-slate-500 transition cursor-pointer"><Pencil className="w-3.5 h-3.5" /></button>
                     <button onClick={() => setConfirmDelete(eq.id)} className="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-500 hover:text-white dark:bg-slate-800 text-slate-500 transition cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>
