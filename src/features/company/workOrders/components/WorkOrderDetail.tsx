@@ -27,7 +27,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
   updateWorkOrderStatus
 }) => {
   const { can, isResponsable, isChefEquipe } = usePermissions();
-  const { currentUser, users } = useGmao();
+  const { currentUser, users, equipes } = useGmao();
 
   // Helper: build owner ID array safely (no NaN)
   const ownerIds = (): (number | undefined)[] => [
@@ -36,13 +36,19 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
     activeOt ? (Number(activeOt.chefEquipeId) || undefined) : undefined,
   ].filter((v): v is number => v !== undefined);
 
-  // Chef d'équipe users list (for Responsable to assign)
-  const chefEquipeUsers = users.filter(u => u.role === "Chef d'équipe");
+  // Chef d'equipe users list (for Responsable to assign)
+  const chefEquipeUsers = users.filter(u => u.role === "Chef d'equipe" || u.role === "Chef d'\u00e9quipe");
 
-  // Current assigned Chef d'équipe user object
+  // Current assigned Chef d'equipe user object
   const activeOtChef = activeOt?.chefEquipeId
     ? users.find(u => String(u.id) === String(activeOt.chefEquipeId))
     : null;
+
+  // Techniciens filtered by Chef's equipe (used in Step 2 dropdown)
+  const chefEquipe = equipes.find(eq => String(eq.chefId) === String(activeOt?.chefEquipeId));
+  const teamTechnicians = chefEquipe
+    ? technicians.filter(t => chefEquipe.technicienIds.includes(t.id))
+    : technicians; // fallback: all technicians if no team defined
 
   const [diagText, setDiagText] = useState('');
   const [solText, setSolText] = useState('');
@@ -413,10 +419,15 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
                 className="w-full bg-white dark:bg-slate-900 border border-primary/30 rounded-lg p-2 font-semibold outline-none text-xs"
               >
                 <option value="">Sélectionner un technicien...</option>
-                {technicians.map(t => (
+                {teamTechnicians.map(t => (
                   <option key={t.id} value={t.id}>{t.name} ({t.role}) — {t.status}</option>
                 ))}
               </select>
+              {chefEquipe && (
+                <p className="text-[9px] text-primary/60 italic">
+                  Filtré : équipe "{chefEquipe.nom}" ({teamTechnicians.length} tech{teamTechnicians.length > 1 ? 's' : ''})
+                </p>
+              )}
               {activeOtTech && (
                 <div className="flex items-center gap-2 mt-1">
                   <img src={activeOtTech.avatar} alt={activeOtTech.name}

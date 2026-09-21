@@ -21,7 +21,8 @@ import {
   CreditCard,
   Activity,
   Layers,
-  Settings
+  Settings,
+  UsersRound
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -55,10 +56,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate }) =
   // All CMMS menus — will be filtered by role
   const allMenuItems = [
     { id: 'dashboard', label: 'Tableau de Bord', icon: LayoutDashboard, permission: PERMISSIONS.DASHBOARD_VIEW },
-    { id: 'equipment', label: 'Équipements', icon: Wrench, permission: PERMISSIONS.EQUIPMENT_VIEW },
-    { id: 'preventive', label: 'Préventif', icon: CalendarRange, permission: PERMISSIONS.PREVENTIVE_VIEW },
+    { id: 'equipment', label: 'Equipements', icon: Wrench, permission: PERMISSIONS.EQUIPMENT_VIEW },
+    { id: 'preventive', label: 'Preventif', icon: CalendarRange, permission: PERMISSIONS.PREVENTIVE_VIEW },
     { id: 'corrective', label: 'Incidents', icon: KanbanSquare, permission: PERMISSIONS.INCIDENT_VIEW },
     { id: 'workorders', label: 'OTs', icon: FileCheck, permission: PERMISSIONS.WORKORDER_VIEW },
+    { id: 'equipes', label: 'Equipes', icon: UsersRound, permission: PERMISSIONS.USER_VIEW },
     { id: 'inventory', label: 'Stock', icon: Boxes, permission: PERMISSIONS.INVENTORY_VIEW },
     { id: 'suppliers', label: 'Fournisseurs', icon: Truck, permission: PERMISSIONS.SUPPLIER_VIEW },
     { id: 'reports', label: 'Rapports', icon: BarChart3, permission: PERMISSIONS.REPORT_VIEW },

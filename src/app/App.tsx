@@ -14,6 +14,7 @@ import { Reports } from '@/features/company/reports/pages/Reports';
 import { Suppliers } from '@/features/company/suppliers/pages/Suppliers';
 import { Admin } from '@/features/company/settings/Admin';
 import { SuperAdmin } from '@/features/superAdmin/dashboard/SuperAdminPage';
+import { EquipesPage } from '@/features/company/equipes/pages/EquipesPage';
 import { AccessGuard } from '@/shared/components/AccessGuard';
 import { PERMISSIONS } from '@/shared/permissions';
 
@@ -145,6 +146,12 @@ function AppContent() {
       {currentScreen === 'admin' && (
         <AccessGuard permission={PERMISSIONS.USER_VIEW}>
           <Admin />
+        </AccessGuard>
+      )}
+
+      {currentScreen === 'equipes' && (
+        <AccessGuard permission={PERMISSIONS.USER_VIEW}>
+          <EquipesPage />
         </AccessGuard>
       )}
 

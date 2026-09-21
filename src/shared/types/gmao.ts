@@ -110,6 +110,16 @@ export interface Technician {
   avatar: string;
 }
 
+// ── Équipe de Maintenance ───────────────────────────────────────────────────────
+export interface Equipe {
+  id: string;
+  nom: string;                  // Ex: "Équipe Électrique"
+  description?: string;
+  couleur?: string;             // Tailwind color class, ex: 'bg-blue-500'
+  chefId: string;               // ID du Chef d'équipe (UserAccount.id)
+  technicienIds: string[];      // IDs des Technician dans cette équipe
+}
+
 export interface SparePart {
   ref: string;
   name: string;
@@ -224,6 +234,7 @@ export interface Tenant {
   suppliers: Supplier[];
   campaigns: Campaign[];
   users: UserAccount[];
+  equipes: Equipe[];           // Équipes de maintenance
 }
 
 // ── Maintenance Préventive ───────────────────────────────────────────────────

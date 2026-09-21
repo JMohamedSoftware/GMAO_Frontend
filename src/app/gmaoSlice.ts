@@ -1,5 +1,37 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
-import { Tenant, User, Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount } from '@/shared/types/gmao';
+import { Tenant, User, Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount, Equipe } from '@/shared/types/gmao';
+import { AppRole } from '@/shared/permissions';
+import { fetchEquipments, fetchSuppliers, fetchParts, fetchIncidents, fetchWorkOrders, fetchCampaigns, fetchTechnicians, fetchUsers, fetchTenants, createTenantApi, updateTenantApi, createIncidentApi, patchIncidentStatusApi, CreateIncidentPayload, createWorkOrderApi, CreateWorkOrderPayload, patchWorkOrderStatusApi } from '@/shared/api/dataFetch.api';
+
+interface GmaoState {
+  tenants: Tenant[];
+  currentTenantId: string | null;
+  impersonatedTenantId: string | null;
+  currentUser: User | null;
+  darkMode: boolean;
+  selectedCampaign: string;
+  rolePermissions: Record<string, any>;
+  notifications: Notification[];
+}
+
+const getInitialTenants = (): Tenant[] => {
+  const saved = localStorage.getItem('gmao_tenants_v8');
+  if (saved) {
+    try { return JSON.parse(saved); } catch (e) {}
+  }
+  return [
+    {
+      id: 'tenant-midi',
+      name: 'Conserverie du Midi S.A.',
+      domain: 'midi.com',
+      status: 'Active',
+      subscriptionPlan: 'Enterprise',
+      createdAt: '2026-01-10T12:00:00Z',
+      adminEmail: 'admin@midi.com',
+      capacityTonsPerDay: 450,
+      equipments: [],
+import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
+import { Tenant, User, Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount, Equipe } from '@/shared/types/gmao';
 import { AppRole } from '@/shared/permissions';
 import { fetchEquipments, fetchSuppliers, fetchParts, fetchIncidents, fetchWorkOrders, fetchCampaigns, fetchTechnicians, fetchUsers, fetchTenants, createTenantApi, updateTenantApi, createIncidentApi, patchIncidentStatusApi, CreateIncidentPayload, createWorkOrderApi, CreateWorkOrderPayload, patchWorkOrderStatusApi } from '@/shared/api/dataFetch.api';
 
@@ -36,6 +68,7 @@ const getInitialTenants = (): Tenant[] => {
       parts: [],
       suppliers: [],
       campaigns: [],
+      equipes: [],
       users: []
     }
   ];
@@ -80,6 +113,7 @@ export const createTenantAsync = createAsyncThunk(
       parts: [],
       suppliers: [],
       campaigns: [],
+      equipes: [],
       users: []
     } as Tenant;
   }
@@ -405,6 +439,31 @@ export const gmaoSlice = createSlice({
         tenant.users.push(action.payload);
       }
     },
+
+    // ─── Équipes CRUD ───────────────────────────────────────────────────────────
+    addEquipe: (state, action: PayloadAction<Omit<Equipe, 'id'>>) => {
+      const tenant = state.tenants.find(t => t.id === state.currentTenantId);
+      if (tenant) {
+        if (!tenant.equipes) tenant.equipes = [];
+        const newId = `EQ-${Date.now()}`;
+        tenant.equipes.push({ ...action.payload, id: newId });
+      }
+    },
+    updateEquipe: (state, action: PayloadAction<Equipe>) => {
+      const tenant = state.tenants.find(t => t.id === state.currentTenantId);
+      if (tenant) {
+        if (!tenant.equipes) tenant.equipes = [];
+        const idx = tenant.equipes.findIndex(e => e.id === action.payload.id);
+        if (idx !== -1) tenant.equipes[idx] = action.payload;
+      }
+    },
+    deleteEquipe: (state, action: PayloadAction<string>) => {
+      const tenant = state.tenants.find(t => t.id === state.currentTenantId);
+      if (tenant && tenant.equipes) {
+        tenant.equipes = tenant.equipes.filter(e => e.id !== action.payload);
+      }
+    },
+
     syncToLocalStorage: (state) => {
       localStorage.setItem('gmao_tenants_v8', JSON.stringify(state.tenants));
     }
@@ -442,6 +501,8 @@ export const gmaoSlice = createSlice({
         tenant.campaigns = action.payload.campaigns;
         tenant.technicians = action.payload.technicians;
         tenant.users = action.payload.users;
+        // Preserve local equipes (not from backend)
+        if (!tenant.equipes) tenant.equipes = [];
       }
     });
 
