@@ -69,11 +69,12 @@ export interface WorkOrder {
   description: string;
   type: 'Correctif' | 'Préventif' | 'Curatif' | 'Amélioratif';
   priority: 'Faible' | 'Moyenne' | 'Haute' | 'Critique';
-  status: 'Brouillon' | 'En attente' | 'Affecté' | 'En cours' | 'Suspendu' | 'Terminé' | 'Clôturé';
+  status: 'Brouillon' | 'En attente' | 'Affecté Chef' | 'Affecté' | 'En cours' | 'Suspendu' | 'Terminé' | 'Clôturé';
   createdDate: string;
   startDate?: string;
   endDate?: string;
   technicianId?: string;
+  chefEquipeId?: string;   // Chef d'équipe assigned by Responsable (step 1)
   assignedBy: string;
   durationMinutes: number;
   diagnostic?: string;

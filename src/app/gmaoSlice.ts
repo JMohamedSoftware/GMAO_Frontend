@@ -312,6 +312,34 @@ export const gmaoSlice = createSlice({
           ot.status = action.payload.status;
           if (action.payload.updates) Object.assign(ot, action.payload.updates);
           
+          // Notify Chef d'équipe when assigned by Responsable
+          if (ot.status === 'Affecté Chef' && ot.chefEquipeId) {
+            state.notifications.unshift({
+              id: `NOT-${Date.now()}`,
+              type: 'workorder',
+              severity: 'info',
+              title: '📋 OT à planifier',
+              message: `L'OT « ${ot.title} » vous a été confié par le Responsable`,
+              date: new Date().toISOString(),
+              read: false,
+              targetUserId: ot.chefEquipeId,
+            });
+          }
+
+          // Notify Technicien when assigned by Chef d'équipe
+          if (ot.status === 'Affecté' && ot.technicianId) {
+            state.notifications.unshift({
+              id: `NOT-${Date.now() + 1}`,
+              type: 'workorder',
+              severity: 'info',
+              title: '🛠️ OT assigné',
+              message: `L'OT « ${ot.title} » vous a été assigné par le Chef d'équipe`,
+              date: new Date().toISOString(),
+              read: false,
+              targetUserId: ot.technicianId,
+            });
+          }
+
           if (ot.status === 'En cours' && !ot.startDate) {
             ot.startDate = new Date().toISOString();
             const eq = tenant.equipments.find(e => e.id === ot.equipmentId);
@@ -514,6 +542,34 @@ export const gmaoSlice = createSlice({
           ot.status = action.payload.status;
           if (action.payload.updates) Object.assign(ot, action.payload.updates);
           
+          // Notify Chef d'équipe when Responsable assigns them
+          if (ot.status === 'Affecté Chef' && ot.chefEquipeId) {
+            state.notifications.unshift({
+              id: `NOT-${Date.now()}`,
+              type: 'workorder',
+              severity: 'info',
+              title: '💻 OT à planifier',
+              message: `L'OT « ${ot.title} » vous a été confié. Affectez un technicien.`,
+              date: new Date().toISOString(),
+              read: false,
+              targetUserId: ot.chefEquipeId,
+            });
+          }
+
+          // Notify Technicien when Chef d'équipe assigns them
+          if (ot.status === 'Affecté' && ot.technicianId) {
+            state.notifications.unshift({
+              id: `NOT-${Date.now() + 1}`,
+              type: 'workorder',
+              severity: 'info',
+              title: '🛠️ OT assigné',
+              message: `L'OT « ${ot.title} » vous a été assigné. Vous pouvez le démarrer.`,
+              date: new Date().toISOString(),
+              read: false,
+              targetUserId: ot.technicianId,
+            });
+          }
+
           if (ot.status === 'En cours' && !ot.startDate) {
             ot.startDate = new Date().toISOString();
             const eq = tenant.equipments.find(e => e.id === ot.equipmentId);

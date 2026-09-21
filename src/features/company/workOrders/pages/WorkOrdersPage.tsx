@@ -44,7 +44,7 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
 
   const dispatch = useAppDispatch();
 
-  const { can, isTechnicien } = usePermissions();
+  const { can, isTechnicien, isChefEquipe } = usePermissions();
 
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('All');
@@ -91,8 +91,11 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
   // Filter orders
   const filteredOts = workOrders.filter(ot => {
     if (isTechnicien) {
-      // Compare directly by user ID (both sides are string representations of the backend userId)
-      if (ot.technicianId !== currentUser?.id) return false;
+      // Technicien sees only OTs assigned to them
+      if (String(ot.technicianId) !== String(currentUser?.id)) return false;
+    } else if (isChefEquipe) {
+      // Chef d'équipe sees only OTs assigned to them by Responsable
+      if (String(ot.chefEquipeId) !== String(currentUser?.id)) return false;
     }
 
     const eq = equipments.find(e => e.id === ot.equipmentId);
@@ -141,6 +144,7 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
       case 'Terminé': return 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/25';
       case 'En cours': return 'bg-rose-500/10 text-rose-600 border border-rose-500/25 animate-pulse';
       case 'En attente': return 'bg-amber-500/10 text-amber-600 border border-amber-500/25';
+      case 'Affecté Chef': return 'bg-purple-500/10 text-purple-600 border border-purple-500/25';
       case 'Affecté': return 'bg-primary/10 text-primary border border-primary/25';
       default: return 'bg-slate-100 text-slate-500';
     }
@@ -192,7 +196,7 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
             <User className="w-4 h-4 text-primary" />
           </div>
           <span className="text-xl font-black text-slate-700 dark:text-slate-200 z-10">
-            {workOrders.filter(o => o.status === 'Affecté' || o.status === 'En attente').length}
+            {workOrders.filter(o => o.status === 'Affecté' || o.status === 'Affecté Chef' || o.status === 'En attente').length}
           </span>
         </div>
         <div className="glass-panel p-4 rounded-custom-md border border-rose-500/20 bg-rose-500/5 shadow-sm flex flex-col gap-2 relative overflow-hidden">
@@ -265,11 +269,12 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
             className="bg-white/40 dark:bg-slate-900/10 border border-slate-200/50 dark:border-slate-800/50 rounded-custom-sm px-3 py-2 text-xs font-semibold text-slate-650 dark:text-slate-300 outline-none cursor-pointer"
           >
             <option value="All">Tous les statuts</option>
-            <option value="En attente">En Attente</option>
-            <option value="Affecté">Affecté</option>
-            <option value="En cours">En Cours</option>
-            <option value="Terminé">Terminé</option>
-            <option value="Clôturé">Clôturé</option>
+              <option value="En attente">En Attente</option>
+              <option value="Affecté Chef">Affecté Chef</option>
+              <option value="Affecté">Affecté Technicien</option>
+              <option value="En cours">En Cours</option>
+              <option value="Terminé">Terminé</option>
+              <option value="Clôturé">Clôturé</option>
           </select>
 
           <select 

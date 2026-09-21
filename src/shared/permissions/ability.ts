@@ -78,6 +78,7 @@ export const ROLE_PERMISSIONS: Record<AppRole, Permission[]> = {
     PERMISSIONS.WORKORDER_START,
     PERMISSIONS.WORKORDER_SUSPEND,
     PERMISSIONS.WORKORDER_FINISH,
+    PERMISSIONS.WORKORDER_UPDATE, // Needed to log parts used & fill diagnostic report
 
     PERMISSIONS.EQUIPMENT_VIEW,
 

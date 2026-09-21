@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FileCheck, AlertTriangle, Clock3, Trash2, CheckCircle, X, Calendar, Check } from 'lucide-react';
-import { WorkOrder, Equipment, Technician, SparePart } from '@/shared/types/gmao';
+import { FileCheck, AlertTriangle, Clock3, Trash2, CheckCircle, X, Calendar, Check, Users } from 'lucide-react';
+import { WorkOrder, Equipment, Technician, SparePart, UserAccount, User } from '@/shared/types/gmao';
 import { usePermissions } from '@/shared/hooks/usePermissions';
+import { useGmao } from '@/shared/hooks/useGmao';
 import { PERMISSIONS } from '@/shared/permissions';
 
 interface WorkOrderDetailProps {
@@ -25,7 +26,23 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
   onClearSelectedOt,
   updateWorkOrderStatus
 }) => {
-  const { can } = usePermissions();
+  const { can, isResponsable, isChefEquipe } = usePermissions();
+  const { currentUser, users } = useGmao();
+
+  // Helper: build owner ID array safely (no NaN)
+  const ownerIds = (): (number | undefined)[] => [
+    activeOt ? (Number(activeOt.technicianId) || undefined) : undefined,
+    activeOt ? (Number(activeOt.assignedBy) || undefined) : undefined,
+    activeOt ? (Number(activeOt.chefEquipeId) || undefined) : undefined,
+  ].filter((v): v is number => v !== undefined);
+
+  // Chef d'équipe users list (for Responsable to assign)
+  const chefEquipeUsers = users.filter(u => u.role === "Chef d'équipe");
+
+  // Current assigned Chef d'équipe user object
+  const activeOtChef = activeOt?.chefEquipeId
+    ? users.find(u => String(u.id) === String(activeOt.chefEquipeId))
+    : null;
 
   const [diagText, setDiagText] = useState('');
   const [solText, setSolText] = useState('');
@@ -189,7 +206,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
 
       <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-6 text-xs custom-scrollbar">
         
-        {/* Status Workflow Progress Tracker */}
+        {/* Status Workflow Progress Tracker — 5 steps */}
         <div className="bg-white dark:bg-slate-850 p-4 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
           <h4 className="text-[10px] font-bold text-slate-450 uppercase tracking-wider mb-4">
             Statut Workflow Tâche
@@ -198,12 +215,20 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
           <div className="flex justify-between items-center relative">
             <div className="absolute left-4 right-4 h-0.5 bg-slate-200 dark:bg-slate-800 top-1/2 -translate-y-1/2 -z-10" />
 
-            {(['En attente', 'Affecté', 'En cours', 'Terminé'] as const).map((step, idx) => {
-              const isDone = activeOt.status === 'Terminé' || 
-                             (activeOt.status === 'En cours' && step !== 'Terminé') ||
-                             (activeOt.status === 'Affecté' && (step === 'En attente' || step === 'Affecté')) ||
-                             (activeOt.status === 'En attente' && step === 'En attente');
-              const isCurrent = activeOt.status === step;
+            {(['En attente', 'Affecté Chef', 'Affecté', 'En cours', 'Terminé'] as const).map((step, idx) => {
+              const order = ['En attente', 'Affecté Chef', 'Affecté', 'En cours', 'Terminé'];
+              const currentIdx = activeOt ? order.indexOf(activeOt.status) : 0;
+              const stepIdx = order.indexOf(step);
+              const isDone = currentIdx >= stepIdx;
+              const isCurrent = activeOt?.status === step;
+              
+              const stepLabels: Record<string, string> = {
+                'En attente': 'Attente',
+                'Affecté Chef': 'Chef',
+                'Affecté': 'Tech.',
+                'En cours': 'En cours',
+                'Terminé': 'Terminé',
+              };
               
               return (
                 <div key={step} className="flex flex-col items-center gap-1.5 z-10">
@@ -215,7 +240,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
                     {isDone ? <Check className="w-3.5 h-3.5" /> : idx + 1}
                   </div>
                   <span className={`text-[9px] font-bold ${isCurrent ? 'text-primary' : 'text-slate-450'}`}>
-                    {step}
+                    {stepLabels[step]}
                   </span>
                 </div>
               );
@@ -331,39 +356,88 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
           </div>
         </div>
 
-        {/* Assignment & Operational Actions */}
+        {/* Assignment — 2-step workflow */}
         <div className="bg-white dark:bg-slate-850 p-4 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col gap-4">
-          <h4 className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">
-            Affectation Personnel & Actionneur
+          <h4 className="text-[10px] font-bold text-slate-450 uppercase tracking-wider flex items-center gap-1.5">
+            <Users className="w-3.5 h-3.5" /> Affectation Personnel &amp; Actionneur
           </h4>
 
-          {can(PERMISSIONS.WORKORDER_ASSIGN) && (
-          <div className="flex items-center gap-3">
-            <div className="flex-1">
-              <label className="text-slate-400 block mb-1">Technicien Référent</label>
-              <select 
-                value={activeOt.technicianId || ''}
+          {/* ——— ÉTAPE 1 : Responsable assigne Chef d'équipe ——— */}
+          {isResponsable && (
+            <div className="flex flex-col gap-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800">
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Étape 1 — Responsable</span>
+              <label className="text-xs text-slate-500">Chef d'équipe assigné</label>
+              <select
+                value={activeOt.chefEquipeId || ''}
                 onChange={(e) => {
-                  updateWorkOrderStatus(activeOt.id, e.target.value ? 'Affecté' : 'En attente', { technicianId: e.target.value });
+                  const newChefId = e.target.value;
+                  updateWorkOrderStatus(
+                    activeOt.id,
+                    newChefId ? 'Affecté Chef' : 'En attente',
+                    { chefEquipeId: newChefId || undefined }
+                  );
                 }}
-                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2 font-semibold outline-none"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2 font-semibold outline-none text-xs"
               >
-                <option value="">Non affecté</option>
-                {technicians.map(t => (
-                  <option key={t.id} value={t.id}>{t.name} ({t.role})</option>
+                <option value="">Non assigné</option>
+                {chefEquipeUsers.map(u => (
+                  <option key={u.id} value={u.id}>{u.name}</option>
                 ))}
               </select>
+              {activeOtChef && (
+                <div className="flex items-center gap-2 mt-1">
+                  <img src={activeOtChef.avatar} alt={activeOtChef.name}
+                    className="w-6 h-6 rounded-full object-cover border border-primary/30" />
+                  <span className="text-[10px] font-bold text-primary">{activeOtChef.name}</span>
+                  <span className="text-[9px] text-slate-400">Chef d'équipe assigné ✓</span>
+                </div>
+              )}
             </div>
-            
-            {can(PERMISSIONS.WORKORDER_UPDATE, [Number(activeOt.technicianId), Number(activeOt.assignedBy)]) && (
-            <div className="flex-1">
-              <label className="text-slate-400 block mb-1">Priorité d'intervention</label>
-              <select 
+          )}
+
+          {/* ——— ÉTAPE 2 : Chef d'équipe assigne Technicien ——— */}
+          {(isChefEquipe || isResponsable) && activeOt.status === 'Affecté Chef' && (
+            <div className="flex flex-col gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20">
+              <span className="text-[9px] font-bold text-primary uppercase tracking-wider">Étape 2 — Chef d'Équipe</span>
+              <label className="text-xs text-slate-500">Technicien assigné</label>
+              <select
+                value={activeOt.technicianId || ''}
+                onChange={(e) => {
+                  const newTechId = e.target.value;
+                  updateWorkOrderStatus(
+                    activeOt.id,
+                    newTechId ? 'Affecté' : 'Affecté Chef',
+                    { technicianId: newTechId || undefined }
+                  );
+                }}
+                className="w-full bg-white dark:bg-slate-900 border border-primary/30 rounded-lg p-2 font-semibold outline-none text-xs"
+              >
+                <option value="">Sélectionner un technicien...</option>
+                {technicians.map(t => (
+                  <option key={t.id} value={t.id}>{t.name} ({t.role}) — {t.status}</option>
+                ))}
+              </select>
+              {activeOtTech && (
+                <div className="flex items-center gap-2 mt-1">
+                  <img src={activeOtTech.avatar} alt={activeOtTech.name}
+                    className="w-6 h-6 rounded-full object-cover border border-emerald-500/30" />
+                  <span className="text-[10px] font-bold text-emerald-600">{activeOtTech.name}</span>
+                  <span className="text-[9px] text-slate-400">Technicien assigné ✓</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Priorité d'intervention — visible Responsable + Chef */}
+          {can(PERMISSIONS.WORKORDER_UPDATE, ownerIds()) && (isResponsable || isChefEquipe) && (
+            <div>
+              <label className="text-slate-400 block mb-1 text-xs">Priorité d'intervention</label>
+              <select
                 value={activeOt.priority}
                 onChange={(e) => {
                   updateWorkOrderStatus(activeOt.id, activeOt.status, { priority: e.target.value as WorkOrder['priority'] });
                 }}
-                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2 font-semibold outline-none"
+                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2 font-semibold outline-none text-xs"
               >
                 <option value="Critique">Critique</option>
                 <option value="Haute">Haute</option>
@@ -371,12 +445,9 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
                 <option value="Faible">Faible</option>
               </select>
             </div>
-            )}
-          </div>
           )}
 
-
-          {/* Status control buttons + live timer */}
+          {/* ——— ACTIONS TECHNICIEN ——— */}
           <div className="flex flex-col gap-2.5 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
             {activeOt.status === 'En cours' && (
               <div className="flex items-center justify-between bg-rose-500/5 border border-rose-500/20 rounded-xl px-4 py-3">
@@ -392,7 +463,8 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
                 </span>
               </div>
             )}
-            {can(PERMISSIONS.WORKORDER_START, [Number(activeOt.technicianId), Number(activeOt.assignedBy)]) && activeOt.status === 'Affecté' && (
+
+            {can(PERMISSIONS.WORKORDER_START, ownerIds()) && activeOt.status === 'Affecté' && (
               <button
                 onClick={() => updateWorkOrderStatus(activeOt.id, 'En cours')}
                 className="w-full py-2 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-lg shadow-sm flex items-center justify-center gap-2"
@@ -402,9 +474,9 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
               </button>
             )}
 
-            {(can(PERMISSIONS.WORKORDER_SUSPEND, [Number(activeOt.technicianId), Number(activeOt.assignedBy)]) || can(PERMISSIONS.WORKORDER_FINISH, [Number(activeOt.technicianId), Number(activeOt.assignedBy)])) && activeOt.status === 'En cours' && (
+            {(can(PERMISSIONS.WORKORDER_SUSPEND, ownerIds()) || can(PERMISSIONS.WORKORDER_FINISH, ownerIds())) && activeOt.status === 'En cours' && (
               <div className="flex gap-2 mt-1">
-                {can(PERMISSIONS.WORKORDER_SUSPEND, [Number(activeOt.technicianId), Number(activeOt.assignedBy)]) && (
+                {can(PERMISSIONS.WORKORDER_SUSPEND, ownerIds()) && (
                 <button
                   onClick={() => updateWorkOrderStatus(activeOt.id, 'Suspendu')}
                   className="flex-1 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg shadow-sm"
@@ -412,7 +484,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
                   Pause
                 </button>
                 )}
-                {can(PERMISSIONS.WORKORDER_FINISH, [Number(activeOt.technicianId), Number(activeOt.assignedBy)]) && (
+                {can(PERMISSIONS.WORKORDER_FINISH, ownerIds()) && (
                 <button
                   onClick={() => {
                     const el = document.getElementById('cloture-section');
@@ -426,7 +498,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
               </div>
             )}
 
-            {can(PERMISSIONS.WORKORDER_START, [Number(activeOt.technicianId), Number(activeOt.assignedBy)]) && activeOt.status === 'Suspendu' && (
+            {can(PERMISSIONS.WORKORDER_START, ownerIds()) && activeOt.status === 'Suspendu' && (
               <button
                 onClick={() => updateWorkOrderStatus(activeOt.id, 'En cours')}
                 className="w-full py-2 bg-primary hover:bg-primary/95 text-white font-bold rounded-lg shadow-sm"
@@ -472,7 +544,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
               </div>
             )}
 
-            {can(PERMISSIONS.WORKORDER_UPDATE, [Number(activeOt.technicianId), Number(activeOt.assignedBy)]) && activeOt.status === 'En cours' && (
+            {can(PERMISSIONS.WORKORDER_UPDATE, ownerIds()) && activeOt.status === 'En cours' && (
               <div className="flex gap-2 items-end">
                 <div className="flex-1">
                   <label className="text-[9px] text-slate-450 font-bold block mb-1">Pièce de Rechange</label>
@@ -512,7 +584,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
         )}
 
         {/* Diagnostic reporting sheet & validation pad */}
-        {can(PERMISSIONS.WORKORDER_UPDATE, [Number(activeOt.technicianId), Number(activeOt.assignedBy)]) && activeOt.status === 'En cours' && (
+        {can(PERMISSIONS.WORKORDER_UPDATE, ownerIds()) && activeOt.status === 'En cours' && (
           <div className="bg-white dark:bg-slate-850 p-4 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col gap-4">
             <h4 className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">
               Rapport de Résolution Diagnostic
