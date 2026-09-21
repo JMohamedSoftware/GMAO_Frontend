@@ -39,16 +39,23 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
   // Chef d'equipe users list (for Responsable to assign)
   const chefEquipeUsers = users.filter(u => u.role === "Chef d'equipe" || u.role === "Chef d'\u00e9quipe");
 
-  // Current assigned Chef d'equipe user object
-  const activeOtChef = activeOt?.chefEquipeId
-    ? users.find(u => String(u.id) === String(activeOt.chefEquipeId))
-    : null;
+  // Determine the effective Chef ID for UI
+  const assignedTechTeam = activeOt?.technicianId 
+    ? equipes.find(eq => eq.technicienIds.map(String).includes(String(activeOt.technicianId))) 
+    : undefined;
+  const effectiveChefId = activeOt?.status === 'Affecté Chef' 
+    ? activeOt.technicianId 
+    : (assignedTechTeam ? String(assignedTechTeam.chefId) : '');
 
-  // Techniciens filtered by Chef's equipe (used in Step 2 dropdown)
-  const chefEquipe = equipes.find(eq => String(eq.chefId) === String(activeOt?.chefEquipeId));
-  const teamTechnicians = chefEquipe
-    ? technicians.filter(t => chefEquipe.technicienIds.includes(t.id))
-    : technicians; // fallback: all technicians if no team defined
+  const chefEquipe = equipes.find(eq => String(eq.chefId) === String(effectiveChefId));
+
+  // Tech list for the chef to assign from
+  const teamTechnicians = chefEquipe 
+    ? technicians.filter(t => chefEquipe.technicienIds.map(String).includes(String(t.id))) 
+    : technicians;
+  const activeOtChef = effectiveChefId 
+    ? users.find(u => String(u.id) === String(effectiveChefId)) 
+    : null;
 
   const [diagText, setDiagText] = useState('');
   const [solText, setSolText] = useState('');
@@ -374,13 +381,13 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
               <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Étape 1 — Responsable</span>
               <label className="text-xs text-slate-500">Chef d'équipe assigné</label>
               <select
-                value={activeOt.chefEquipeId || ''}
+                value={effectiveChefId || ''}
                 onChange={(e) => {
                   const newChefId = e.target.value;
                   updateWorkOrderStatus(
                     activeOt.id,
                     newChefId ? 'Affecté Chef' : 'En attente',
-                    { chefEquipeId: newChefId || undefined }
+                    { technicianId: newChefId || undefined }
                   );
                 }}
                 className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2 font-semibold outline-none text-xs"
@@ -402,12 +409,12 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
           )}
 
           {/* ——— ÉTAPE 2 : Chef d'équipe assigne Technicien ——— */}
-          {(isChefEquipe || isResponsable) && activeOt.status === 'Affecté Chef' && (
+          {(isChefEquipe || isResponsable) && (activeOt.status === 'Affecté Chef' || activeOt.status === 'Affecté' || activeOt.status === 'En cours') && (
             <div className="flex flex-col gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20">
               <span className="text-[9px] font-bold text-primary uppercase tracking-wider">Étape 2 — Chef d'Équipe</span>
               <label className="text-xs text-slate-500">Technicien assigné</label>
               <select
-                value={activeOt.technicianId || ''}
+                value={activeOt.status !== 'Affecté Chef' ? (activeOt.technicianId || '') : ''}
                 onChange={(e) => {
                   const newTechId = e.target.value;
                   updateWorkOrderStatus(

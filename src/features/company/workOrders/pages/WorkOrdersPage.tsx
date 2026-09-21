@@ -94,8 +94,12 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
       // Technicien sees only OTs assigned to them
       if (String(ot.technicianId) !== String(currentUser?.id)) return false;
     } else if (isChefEquipe) {
-      // Chef d'équipe sees only OTs assigned to them by Responsable
-      if (String(ot.chefEquipeId) !== String(currentUser?.id)) return false;
+      // Chef d'équipe sees OTs assigned directly to them (as a routing step) OR assigned to their team members
+      const myEquipe = equipes.find(eq => String(eq.chefId) === String(currentUser?.id));
+      const myTeamTechIds = myEquipe ? myEquipe.technicienIds.map(String) : [];
+      const isAssignedToMe = String(ot.technicianId) === String(currentUser?.id);
+      const isAssignedToMyTeam = ot.technicianId && myTeamTechIds.includes(String(ot.technicianId));
+      if (!isAssignedToMe && !isAssignedToMyTeam) return false;
     }
 
     const eq = equipments.find(e => e.id === ot.equipmentId);
