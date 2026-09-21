@@ -25,7 +25,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ can }) => {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!window.confirm('Voulez-vous vraiment supprimer cette équipe ?')) return;
     try {
       setEquipes(equipes.filter(e => e.id !== id));
@@ -73,12 +73,12 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ can }) => {
                   <div className="text-xs text-slate-500">{equipe.description}</div>
                 </td>
                 <td className="px-4 py-3">
-                  {equipe.chefEquipeNom || <span className="text-slate-400 italic">Non assigné</span>}
+                  {equipe.chefId ? <span className="text-slate-800 dark:text-slate-200">{equipe.chefId}</span> : <span className="text-slate-400 italic">Non assigné</span>}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-xs text-slate-600 dark:text-slate-300">
-                      {equipe.membres?.length || 0} membres
+                      {equipe.technicienIds?.length || 0} membres
                     </span>
                   </div>
                 </td>

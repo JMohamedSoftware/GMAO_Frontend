@@ -30,38 +30,6 @@ const getInitialTenants = (): Tenant[] => {
       adminEmail: 'admin@midi.com',
       capacityTonsPerDay: 450,
       equipments: [],
-import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
-import { Tenant, User, Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount, Equipe } from '@/shared/types/gmao';
-import { AppRole } from '@/shared/permissions';
-import { fetchEquipments, fetchSuppliers, fetchParts, fetchIncidents, fetchWorkOrders, fetchCampaigns, fetchTechnicians, fetchUsers, fetchTenants, createTenantApi, updateTenantApi, createIncidentApi, patchIncidentStatusApi, CreateIncidentPayload, createWorkOrderApi, CreateWorkOrderPayload, patchWorkOrderStatusApi } from '@/shared/api/dataFetch.api';
-
-interface GmaoState {
-  tenants: Tenant[];
-  currentTenantId: string | null;
-  impersonatedTenantId: string | null;
-  currentUser: User | null;
-  darkMode: boolean;
-  selectedCampaign: string;
-  rolePermissions: Record<string, any>;
-  notifications: Notification[];
-}
-
-const getInitialTenants = (): Tenant[] => {
-  const saved = localStorage.getItem('gmao_tenants_v8');
-  if (saved) {
-    try { return JSON.parse(saved); } catch (e) {}
-  }
-  return [
-    {
-      id: 'tenant-midi',
-      name: 'Conserverie du Midi S.A.',
-      domain: 'midi.com',
-      status: 'Active',
-      subscriptionPlan: 'Enterprise',
-      createdAt: '2026-01-10T12:00:00Z',
-      adminEmail: 'admin@midi.com',
-      capacityTonsPerDay: 450,
-      equipments: [],
       workOrders: [],
       incidents: [],
       technicians: [],
@@ -440,19 +408,17 @@ export const gmaoSlice = createSlice({
       }
     },
 
-    // ─── Équipes CRUD ───────────────────────────────────────────────────────────
+    // ─── Équipes CRUD ──────────────────────────────────────────────────────
     addEquipe: (state, action: PayloadAction<Omit<Equipe, 'id'>>) => {
       const tenant = state.tenants.find(t => t.id === state.currentTenantId);
       if (tenant) {
         if (!tenant.equipes) tenant.equipes = [];
-        const newId = `EQ-${Date.now()}`;
-        tenant.equipes.push({ ...action.payload, id: newId });
+        tenant.equipes.push({ ...action.payload, id: `EQ-${Date.now()}` });
       }
     },
     updateEquipe: (state, action: PayloadAction<Equipe>) => {
       const tenant = state.tenants.find(t => t.id === state.currentTenantId);
-      if (tenant) {
-        if (!tenant.equipes) tenant.equipes = [];
+      if (tenant && tenant.equipes) {
         const idx = tenant.equipes.findIndex(e => e.id === action.payload.id);
         if (idx !== -1) tenant.equipes[idx] = action.payload;
       }
@@ -488,6 +454,7 @@ export const gmaoSlice = createSlice({
           parts: [],
           suppliers: [],
           campaigns: [],
+          equipes: [],
           users: []
         };
         state.tenants.push(tenant);
@@ -501,7 +468,6 @@ export const gmaoSlice = createSlice({
         tenant.campaigns = action.payload.campaigns;
         tenant.technicians = action.payload.technicians;
         tenant.users = action.payload.users;
-        // Preserve local equipes (not from backend)
         if (!tenant.equipes) tenant.equipes = [];
       }
     });
@@ -657,6 +623,7 @@ export const {
   addIncident, updateIncidentStatus, addWorkOrder, updateWorkOrderStatus,
   addPartMovement, updatePart, addSupplier, addNotification,
   markNotificationAsRead, markAllNotificationsAsRead, addUser,
+  addEquipe, updateEquipe, deleteEquipe,
   syncToLocalStorage, impersonateTenant, setTenantStatus
 } = gmaoSlice.actions;
 

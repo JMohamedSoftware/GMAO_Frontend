@@ -203,13 +203,12 @@ export interface EquipeMembre {
 }
 
 export interface Equipe {
-  id: number;
+  id: string;
   nom: string;
   description?: string;
-  chefEquipeId?: number;
-  chefEquipeNom?: string;
-  societeId: number;
-  membres: EquipeMembre[];
+  couleur?: string;
+  chefId: string;
+  technicienIds: string[];
 }
 
 
