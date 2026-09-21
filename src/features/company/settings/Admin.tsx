@@ -12,7 +12,6 @@ import { LocalisationSettings } from './LocalisationSettings';
 import { AdminSettings } from './AdminSettings';
 import { AdminModals } from '../users/AdminModals';
 import { usersApi } from '../users/api/users.api';
-import { TeamManagement } from '../users/TeamManagement';
 import { apiClient } from '@/shared/services/apiClient';
 
 export const Admin: React.FC = () => {
@@ -22,7 +21,7 @@ export const Admin: React.FC = () => {
   const [successSaved, setSuccessSaved] = useState(false);
   const [language, setLanguage] = useState<'fr' | 'en'>('fr');
   const [emailAlerts, setEmailAlerts] = useState(true);
-  const [activeTab, setActiveTab] = useState<'utilisateurs' | 'equipes' | 'roles' | 'localisations' | 'parametres'>('utilisateurs');
+  const [activeTab, setActiveTab] = useState<'utilisateurs' | 'roles' | 'localisations' | 'parametres'>('utilisateurs');
   
   const [selectedRole, setSelectedRole] = useState<AppRole>('Technicien');
 
@@ -239,16 +238,6 @@ export const Admin: React.FC = () => {
           Utilisateurs
         </button>
         <button
-          onClick={() => setActiveTab('equipes')}
-          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
-            activeTab === 'equipes'
-              ? 'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-500 dark:bg-indigo-500/10 dark:text-indigo-400'
-              : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
-          }`}
-        >
-          Équipes
-        </button>
-        <button
           onClick={() => setActiveTab('roles')}
           className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
             activeTab === 'roles'
@@ -291,10 +280,6 @@ export const Admin: React.FC = () => {
             setIsEditUserOpen={setIsEditUserOpen}
             onDeleteUser={handleDeleteUser}
           />
-        )}
-        
-        {activeTab === 'equipes' && (
-          <TeamManagement can={can} />
         )}
 
         {activeTab === 'roles' && (
