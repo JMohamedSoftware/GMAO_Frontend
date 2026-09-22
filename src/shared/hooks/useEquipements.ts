@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Equipment } from '../types/gmao';
 import { equipementService } from '../services/equipement.service';
+import { createEquipmentApi, updateEquipmentApi, updateEquipmentStatusApi } from '../api/dataFetch.api';
 
 export const useEquipements = () => {
   const [equipments, setEquipments] = useState<Equipment[]>([]);
@@ -27,7 +28,7 @@ export const useEquipements = () => {
 
   const addEquipment = async (equipment: Partial<Equipment>) => {
     try {
-      const added = await equipementService.create(equipment);
+      const added = await createEquipmentApi(equipment);
       setEquipments(prev => [...prev, added]);
       return added;
     } catch (err) {
@@ -36,16 +37,28 @@ export const useEquipements = () => {
     }
   };
 
+  const updateEquipment = async (id: string, updates: Partial<Equipment>) => {
+    setEquipments(prev => prev.map(eq => 
+      eq.id === id ? { ...eq, ...updates } : eq
+    ));
+    try {
+      await updateEquipmentApi(id, updates);
+    } catch (err) {
+      console.error('Update failed, rolling back');
+      fetchEquipements();
+      throw err;
+    }
+  };
+
   const updateEquipmentStatus = async (id: string, status: Equipment['status'], healthIndex?: number) => {
-    // Optimistic update
     setEquipments(prev => prev.map(eq => 
       eq.id === id ? { ...eq, status, healthIndex: healthIndex ?? eq.healthIndex } : eq
     ));
     try {
-      await equipementService.update(id, { status, healthIndex });
+      await updateEquipmentStatusApi(id, status);
     } catch (err) {
       console.error('Update failed, rolling back');
-      fetchEquipements(); // Re-sync on failure
+      fetchEquipements();
       throw err;
     }
   };
@@ -68,6 +81,7 @@ export const useEquipements = () => {
     error,
     refetch: fetchEquipements,
     addEquipment,
+    updateEquipment,
     updateEquipmentStatus,
     deleteEquipment,
   };

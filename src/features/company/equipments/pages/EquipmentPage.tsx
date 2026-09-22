@@ -19,8 +19,8 @@ interface EquipmentProps {
 export const Equipment: React.FC<EquipmentProps> = ({ 
   selectedEqFromDash, 
 }) => {
-  const { suppliers, deleteEquipmentsByCategory } = useGmao();
-  const { equipments, deleteEquipment } = useEquipements();
+  const { suppliers, workOrders, incidents, deleteEquipmentsByCategory } = useGmao();
+  const { equipments, deleteEquipment, addEquipment, updateEquipment } = useEquipements();
   const { tree: geoTree } = useLocalisations();
   const { can } = usePermissions();
   
@@ -181,7 +181,12 @@ export const Equipment: React.FC<EquipmentProps> = ({
 
   const activeEquipment = equipments.find(e => e.id === selectedEqId);
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (isAdding) {
+      await addEquipment(formData);
+    } else if (isEditing && selectedEqId) {
+      await updateEquipment(selectedEqId, formData);
+    }
     setIsAdding(false);
     setIsEditing(false);
   };
@@ -306,6 +311,8 @@ export const Equipment: React.FC<EquipmentProps> = ({
             formData={formData}
             activeTab={activeTab}
             suppliers={suppliers}
+            workOrders={workOrders}
+            incidents={incidents}
             onSetFormData={setFormData}
             onSetActiveTab={setActiveTab}
             onSetIsEditing={setIsEditing}

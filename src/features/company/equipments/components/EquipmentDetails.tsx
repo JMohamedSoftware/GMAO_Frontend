@@ -2,7 +2,7 @@ import React from 'react';
 import { Settings2, Wrench, Save, Edit, Plus, Info, History, Calendar, Link, FileText, ClipboardList } from 'lucide-react';
 import { usePermissions } from '@/shared/hooks/usePermissions';
 import { PERMISSIONS } from '@/shared/permissions';
-import { Equipment as EquipmentType, Localisation } from '@/shared/types/gmao';
+import { Equipment as EquipmentType, Localisation, WorkOrder, Incident } from '@/shared/types/gmao';
 import { useLocalisations } from '@/shared/hooks/useLocalisations';
 
 interface EquipmentDetailsProps {
@@ -12,6 +12,8 @@ interface EquipmentDetailsProps {
   formData: Partial<EquipmentType>;
   activeTab: 'info' | 'historique' | 'preventifs' | 'pieces' | 'documents' | 'ot';
   suppliers: any[];
+  workOrders?: WorkOrder[];
+  incidents?: Incident[];
   onSetFormData: (data: Partial<EquipmentType>) => void;
   onSetActiveTab: (tab: 'info' | 'historique' | 'preventifs' | 'pieces' | 'documents' | 'ot') => void;
   onSetIsEditing: (isEditing: boolean) => void;
@@ -25,6 +27,8 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
   formData,
   activeTab,
   suppliers,
+  workOrders = [],
+  incidents = [],
   onSetFormData,
   onSetActiveTab,
   onSetIsEditing,
@@ -45,6 +49,10 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
   };
 
   const flatLocalisations = flattenTree(tree);
+
+  const equipmentWorkOrders = workOrders.filter(wo => wo.equipmentId === activeEquipment?.id);
+  const activeWorkOrders = equipmentWorkOrders.filter(wo => wo.status !== 'Clôturé' && wo.status !== 'Terminé');
+  const historyWorkOrders = equipmentWorkOrders.filter(wo => wo.status === 'Clôturé' || wo.status === 'Terminé');
 
   if (!activeEquipment && !isAdding) {
     return (
@@ -251,9 +259,27 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
             )}
             
             {activeTab === 'historique' && (
-              <div className="flex flex-col items-center justify-center p-8 opacity-50">
-                <History className="w-12 h-12 text-slate-400 mb-3" />
-                <p className="text-sm font-bold text-slate-600">Aucun historique d'intervention</p>
+              <div className="flex flex-col gap-3">
+                {historyWorkOrders.length > 0 ? (
+                  historyWorkOrders.map(wo => (
+                    <div key={wo.id} className="p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded text-sm">
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="font-bold text-slate-800 dark:text-white">{wo.title}</span>
+                        <span className="text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded font-bold">{wo.status}</span>
+                      </div>
+                      <p className="text-xs text-slate-500 mb-2">{wo.description}</p>
+                      <div className="flex gap-4 text-xs text-slate-400 font-bold">
+                        <span>Date: {new Date(wo.createdDate).toLocaleDateString()}</span>
+                        <span>Type: {wo.type}</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-8 opacity-50">
+                    <History className="w-12 h-12 text-slate-400 mb-3" />
+                    <p className="text-sm font-bold text-slate-600">Aucun historique d'intervention</p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -281,9 +307,27 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
             )}
 
             {activeTab === 'ot' && (
-              <div className="flex flex-col items-center justify-center p-8 opacity-50">
-                <ClipboardList className="w-12 h-12 text-slate-400 mb-3" />
-                <p className="text-sm font-bold text-slate-600">Aucun Ordre de Travail en cours</p>
+              <div className="flex flex-col gap-3">
+                {activeWorkOrders.length > 0 ? (
+                  activeWorkOrders.map(wo => (
+                    <div key={wo.id} className="p-3 bg-white dark:bg-slate-800 border-l-4 border-l-primary border border-slate-200 dark:border-slate-700 rounded shadow-sm text-sm">
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="font-bold text-slate-800 dark:text-white">{wo.title}</span>
+                        <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded font-bold">{wo.status}</span>
+                      </div>
+                      <p className="text-xs text-slate-500 mb-2">{wo.description}</p>
+                      <div className="flex gap-4 text-xs text-slate-400 font-bold">
+                        <span>Date: {new Date(wo.createdDate).toLocaleDateString()}</span>
+                        <span>Priorité: {wo.priority}</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-8 opacity-50">
+                    <ClipboardList className="w-12 h-12 text-slate-400 mb-3" />
+                    <p className="text-sm font-bold text-slate-600">Aucun Ordre de Travail en cours</p>
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { Tenant, User, Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount, Equipe } from '@/shared/types/gmao';
 import { AppRole } from '@/shared/permissions';
-import { fetchEquipments, fetchSuppliers, fetchParts, fetchIncidents, fetchWorkOrders, fetchCampaigns, fetchTechnicians, fetchUsers, fetchTenants, createTenantApi, updateTenantApi, createIncidentApi, patchIncidentStatusApi, CreateIncidentPayload, createWorkOrderApi, CreateWorkOrderPayload, patchWorkOrderStatusApi } from '@/shared/api/dataFetch.api';
+import { fetchEquipments, fetchSuppliers, fetchParts, fetchIncidents, fetchWorkOrders, fetchCampaigns, fetchTechnicians, fetchUsers, fetchTenants, createTenantApi, updateTenantApi, createIncidentApi, patchIncidentStatusApi, CreateIncidentPayload, createWorkOrderApi, CreateWorkOrderPayload, patchWorkOrderStatusApi, updateEquipmentStatusApi, createEquipmentApi, updateEquipmentApi } from '@/shared/api/dataFetch.api';
 
 interface GmaoState {
   tenants: Tenant[];
@@ -127,6 +127,10 @@ export const createIncidentAsync = createAsyncThunk(
   'gmao/createIncident',
   async (payload: CreateIncidentPayload) => {
     const incident = await createIncidentApi(payload);
+    // If critical or high, update equipment status
+    if (incident.urgency === 'Critique' || incident.urgency === 'Haute') {
+      await updateEquipmentStatusApi(incident.equipmentId, 'En panne');
+    }
     return incident;
   }
 );
@@ -137,6 +141,24 @@ export const updateIncidentStatusAsync = createAsyncThunk(
   async (payload: { id: string; status: Incident['status']; fullIncident: Incident; workOrderId?: string; commentaireRejet?: string }) => {
     await patchIncidentStatusApi(payload.id, payload.status, payload.fullIncident, payload.commentaireRejet);
     return { id: payload.id, status: payload.status, workOrderId: payload.workOrderId };
+  }
+);
+
+/** POST /api/Equipement — create a new equipment on the backend, then sync to Redux */
+export const createEquipmentAsync = createAsyncThunk(
+  'gmao/createEquipment',
+  async (payload: Partial<Equipment>) => {
+    const equipment = await createEquipmentApi(payload);
+    return equipment;
+  }
+);
+
+/** PUT /api/Equipement/{id} — update an equipment on the backend, then sync to Redux */
+export const updateEquipmentAsync = createAsyncThunk(
+  'gmao/updateEquipment',
+  async (payload: { id: string; updates: Partial<Equipment> }) => {
+    await updateEquipmentApi(payload.id, payload.updates);
+    return { id: payload.id, updates: payload.updates };
   }
 );
 
@@ -154,6 +176,14 @@ export const updateWorkOrderStatusAsync = createAsyncThunk(
   'gmao/updateWorkOrderStatus',
   async (payload: { id: string; status: WorkOrder['status']; fullOt: WorkOrder; updates?: Partial<WorkOrder> }) => {
     await patchWorkOrderStatusApi(payload.id, payload.status, payload.fullOt, payload.updates);
+    
+    // Update equipment status if OT starts or ends
+    if (payload.status === 'En cours') {
+      await updateEquipmentStatusApi(payload.fullOt.equipmentId, 'En maintenance');
+    } else if (payload.status === 'Terminé' || payload.status === 'Clôturé') {
+      await updateEquipmentStatusApi(payload.fullOt.equipmentId, 'En service');
+    }
+
     return { id: payload.id, status: payload.status, updates: payload.updates };
   }
 );
@@ -233,6 +263,15 @@ export const gmaoSlice = createSlice({
             { name: 'Vibration', value: 0.5, unit: 'mm/s', status: 'normal', history: [0.5] }
           ]
         });
+      }
+    },
+    updateEquipment: (state, action: PayloadAction<{id: string, updates: Partial<Equipment>}>) => {
+      const tenant = state.tenants.find(t => t.id === state.currentTenantId);
+      if (tenant) {
+        const idx = tenant.equipments.findIndex(e => e.id === action.payload.id);
+        if (idx !== -1) {
+          tenant.equipments[idx] = { ...tenant.equipments[idx], ...action.payload.updates };
+        }
       }
     },
     updateEquipmentStatus: (state, action: PayloadAction<{id: string, status: Equipment['status'], healthIndex?: number}>) => {

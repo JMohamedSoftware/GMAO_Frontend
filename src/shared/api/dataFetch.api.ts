@@ -335,6 +335,7 @@ export const patchWorkOrderStatusApi = async (
     let statutOt = 1; // Brouillon
     switch(merged.status) {
         case 'En attente': statutOt = 2; break;
+        case 'Affecté Chef': statutOt = 2; break; 
         case 'Affecté': statutOt = 2; break; // Map 'Affecté' and 'En attente' to 2 (EnAttente/Affecte)
         case 'En cours': statutOt = 3; break;
         case 'Suspendu': statutOt = 4; break;
@@ -370,27 +371,39 @@ export const patchWorkOrderStatusApi = async (
 
 export const fetchWorkOrders = async (): Promise<WorkOrder[]> => {
     const response = await axios.get(`${API_URL}/OrdresTravail`, getAuthHeaders());
-    return response.data.map((w: any) => ({
-        id: w.id?.toString(),
-        incidentId: w.demandeId != null ? w.demandeId.toString() : undefined,   // ← link to incident
-        equipmentId: w.equipementId?.toString() || '',
-        title: w.numeroOT || '',
-        description: w.description || '',
-        type: w.typeMaintenance === 2 ? 'Préventif' : w.typeMaintenance === 4 ? 'Amélioratif' : 'Correctif',
-        priority: w.priorite === 1 ? 'Faible' : w.priorite === 2 ? 'Moyenne' : w.priorite === 3 ? 'Haute' : 'Critique',
-        status: w.statut === 1 ? 'Brouillon' : w.statut === 2 ? 'En attente' : w.statut === 3 ? 'En cours' : w.statut === 4 ? 'Suspendu' : w.statut === 5 ? 'Terminé' : 'Clôturé',
-        createdDate: w.dateCreation || new Date().toISOString(),
-        startDate: w.dateDebutReelle || w.dateDebutPrevue || undefined,
-        endDate: w.dateFinReelle || w.dateFinPrevue || undefined,
-        technicianId: w.technicienId?.toString() || undefined,
-        assignedBy: w.responsableId?.toString() || '',
-        durationMinutes: w.durationMinutes || 120,
-        diagnostic: w.diagnostic || undefined,
-        solution: w.solution || undefined,
-        partsUsed: [],
-        externalCost: w.coutSousTraitance || 0,
-        campaign: w.campagneNom || ''
-    }));
+    return response.data.map((w: any) => {
+        let mappedStatus: WorkOrder['status'] = 'Brouillon';
+        if (w.statut === 1) mappedStatus = 'Brouillon';
+        else if (w.statut === 2) {
+            mappedStatus = w.technicienId ? 'Affecté' : 'En attente';
+        }
+        else if (w.statut === 3) mappedStatus = 'En cours';
+        else if (w.statut === 4) mappedStatus = 'Suspendu';
+        else if (w.statut === 5) mappedStatus = 'Terminé';
+        else if (w.statut === 6) mappedStatus = 'Clôturé';
+
+        return {
+            id: w.id?.toString(),
+            incidentId: w.demandeId != null ? w.demandeId.toString() : undefined,
+            equipmentId: w.equipementId?.toString() || '',
+            title: w.numeroOT || '',
+            description: w.description || '',
+            type: w.typeMaintenance === 2 ? 'Préventif' : w.typeMaintenance === 4 ? 'Amélioratif' : 'Correctif',
+            priority: w.priorite === 1 ? 'Faible' : w.priorite === 2 ? 'Moyenne' : w.priorite === 3 ? 'Haute' : 'Critique',
+            status: mappedStatus,
+            createdDate: w.dateCreation || new Date().toISOString(),
+            startDate: w.dateDebutReelle || w.dateDebutPrevue || undefined,
+            endDate: w.dateFinReelle || w.dateFinPrevue || undefined,
+            technicianId: w.technicienId?.toString() || undefined,
+            assignedBy: w.responsableId?.toString() || '',
+            durationMinutes: w.durationMinutes || 120,
+            diagnostic: w.diagnostic || undefined,
+            solution: w.solution || undefined,
+            partsUsed: [],
+            externalCost: w.coutSousTraitance || 0,
+            campaign: w.campagneNom || ''
+        };
+    });
 };
 
 
@@ -538,4 +551,135 @@ export const updateTenantApi = async (dbId: number, tenantData: any): Promise<an
     };
     const response = await axios.put(`${API_URL}/Societes/${dbId}`, body, getAuthHeaders());
     return response.data;
+};
+
+// ── Equipment API ──────────────────────────────────────────────────────────────
+
+const mapCriticiteToInt = (c: string) => {
+    switch(c) {
+        case 'Faible': return 1;
+        case 'Moyenne': return 2;
+        case 'Haute': return 3;
+        case 'Critique': return 4;
+        default: return 2;
+    }
+}
+
+const mapEtatToInt = (e: string) => {
+    switch(e) {
+        case 'En service': return 1;
+        case 'En panne': return 2;
+        case 'En maintenance': return 3;
+        case 'Hors service': return 4;
+        case 'En attente': return 5;
+        default: return 1;
+    }
+}
+
+export const updateEquipmentStatusApi = async (equipmentId: string, newStatus: Equipment['status']): Promise<void> => {
+    try {
+        // 1. Fetch current DTO
+        const res = await axios.get(`${API_URL}/Equipement/${equipmentId}`, getAuthHeaders());
+        const dto = res.data;
+
+        // 2. Map back to Entity structure expected by PUT
+        const entity = {
+            id: dto.id,
+            societeId: dto.societeId,
+            code: dto.code || '',
+            designation: dto.designation || '',
+            familleId: dto.familleId || 1,
+            localisationId: dto.localisationId,
+            marque: dto.marque,
+            modele: dto.modele,
+            numeroSerie: dto.numeroSerie,
+            dateAchat: dto.dateAchat,
+            dateMiseEnService: dto.dateMiseEnService,
+            dateFinGarantie: dto.dateFinGarantie,
+            criticite: mapCriticiteToInt(dto.criticite),
+            etat: mapEtatToInt(newStatus), 
+            fournisseurId: dto.fournisseurId,
+            photoUrl: dto.photoUrl,
+            notes: dto.notes
+        };
+
+        // 3. Update on backend
+        await axios.put(`${API_URL}/Equipement/${equipmentId}`, entity, getAuthHeaders());
+    } catch (err) {
+        console.error('Failed to update equipment status on backend', err);
+    }
+};
+
+export const createEquipmentApi = async (equipment: Partial<Equipment>): Promise<Equipment> => {
+    const entity = {
+        code: equipment.id || `EQ-${Date.now()}`,
+        designation: equipment.name || 'Nouvel Équipement',
+        familleId: 1, 
+        localisationId: equipment.localisationId || 1,
+        marque: equipment.brand || '',
+        modele: equipment.model || '',
+        numeroSerie: equipment.serialNumber || '',
+        dateAchat: equipment.purchaseDate || null,
+        dateMiseEnService: equipment.commissionDate || new Date().toISOString(),
+        dateFinGarantie: equipment.endOfWarranty || null,
+        criticite: mapCriticiteToInt(equipment.criticality || 'Moyenne'),
+        etat: mapEtatToInt(equipment.status || 'En service'),
+        fournisseurId: equipment.supplierId ? parseInt(equipment.supplierId, 10) : null,
+        photoUrl: equipment.photos?.[0] || '',
+        notes: ''
+    };
+    const response = await axios.post(`${API_URL}/Equipement`, entity, getAuthHeaders());
+    const resEntity = response.data;
+    
+    return {
+        id: resEntity.id?.toString(),
+        parentId: equipment.parentId,
+        name: resEntity.designation || resEntity.Designation,
+        category: equipment.category || 'Général',
+        subFamily: equipment.subFamily || '',
+        brand: resEntity.marque || resEntity.Marque || '',
+        model: resEntity.modele || resEntity.Modele || '',
+        serialNumber: resEntity.numeroSerie || resEntity.NumeroSerie || '',
+        supplierId: equipment.supplierId || '',
+        localisationId: equipment.localisationId,
+        commissionDate: resEntity.dateMiseEnService || resEntity.DateMiseEnService || new Date().toISOString(),
+        criticality: equipment.criticality || 'Moyenne',
+        status: equipment.status || 'En service',
+        healthIndex: 100,
+        lastMaintenance: '',
+        nextMaintenance: '',
+        hoursCount: 0,
+        cycleCount: 0,
+        documents: [],
+        photos: resEntity.photoUrl ? [resEntity.photoUrl] : (resEntity.PhotoUrl ? [resEntity.PhotoUrl] : []),
+        sensors: [],
+        spareParts: []
+    };
+};
+
+export const updateEquipmentApi = async (equipmentId: string, equipment: Partial<Equipment>): Promise<void> => {
+    const res = await axios.get(`${API_URL}/Equipement/${equipmentId}`, getAuthHeaders());
+    const dto = res.data;
+
+    const entity = {
+        id: dto.id,
+        societeId: dto.societeId,
+        code: equipment.id || dto.code || '',
+        designation: equipment.name || dto.designation || '',
+        familleId: dto.familleId || 1,
+        localisationId: equipment.localisationId || dto.localisationId,
+        marque: equipment.brand !== undefined ? equipment.brand : dto.marque,
+        modele: equipment.model !== undefined ? equipment.model : dto.modele,
+        numeroSerie: equipment.serialNumber !== undefined ? equipment.serialNumber : dto.numeroSerie,
+        dateAchat: equipment.purchaseDate !== undefined ? equipment.purchaseDate : dto.dateAchat,
+        dateMiseEnService: equipment.commissionDate !== undefined ? equipment.commissionDate : dto.dateMiseEnService,
+        dateFinGarantie: equipment.endOfWarranty !== undefined ? equipment.endOfWarranty : dto.dateFinGarantie,
+        criticite: equipment.criticality ? mapCriticiteToInt(equipment.criticality) : mapCriticiteToInt(dto.criticite),
+        etat: equipment.status ? mapEtatToInt(equipment.status) : mapEtatToInt(dto.etat), 
+        fournisseurId: equipment.supplierId ? parseInt(equipment.supplierId, 10) : dto.fournisseurId,
+        photoUrl: equipment.photos?.[0] || dto.photoUrl,
+        notes: dto.notes
+    };
+
+    await axios.put(`${API_URL}/Equipement/${equipmentId}`, entity, getAuthHeaders());
 };
