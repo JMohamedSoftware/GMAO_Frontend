@@ -67,6 +67,12 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
     photos: false
   });
 
+  const [loto, setLoto] = useState({
+    electrique: false,
+    fluides: false,
+    epi: false
+  });
+
   const [timerActive, setTimerActive] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -325,16 +331,16 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
             <AlertTriangle className="w-4 h-4" /> Consignes de Sécurité (LOTO)
           </h4>
           <div className="flex flex-col gap-2 mt-1">
-            <label className="flex items-center gap-2 text-xs text-amber-800 dark:text-amber-500">
-              <input type="checkbox" className="rounded border-amber-300 text-amber-500 focus:ring-amber-500 w-4 h-4 accent-amber-500" />
+            <label className="flex items-center gap-2 text-xs text-amber-800 dark:text-amber-500 cursor-pointer">
+              <input type="checkbox" checked={loto.electrique} onChange={e => setLoto({...loto, electrique: e.target.checked})} disabled={activeOt.status === 'Terminé' || activeOt.status === 'Clôturé'} className="rounded border-amber-300 text-amber-500 focus:ring-amber-500 w-4 h-4 accent-amber-500 cursor-pointer" />
               Consignation Électrique (Cadenas Rouge)
             </label>
-            <label className="flex items-center gap-2 text-xs text-amber-800 dark:text-amber-500">
-              <input type="checkbox" className="rounded border-amber-300 text-amber-500 focus:ring-amber-500 w-4 h-4 accent-amber-500" />
+            <label className="flex items-center gap-2 text-xs text-amber-800 dark:text-amber-500 cursor-pointer">
+              <input type="checkbox" checked={loto.fluides} onChange={e => setLoto({...loto, fluides: e.target.checked})} disabled={activeOt.status === 'Terminé' || activeOt.status === 'Clôturé'} className="rounded border-amber-300 text-amber-500 focus:ring-amber-500 w-4 h-4 accent-amber-500 cursor-pointer" />
               Purge Fluides / Pneumatique
             </label>
-            <label className="flex items-center gap-2 text-xs text-amber-800 dark:text-amber-500">
-              <input type="checkbox" className="rounded border-amber-300 text-amber-500 focus:ring-amber-500 w-4 h-4 accent-amber-500" />
+            <label className="flex items-center gap-2 text-xs text-amber-800 dark:text-amber-500 cursor-pointer">
+              <input type="checkbox" checked={loto.epi} onChange={e => setLoto({...loto, epi: e.target.checked})} disabled={activeOt.status === 'Terminé' || activeOt.status === 'Clôturé'} className="rounded border-amber-300 text-amber-500 focus:ring-amber-500 w-4 h-4 accent-amber-500 cursor-pointer" />
               Port des EPI (Gants, Lunettes de protection)
             </label>
           </div>
@@ -409,7 +415,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
           )}
 
           {/* ——— ÉTAPE 2 : Chef d'équipe assigne Technicien ——— */}
-          {(isChefEquipe || isResponsable) && (activeOt.status === 'Affecté Chef' || activeOt.status === 'Affecté' || activeOt.status === 'En cours') && (
+          {(isChefEquipe || isResponsable) && (activeOt.status === 'Affecté Chef' || activeOt.status === 'Affecté' || activeOt.status === 'En cours' || activeOt.status === 'Terminé' || activeOt.status === 'Clôturé') && (
             <div className="flex flex-col gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20">
               <span className="text-[9px] font-bold text-primary uppercase tracking-wider">Étape 2 — Chef d'Équipe</span>
               <label className="text-xs text-slate-500">Technicien assigné</label>
@@ -441,6 +447,25 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
                     className="w-6 h-6 rounded-full object-cover border border-emerald-500/30" />
                   <span className="text-[10px] font-bold text-emerald-600">{activeOtTech.name}</span>
                   <span className="text-[9px] text-slate-400">Technicien assigné ✓</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ——— VUE TECHNICIEN (Lecture seule) ——— */}
+          {!isResponsable && !isChefEquipe && activeOtTech && (
+            <div className="flex flex-col gap-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800">
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Vos Informations d'Affectation</span>
+              <div className="flex items-center gap-2">
+                <img src={activeOtTech.avatar} className="w-6 h-6 rounded-full border border-primary/30 object-cover" />
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{activeOtTech.name}</span>
+                <span className="text-[9px] text-slate-500 bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded">Technicien (Vous)</span>
+              </div>
+              {activeOtChef && (
+                <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                  <span className="text-[10px] text-slate-500">Chef d'équipe assigné :</span>
+                  <img src={activeOtChef.avatar} className="w-5 h-5 rounded-full object-cover" />
+                  <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300">{activeOtChef.name}</span>
                 </div>
               )}
             </div>
@@ -482,7 +507,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
               </div>
             )}
 
-            {can(PERMISSIONS.WORKORDER_START, ownerIds()) && activeOt.status === 'Affecté' && (
+            {(can(PERMISSIONS.WORKORDER_START, ownerIds()) || (String(activeOt.technicianId) === String(currentUser?.id))) && activeOt.status === 'Affecté' && (
               <button
                 onClick={() => updateWorkOrderStatus(activeOt.id, 'En cours')}
                 className="w-full py-2 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-lg shadow-sm flex items-center justify-center gap-2"
@@ -492,9 +517,9 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
               </button>
             )}
 
-            {(can(PERMISSIONS.WORKORDER_SUSPEND, ownerIds()) || can(PERMISSIONS.WORKORDER_FINISH, ownerIds())) && activeOt.status === 'En cours' && (
+            {(can(PERMISSIONS.WORKORDER_SUSPEND, ownerIds()) || can(PERMISSIONS.WORKORDER_FINISH, ownerIds()) || (String(activeOt.technicianId) === String(currentUser?.id))) && activeOt.status === 'En cours' && (
               <div className="flex gap-2 mt-1">
-                {can(PERMISSIONS.WORKORDER_SUSPEND, ownerIds()) && (
+                {(can(PERMISSIONS.WORKORDER_SUSPEND, ownerIds()) || (String(activeOt.technicianId) === String(currentUser?.id))) && (
                 <button
                   onClick={() => updateWorkOrderStatus(activeOt.id, 'Suspendu')}
                   className="flex-1 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg shadow-sm"
@@ -502,7 +527,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
                   Pause
                 </button>
                 )}
-                {can(PERMISSIONS.WORKORDER_FINISH, ownerIds()) && (
+                {(can(PERMISSIONS.WORKORDER_FINISH, ownerIds()) || (String(activeOt.technicianId) === String(currentUser?.id))) && (
                 <button
                   onClick={() => {
                     const el = document.getElementById('cloture-section');
@@ -527,8 +552,8 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
           </div>
         </div>
 
-        {/* Spare parts sheet for EN COURS and completed OTs */}
-        {(activeOt.status === 'En cours' || activeOt.status === 'Terminé' || activeOt.status === 'Clôturé') && (
+        {/* Spare parts sheet for EN COURS, AFFECTE and completed OTs */}
+        {(activeOt.status === 'Affecté' || activeOt.status === 'En cours' || activeOt.status === 'Terminé' || activeOt.status === 'Clôturé') && (
           <div className="bg-white dark:bg-slate-850 p-4 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col gap-3">
             <h4 className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">
               Consommation de Pièces de Rechange
