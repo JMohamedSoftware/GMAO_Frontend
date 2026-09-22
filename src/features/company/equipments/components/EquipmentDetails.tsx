@@ -4,6 +4,7 @@ import { usePermissions } from '@/shared/hooks/usePermissions';
 import { PERMISSIONS } from '@/shared/permissions';
 import { Equipment as EquipmentType, Localisation, WorkOrder, Incident } from '@/shared/types/gmao';
 import { useLocalisations } from '@/shared/hooks/useLocalisations';
+import { useGmao } from '@/shared/hooks/useGmao';
 
 interface EquipmentDetailsProps {
   activeEquipment: EquipmentType | undefined;
@@ -34,15 +35,6 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
   onSetIsEditing,
   onSave
 }) => {
-  const { can } = usePermissions();
-  const { tree } = useLocalisations();
-
-  const flattenTree = (nodes: Localisation[], depth = 0): { id: number; nom: string; depth: number }[] => {
-    let result: { id: number; nom: string; depth: number }[] = [];
-    nodes.forEach(node => {
-      result.push({ id: node.id, nom: node.nom, depth });
-      if (node.sousLocalisations) {
-        result = result.concat(flattenTree(node.sousLocalisations, depth + 1));
       }
     });
     return result;
@@ -125,11 +117,17 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
             </div>
             <div>
               <label className="text-[10px] text-slate-500 font-bold block mb-1">Famille <span className="text-rose-500">*</span></label>
-              <input type="text" readOnly={!isEditing && !isAdding} value={(isEditing || isAdding) ? formData.category : activeEquipment?.category} onChange={e => onSetFormData({...formData, category: e.target.value})} className={`w-full text-xs p-1.5 rounded border ${isEditing || isAdding ? 'bg-white dark:bg-slate-800 border-slate-300' : 'bg-transparent border-transparent'} outline-none`} placeholder="Ex: Pompes" />
+              <input type="text" list="category-list" readOnly={!isEditing && !isAdding} value={(isEditing || isAdding) ? formData.category : activeEquipment?.category} onChange={e => onSetFormData({...formData, category: e.target.value})} className={`w-full text-xs p-1.5 rounded border ${isEditing || isAdding ? 'bg-white dark:bg-slate-800 border-slate-300' : 'bg-transparent border-transparent'} outline-none`} placeholder="Ex: Pompes" />
+              <datalist id="category-list">
+                {uniqueCategories.map(cat => <option key={cat} value={cat} />)}
+              </datalist>
             </div>
             <div>
               <label className="text-[10px] text-slate-500 font-bold block mb-1">Sous-famille</label>
-              <input type="text" readOnly={!isEditing && !isAdding} value={(isEditing || isAdding) ? formData.subFamily : activeEquipment?.subFamily || ''} onChange={e => onSetFormData({...formData, subFamily: e.target.value})} className={`w-full text-xs p-1.5 rounded border ${isEditing || isAdding ? 'bg-white dark:bg-slate-800 border-slate-300' : 'bg-transparent border-transparent'} outline-none`} placeholder="Ex: Centrifuges" />
+              <input type="text" list="subfamily-list" readOnly={!isEditing && !isAdding} value={(isEditing || isAdding) ? formData.subFamily : activeEquipment?.subFamily || ''} onChange={e => onSetFormData({...formData, subFamily: e.target.value})} className={`w-full text-xs p-1.5 rounded border ${isEditing || isAdding ? 'bg-white dark:bg-slate-800 border-slate-300' : 'bg-transparent border-transparent'} outline-none`} placeholder="Ex: Centrifuges" />
+              <datalist id="subfamily-list">
+                {uniqueSubFamilies.map(sub => <option key={sub} value={sub} />)}
+              </datalist>
             </div>
             <div>
               <label className="text-[10px] text-slate-500 font-bold block mb-1">État équipement</label>
@@ -206,11 +204,17 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="text-[10px] text-slate-500 font-bold block mb-1">Marque</label>
-                  <input type="text" readOnly={!isEditing && !isAdding} value={(isEditing || isAdding) ? formData.brand : activeEquipment?.brand} onChange={e => onSetFormData({...formData, brand: e.target.value})} className={`w-full text-xs p-1.5 rounded border ${isEditing || isAdding ? 'bg-white dark:bg-slate-800 border-slate-300' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'} outline-none`} />
+                  <input type="text" list="brand-list" readOnly={!isEditing && !isAdding} value={(isEditing || isAdding) ? formData.brand : activeEquipment?.brand} onChange={e => onSetFormData({...formData, brand: e.target.value})} className={`w-full text-xs p-1.5 rounded border ${isEditing || isAdding ? 'bg-white dark:bg-slate-800 border-slate-300' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'} outline-none`} />
+                  <datalist id="brand-list">
+                    {uniqueBrands.map(b => <option key={b} value={b} />)}
+                  </datalist>
                 </div>
                 <div>
                   <label className="text-[10px] text-slate-500 font-bold block mb-1">Modèle</label>
-                  <input type="text" readOnly={!isEditing && !isAdding} value={(isEditing || isAdding) ? formData.model : activeEquipment?.model} onChange={e => onSetFormData({...formData, model: e.target.value})} className={`w-full text-xs p-1.5 rounded border ${isEditing || isAdding ? 'bg-white dark:bg-slate-800 border-slate-300' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'} outline-none`} />
+                  <input type="text" list="model-list" readOnly={!isEditing && !isAdding} value={(isEditing || isAdding) ? formData.model : activeEquipment?.model} onChange={e => onSetFormData({...formData, model: e.target.value})} className={`w-full text-xs p-1.5 rounded border ${isEditing || isAdding ? 'bg-white dark:bg-slate-800 border-slate-300' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'} outline-none`} />
+                  <datalist id="model-list">
+                    {uniqueModels.map(m => <option key={m} value={m} />)}
+                  </datalist>
                 </div>
                 <div>
                   <label className="text-[10px] text-slate-500 font-bold block mb-1">N° Série</label>
