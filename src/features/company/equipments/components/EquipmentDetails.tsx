@@ -35,12 +35,27 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
   onSetIsEditing,
   onSave
 }) => {
+  const { can } = usePermissions();
+  const { tree } = useLocalisations();
+  const { equipments } = useGmao();
+
+  const flattenTree = (nodes: Localisation[], depth = 0): { id: number; nom: string; depth: number }[] => {
+    let result: { id: number; nom: string; depth: number }[] = [];
+    nodes.forEach(node => {
+      result.push({ id: node.id, nom: node.nom, depth });
+      if (node.sousLocalisations) {
+        result = result.concat(flattenTree(node.sousLocalisations, depth + 1));
       }
     });
     return result;
   };
 
   const flatLocalisations = flattenTree(tree);
+
+  const uniqueCategories = Array.from(new Set(equipments.map(e => e.category).filter(Boolean)));
+  const uniqueSubFamilies = Array.from(new Set(equipments.map(e => e.subFamily).filter(Boolean)));
+  const uniqueBrands = Array.from(new Set(equipments.map(e => e.brand).filter(Boolean)));
+  const uniqueModels = Array.from(new Set(equipments.map(e => e.model).filter(Boolean)));
 
   const equipmentWorkOrders = workOrders.filter(wo => wo.equipmentId === activeEquipment?.id);
   const activeWorkOrders = equipmentWorkOrders.filter(wo => wo.status !== 'Clôturé' && wo.status !== 'Terminé');
