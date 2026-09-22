@@ -83,23 +83,51 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
   const [selectedPartRef, setSelectedPartRef] = useState('');
   const [selectedPartQty, setSelectedPartQty] = useState(1);
 
-  useEffect(() => {
-    if (activeOt?.status === 'En cours' && !timerActive) {
-      setTimerActive(true);
-      setTimerSeconds(0);
-    } else if (activeOt?.status !== 'En cours') {
-      setTimerActive(false);
-    }
-  }, [activeOt?.status]);
+  const getAccumulated = (id: string) => parseInt(localStorage.getItem(`ot_acc_${id}`) || '0', 10);
+  const setAccumulated = (id: string, secs: number) => localStorage.setItem(`ot_acc_${id}`, secs.toString());
+  
+  const getStartTime = (id: string) => parseInt(localStorage.getItem(`ot_start_${id}`) || '0', 10);
+  const setStartTime = (id: string, time: number) => localStorage.setItem(`ot_start_${id}`, time.toString());
+  const clearStartTime = (id: string) => localStorage.removeItem(`ot_start_${id}`);
 
   useEffect(() => {
-    if (timerActive) {
-      timerRef.current = setInterval(() => setTimerSeconds(s => s + 1), 1000);
+    if (!activeOt) return;
+
+    if (activeOt.status === 'En cours') {
+      let start = getStartTime(activeOt.id);
+      if (!start) {
+        start = Date.now();
+        setStartTime(activeOt.id, start);
+      }
+      
+      const acc = getAccumulated(activeOt.id);
+      setTimerSeconds(Math.floor((Date.now() - start) / 1000) + acc);
+      setTimerActive(true);
+
+      timerRef.current = setInterval(() => {
+        setTimerSeconds(Math.floor((Date.now() - start) / 1000) + acc);
+      }, 1000);
+
     } else {
+      setTimerActive(false);
       if (timerRef.current) clearInterval(timerRef.current);
+      
+      const start = getStartTime(activeOt.id);
+      if (start) {
+        const acc = getAccumulated(activeOt.id);
+        const elapsed = Math.floor((Date.now() - start) / 1000);
+        setAccumulated(activeOt.id, acc + elapsed);
+        clearStartTime(activeOt.id);
+        setTimerSeconds(acc + elapsed);
+      } else {
+        setTimerSeconds(getAccumulated(activeOt.id));
+      }
     }
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [timerActive]);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [activeOt?.status, activeOt?.id]);
 
   const formatTimer = (secs: number) => {
     const h = Math.floor(secs / 3600);
@@ -149,11 +177,20 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
       signatureUrl = canvas.toDataURL();
     }
 
-    updateWorkOrderStatus(activeOt!.id, 'Terminé', {
+    let finalSeconds = getAccumulated(activeOt.id);
+    const start = getStartTime(activeOt.id);
+    if (start) {
+      finalSeconds += Math.floor((Date.now() - start) / 1000);
+      setAccumulated(activeOt.id, finalSeconds);
+      clearStartTime(activeOt.id);
+    }
+    const durationMinutes = Math.floor(finalSeconds / 60) || 1;
+
+    updateWorkOrderStatus(activeOt.id, 'Terminé', {
       diagnostic: diagText || 'Aucun diagnostic précisé.',
       solution: solText || 'Travaux de maintenance effectués.',
       signature: signatureUrl || 'signed',
-      durationMinutes: Math.max(1, Math.round(timerSeconds / 60))
+      durationMinutes
     });
 
     setDiagText('');
@@ -524,7 +561,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
                   onClick={() => updateWorkOrderStatus(activeOt.id, 'Suspendu')}
                   className="flex-1 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg shadow-sm"
                 >
-                  Pause
+                  Pause / Reprendre
                 </button>
                 )}
                 {(can(PERMISSIONS.WORKORDER_FINISH, ownerIds()) || (String(activeOt.technicianId) === String(currentUser?.id))) && (
