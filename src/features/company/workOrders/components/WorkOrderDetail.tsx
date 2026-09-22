@@ -587,7 +587,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
               </div>
             )}
 
-            {can(PERMISSIONS.WORKORDER_UPDATE, ownerIds()) && activeOt.status === 'En cours' && (
+            {(can(PERMISSIONS.WORKORDER_UPDATE, ownerIds()) || (String(activeOt.technicianId) === String(currentUser?.id))) && activeOt.status === 'En cours' && (
               <div className="flex gap-2 items-end">
                 <div className="flex-1">
                   <label className="text-[9px] text-slate-450 font-bold block mb-1">Pièce de Rechange</label>
@@ -627,7 +627,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
         )}
 
         {/* Diagnostic reporting sheet & validation pad */}
-        {can(PERMISSIONS.WORKORDER_UPDATE, ownerIds()) && activeOt.status === 'En cours' && (
+        {(can(PERMISSIONS.WORKORDER_UPDATE, ownerIds()) || (String(activeOt.technicianId) === String(currentUser?.id))) && activeOt.status === 'En cours' && (
           <div className="bg-white dark:bg-slate-850 p-4 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col gap-4">
             <h4 className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">
               Rapport de Résolution Diagnostic
