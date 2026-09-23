@@ -17,7 +17,11 @@ import {
   Droplet,
   Wrench,
   Container,
-  Package
+  Package,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  ArrowRightLeft,
+  MoreHorizontal
 } from 'lucide-react';
 
 import { InventoryStats } from '../components/InventoryStats';
@@ -137,8 +141,7 @@ export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
   const activePart = parts.find(p => p.ref === selectedPartRef);
   const moveModalPart = parts.find(p => p.ref === movePartRef);
 
-  const handleOpenMovement = (partRef: string, type: 'in' | 'out', e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleOpenMovement = (partRef: string, type: 'in' | 'out') => {
     setMovePartRef(partRef);
     setMoveType(type);
     setMoveQty(1);
@@ -208,66 +211,101 @@ export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
   return (
     <div className="h-full flex flex-col gap-4 animate-[fadeIn_0.3s_ease-out]">
       {/* Header */}
-      <div className="flex justify-between items-center bg-white/40 dark:bg-slate-900/40 p-4 rounded-custom-md border border-white/40 dark:border-slate-800/40 shadow-sm backdrop-blur-md">
+      <div className="flex justify-between items-center bg-white/40 dark:bg-slate-900/40 p-4 rounded-xl border border-white/40 dark:border-slate-800/40 shadow-sm backdrop-blur-md">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-primary/10 text-primary rounded-xl">
-            <Boxes className="w-5 h-5" />
+          <div className="p-2.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-xl">
+            <Package className="w-6 h-6" />
           </div>
           <div>
             <h1 className="text-2xl font-black text-slate-800 dark:text-white leading-tight tracking-tight">
               Gestion des Stocks & Pièces
             </h1>
             <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
-              Catalogue par famille · {parts.length} références
+              Suivi, inventaire et approvisionnement des pièces de rechange
             </p>
           </div>
         </div>
-        {can(PERMISSIONS.INVENTORY_CREATE) && (
+        
+        <div className="flex items-center gap-2">
+          {can(PERMISSIONS.INVENTORY_CREATE) && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-sm cursor-pointer transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nouvelle pièce</span>
+            </button>
+          )}
+          
           <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/95 text-white font-bold text-xs rounded-custom-sm shadow-md hover-lift cursor-pointer"
+            onClick={() => handleOpenMovement(selectedPartRef || parts[0]?.ref, 'in')}
+            className="flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-bold text-xs rounded-lg shadow-sm cursor-pointer transition-colors"
           >
-            <Plus className="w-4 h-4" />
-            <span>Nouveau Article</span>
+            <ArrowDownToLine className="w-4 h-4 text-emerald-500" />
+            <span>Entrée stock</span>
           </button>
-        )}
+          
+          <button
+            onClick={() => handleOpenMovement(selectedPartRef || parts[0]?.ref, 'out')}
+            className="flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-bold text-xs rounded-lg shadow-sm cursor-pointer transition-colors"
+          >
+            <ArrowUpFromLine className="w-4 h-4 text-rose-500" />
+            <span>Sortie stock</span>
+          </button>
+          
+          <button
+            className="flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-bold text-xs rounded-lg shadow-sm cursor-pointer transition-colors"
+          >
+            <ArrowRightLeft className="w-4 h-4" />
+            <span>Transfert</span>
+          </button>
+          
+          <button
+            className="p-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm cursor-pointer transition-colors"
+          >
+            <MoreHorizontal className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* KPI strip */}
-      <InventoryStats parts={parts} lowStockParts={lowStockParts} totalValuation={totalValuation} />
+      <InventoryStats parts={parts} />
 
-      {/* 2-column layout */}
-      <div className="flex-1 flex gap-4 min-h-0 overflow-hidden">
-        {/* Column 1: Filters & Grouped List */}
-        <InventoryList
-          search={search}
-          setSearch={setSearch}
-          filterSupplier={filterSupplier}
-          setFilterSupplier={setFilterSupplier}
-          filterAlertOnly={filterAlertOnly}
-          setFilterAlertOnly={setFilterAlertOnly}
-          suppliers={suppliers}
-          categories={categories}
-          groupedParts={groupedParts}
-          expandedCategories={expandedCategories}
-          toggleCategory={toggleCategory}
-          selectedPartRef={selectedPartRef}
-          setSelectedPartRef={setSelectedPartRef}
-          CATEGORY_ICONS={CATEGORY_ICONS}
-        />
+      {/* Table & Side Panel */}
+      <div className="flex-1 flex min-h-0 overflow-hidden relative">
+        <div className={`transition-all duration-300 w-full ${selectedPartRef ? 'pr-[400px]' : ''}`}>
+          <InventoryList
+            parts={parts}
+            search={search}
+            setSearch={setSearch}
+            filterSupplier={filterSupplier}
+            setFilterSupplier={setFilterSupplier}
+            filterAlertOnly={filterAlertOnly}
+            setFilterAlertOnly={setFilterAlertOnly}
+            suppliers={suppliers}
+            categories={categories}
+            selectedPartRef={selectedPartRef}
+            setSelectedPartRef={setSelectedPartRef}
+            CATEGORY_ICONS={CATEGORY_ICONS}
+            can={can}
+          />
+        </div>
 
-        {/* Column 2: Part detail */}
-        <InventoryDetail
-          activePart={activePart}
-          suppliers={suppliers}
-          CATEGORY_ICONS={CATEGORY_ICONS}
-          can={can}
-          onNavigate={onNavigate}
-          handleOpenMovement={handleOpenMovement}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          movementLogs={movementLogs}
-        />
+        {/* Column 2: Part detail (Offcanvas style side panel) */}
+        <div className={`absolute top-0 right-0 h-full w-[400px] bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-xl transition-transform duration-300 transform ${selectedPartRef ? 'translate-x-0' : 'translate-x-full'}`}>
+          <InventoryDetail
+            activePart={activePart}
+            suppliers={suppliers}
+            CATEGORY_ICONS={CATEGORY_ICONS}
+            can={can}
+            onNavigate={onNavigate}
+            handleOpenMovement={handleOpenMovement}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            movementLogs={movementLogs}
+            onClose={() => setSelectedPartRef(null)}
+          />
+        </div>
       </div>
 
       {/* Modals */}
