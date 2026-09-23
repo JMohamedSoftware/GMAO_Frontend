@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useGmao } from '@/shared/hooks/useGmao';
-import { useEquipements } from '@/shared/hooks/useEquipements';
+
 import { useLocalisations } from '@/shared/hooks/useLocalisations';
 import { Equipment as EquipmentType, Localisation } from '@/shared/types/gmao';
 import { usePermissions } from '@/shared/hooks/usePermissions';
@@ -19,8 +19,7 @@ interface EquipmentProps {
 export const Equipment: React.FC<EquipmentProps> = ({ 
   selectedEqFromDash, 
 }) => {
-  const { suppliers, workOrders, incidents, deleteEquipmentsByCategory } = useGmao();
-  const { equipments, deleteEquipment, addEquipment, updateEquipment } = useEquipements();
+  const { equipments, suppliers, workOrders, incidents, deleteEquipmentsByCategory, deleteEquipment, addEquipment, updateEquipment } = useGmao();
   const { tree: geoTree } = useLocalisations();
   const { can } = usePermissions();
   

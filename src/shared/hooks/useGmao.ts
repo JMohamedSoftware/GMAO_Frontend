@@ -68,6 +68,7 @@ export const useGmao = () => {
     
     // CRUD
     addEquipment: (eq: Omit<Equipment, 'healthIndex' | 'sensors' | 'hoursCount' | 'cycleCount'>) => dispatch(actions.addEquipment(eq)),
+    updateEquipment: (id: string, updates: Partial<Equipment>) => dispatch(actions.updateEquipment({id, updates})),
     updateEquipmentStatus: (id: string, status: Equipment['status'], healthIndex?: number) => dispatch(actions.updateEquipmentStatus({id, status, healthIndex})),
     deleteEquipment: (id: string) => dispatch(actions.deleteEquipment(id)),
     addIncident: async (inc: Omit<Incident, 'id' | 'reportedDate' | 'status'>) => {
