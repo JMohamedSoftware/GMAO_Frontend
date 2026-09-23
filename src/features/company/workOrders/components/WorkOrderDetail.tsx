@@ -171,6 +171,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
   };
 
   const handleFinalizeWorkOrder = () => {
+    if (!activeOt) return;
     let signatureUrl = '';
     const canvas = canvasRef.current;
     if (canvas) {

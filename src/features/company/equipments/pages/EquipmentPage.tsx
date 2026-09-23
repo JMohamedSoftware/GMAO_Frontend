@@ -181,13 +181,21 @@ export const Equipment: React.FC<EquipmentProps> = ({
   const activeEquipment = equipments.find(e => e.id === selectedEqId);
 
   const handleSave = async () => {
-    if (isAdding) {
-      addEquipment(formData as any);
-    } else if (isEditing && selectedEqId) {
-      updateEquipment(selectedEqId, formData);
+    try {
+      if (isAdding) {
+        addEquipment(formData as any);
+        if (formData.id) {
+          setSelectedEqId(formData.id);
+        }
+      } else if (isEditing && selectedEqId) {
+        updateEquipment(selectedEqId, formData);
+      }
+      setIsAdding(false);
+      setIsEditing(false);
+    } catch (e: any) {
+      console.error(e);
+      alert('Erreur lors de l\'enregistrement: ' + (e.message || e.toString()));
     }
-    setIsAdding(false);
-    setIsEditing(false);
   };
 
   const handleAddNew = () => {
