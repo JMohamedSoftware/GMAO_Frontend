@@ -653,6 +653,24 @@ export const gmaoSlice = createSlice({
         }
       }
     });
+    // Equipment actions
+    builder.addCase(createEquipmentAsync.fulfilled, (state, action) => {
+      const tenant = state.tenants.find(t => t.id === state.currentTenantId);
+      if (tenant) {
+        tenant.equipments.push(action.payload);
+      }
+    });
+
+    builder.addCase(updateEquipmentAsync.fulfilled, (state, action) => {
+      const tenant = state.tenants.find(t => t.id === state.currentTenantId);
+      if (tenant) {
+        const idx = tenant.equipments.findIndex(e => e.id === action.payload.id);
+        if (idx !== -1) {
+          tenant.equipments[idx] = { ...tenant.equipments[idx], ...action.payload.updates };
+        }
+      }
+    });
+
   }
 });
 

@@ -183,12 +183,12 @@ export const Equipment: React.FC<EquipmentProps> = ({
   const handleSave = async () => {
     try {
       if (isAdding) {
-        addEquipment(formData as any);
-        if (formData.id) {
-          setSelectedEqId(formData.id);
+        const addedEq = await addEquipment(formData as any);
+        if (addedEq && addedEq.id) {
+          setSelectedEqId(addedEq.id);
         }
       } else if (isEditing && selectedEqId) {
-        updateEquipment(selectedEqId, formData);
+        await updateEquipment(selectedEqId, formData);
       }
       setIsAdding(false);
       setIsEditing(false);

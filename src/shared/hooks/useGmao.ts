@@ -1,6 +1,6 @@
 import { useAppSelector, useAppDispatch } from '@/app/hooks';
 import * as actions from '@/app/gmaoSlice';
-import { createIncidentAsync, updateIncidentStatusAsync, updateWorkOrderStatusAsync, fetchTenantsAsync, createTenantAsync, updateTenantAsync } from '@/app/gmaoSlice';
+import { createIncidentAsync, updateIncidentStatusAsync, updateWorkOrderStatusAsync, fetchTenantsAsync, createTenantAsync, updateTenantAsync, createEquipmentAsync, updateEquipmentAsync } from '@/app/gmaoSlice';
 import { AppRole } from '@/shared/permissions';
 import { Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount, User, Tenant, Equipe } from '@/shared/types/gmao';
 import { useEffect } from 'react';
@@ -67,8 +67,14 @@ export const useGmao = () => {
       dispatch(actions.updateRolePermission({role, module, act: actionName, scope, isChecked})),
     
     // CRUD
-    addEquipment: (eq: Omit<Equipment, 'healthIndex' | 'sensors' | 'hoursCount' | 'cycleCount'>) => dispatch(actions.addEquipment(eq)),
-    updateEquipment: (id: string, updates: Partial<Equipment>) => dispatch(actions.updateEquipment({id, updates})),
+    addEquipment: async (eq: Omit<Equipment, 'healthIndex' | 'sensors' | 'hoursCount' | 'cycleCount'>) => {
+      const result = await dispatch(createEquipmentAsync(eq));
+      return result.payload as Equipment;
+    },
+    updateEquipment: async (id: string, updates: Partial<Equipment>) => {
+      const result = await dispatch(updateEquipmentAsync({ id, updates }));
+      return result.payload;
+    },
     updateEquipmentStatus: (id: string, status: Equipment['status'], healthIndex?: number) => dispatch(actions.updateEquipmentStatus({id, status, healthIndex})),
     deleteEquipment: (id: string) => dispatch(actions.deleteEquipment(id)),
     addIncident: async (inc: Omit<Incident, 'id' | 'reportedDate' | 'status'>) => {
