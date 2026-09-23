@@ -628,7 +628,13 @@ export const createEquipmentApi = async (equipment: Partial<Equipment>): Promise
         photoUrl: equipment.photos?.[0] || '',
         notes: ''
     };
-    const response = await axios.post(`${API_URL}/Equipement`, entity, getAuthHeaders());
+    let response;
+    try {
+        response = await axios.post(`${API_URL}/Equipement`, entity, getAuthHeaders());
+    } catch (error: any) {
+        console.error('API Error:', error.response?.data || error.message);
+        throw new Error(error.response?.data?.message || JSON.stringify(error.response?.data) || error.message);
+    }
     const resEntity = response.data;
     
     return {

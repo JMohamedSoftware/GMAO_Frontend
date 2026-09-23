@@ -81,7 +81,7 @@ export const Equipment: React.FC<EquipmentProps> = ({
     
     const validLocIds = getDescendantLocalisationIds(selectedGeoNode.id);
 
-    let filtered = equipments.filter(e => e.localisationId && validLocIds.includes(e.localisationId));
+    let filtered = equipments.filter(e => e.localisationId && validLocIds.includes(Number(e.localisationId)));
 
     if (search) {
       filtered = filtered.filter(e => e.name.toLowerCase().includes(search.toLowerCase()) || e.id.toLowerCase().includes(search.toLowerCase()));

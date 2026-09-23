@@ -69,10 +69,16 @@ export const useGmao = () => {
     // CRUD
     addEquipment: async (eq: Omit<Equipment, 'healthIndex' | 'sensors' | 'hoursCount' | 'cycleCount'>) => {
       const result = await dispatch(createEquipmentAsync(eq));
+      if (createEquipmentAsync.rejected.match(result)) {
+        throw new Error(result.error.message || 'Erreur serveur');
+      }
       return result.payload as Equipment;
     },
     updateEquipment: async (id: string, updates: Partial<Equipment>) => {
       const result = await dispatch(updateEquipmentAsync({ id, updates }));
+      if (updateEquipmentAsync.rejected.match(result)) {
+        throw new Error(result.error.message || 'Erreur serveur');
+      }
       return result.payload;
     },
     updateEquipmentStatus: (id: string, status: Equipment['status'], healthIndex?: number) => dispatch(actions.updateEquipmentStatus({id, status, healthIndex})),

@@ -52,7 +52,8 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
 
   const flatLocalisations = flattenTree(tree);
 
-  const uniqueCategories = Array.from(new Set(equipments.map(e => e.category).filter(Boolean)));
+  const predefinedCategories = ['Chaudières', 'Pompes', 'Compresseurs', 'Moteurs', 'Vannes', 'Groupes Électrogènes', 'Transformateurs'];
+  const uniqueCategories = Array.from(new Set([...equipments.map(e => e.category).filter(Boolean), ...predefinedCategories]));
   const uniqueSubFamilies = Array.from(new Set(equipments.map(e => e.subFamily).filter(Boolean)));
   const uniqueBrands = Array.from(new Set(equipments.map(e => e.brand).filter(Boolean)));
   const uniqueModels = Array.from(new Set(equipments.map(e => e.model).filter(Boolean)));
