@@ -39,7 +39,7 @@ export const fetchEquipments = async (): Promise<Equipment[]> => {
         documents: [],
         photos: e.photoUrl ? [e.photoUrl] : [],
         sensors: [],
-        spareParts: [],
+        spareParts: e.piecesIds?.map((id: number) => id.toString()) || [],
         parentId: e.parentEquipementId ? e.parentEquipementId.toString() : undefined
     }));
 };
@@ -659,7 +659,7 @@ export const createEquipmentApi = async (equipment: Partial<Equipment>): Promise
         documents: [],
         photos: resEntity.photoUrl ? [resEntity.photoUrl] : (resEntity.PhotoUrl ? [resEntity.PhotoUrl] : []),
         sensors: [],
-        spareParts: []
+        spareParts: resEntity.piecesIds?.map((id: number) => id.toString()) || []
     };
 };
 
@@ -688,4 +688,22 @@ export const updateEquipmentApi = async (equipmentId: string, equipment: Partial
     };
 
     await axios.put(`${API_URL}/Equipement/${equipmentId}`, entity, getAuthHeaders());
+};
+
+export const linkPieceToEquipmentApi = async (equipmentId: string, pieceId: string): Promise<void> => {
+    try {
+        await axios.post(`${API_URL}/Equipement/${equipmentId}/pieces/${pieceId}`, {}, getAuthHeaders());
+    } catch (error: any) {
+        console.error('Failed to link piece to equipment', error);
+        throw new Error(error.response?.data?.message || 'Failed to link piece');
+    }
+};
+
+export const unlinkPieceFromEquipmentApi = async (equipmentId: string, pieceId: string): Promise<void> => {
+    try {
+        await axios.delete(`${API_URL}/Equipement/${equipmentId}/pieces/${pieceId}`, getAuthHeaders());
+    } catch (error: any) {
+        console.error('Failed to unlink piece from equipment', error);
+        throw new Error(error.response?.data?.message || 'Failed to unlink piece');
+    }
 };

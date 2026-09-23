@@ -5,6 +5,9 @@ import { PERMISSIONS } from '@/shared/permissions';
 import { Equipment as EquipmentType, Localisation, WorkOrder, Incident } from '@/shared/types/gmao';
 import { useLocalisations } from '@/shared/hooks/useLocalisations';
 import { useGmao } from '@/shared/hooks/useGmao';
+import { linkPieceToEquipmentApi, unlinkPieceFromEquipmentApi } from '@/shared/api/dataFetch.api';
+import { fetchTenantDataAsync } from '@/app/gmaoSlice';
+import { useAppDispatch } from '@/app/hooks';
 
 interface EquipmentDetailsProps {
   activeEquipment: EquipmentType | undefined;
@@ -37,7 +40,37 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
 }) => {
   const { can } = usePermissions();
   const { tree } = useLocalisations();
-  const { equipments } = useGmao();
+  const { equipments, parts } = useGmao();
+  const dispatch = useAppDispatch();
+  const [selectedPieceId, setSelectedPieceId] = React.useState<string>('');
+  const [isLinking, setIsLinking] = React.useState(false);
+
+  const handleLinkPiece = async () => {
+    if (!activeEquipment?.id || !selectedPieceId) return;
+    setIsLinking(true);
+    try {
+      await linkPieceToEquipmentApi(activeEquipment.id, selectedPieceId);
+      await dispatch(fetchTenantDataAsync()); // Refresh data to get updated spareParts
+      setSelectedPieceId('');
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de l'association de la pièce");
+    } finally {
+      setIsLinking(false);
+    }
+  };
+
+  const handleUnlinkPiece = async (pieceId: string) => {
+    if (!activeEquipment?.id) return;
+    if (!confirm('Êtes-vous sûr de vouloir retirer cette pièce de cet équipement ?')) return;
+    try {
+      await unlinkPieceFromEquipmentApi(activeEquipment.id, pieceId);
+      await dispatch(fetchTenantDataAsync()); // Refresh data
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors du détachement de la pièce");
+    }
+  };
 
   const flattenTree = (nodes: Localisation[], depth = 0): { id: number; nom: string; depth: number }[] => {
     let result: { id: number; nom: string; depth: number }[] = [];
@@ -311,10 +344,71 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
             )}
 
             {activeTab === 'pieces' && (
-              <div className="flex flex-col items-center justify-center p-8 opacity-50">
-                <Link className="w-12 h-12 text-slate-400 mb-3" />
-                <p className="text-sm font-bold text-slate-600">Aucune pièce de rechange associée</p>
-                <p className="text-xs text-slate-500 mt-1">Ex: Roulements, Joints, Courroies</p>
+              <div className="flex flex-col gap-4">
+                {/* Formulaire d'association */}
+                {!isAdding && can(PERMISSIONS.EQUIPMENTS_EDIT) && (
+                  <div className="flex gap-2 items-end bg-slate-50 dark:bg-slate-800/50 p-3 rounded border border-slate-200 dark:border-slate-700">
+                    <div className="flex-1">
+                      <label className="text-[10px] text-slate-500 font-bold block mb-1">Associer une pièce du catalogue</label>
+                      <select 
+                        value={selectedPieceId} 
+                        onChange={e => setSelectedPieceId(e.target.value)}
+                        className="w-full text-xs p-1.5 rounded border bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 outline-none"
+                      >
+                        <option value="">-- Sélectionnez une pièce --</option>
+                        {parts.map(p => (
+                          <option key={p.ref} value={p.ref} disabled={activeEquipment?.spareParts?.includes(p.ref)}>
+                            {p.ref} - {p.name} {activeEquipment?.spareParts?.includes(p.ref) ? '(Déjà associée)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <button 
+                      onClick={handleLinkPiece}
+                      disabled={!selectedPieceId || isLinking}
+                      className="px-3 py-1.5 bg-primary text-white text-xs font-bold rounded shadow disabled:opacity-50 flex items-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" />
+                      {isLinking ? 'Association...' : 'Associer'}
+                    </button>
+                  </div>
+                )}
+
+                {/* Liste des pièces associées */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                  {activeEquipment?.spareParts && activeEquipment.spareParts.length > 0 ? (
+                    activeEquipment.spareParts.map(pieceId => {
+                      const pieceDetails = parts.find(p => p.ref === pieceId);
+                      return (
+                        <div key={pieceId} className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded shadow-sm">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-500">
+                              <Link className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{pieceDetails ? pieceDetails.name : `Pièce inconnue (ID: ${pieceId})`}</p>
+                              <p className="text-[10px] text-slate-500">Réf: {pieceId}</p>
+                            </div>
+                          </div>
+                          {!isAdding && can(PERMISSIONS.EQUIPMENTS_EDIT) && (
+                            <button 
+                              onClick={() => handleUnlinkPiece(pieceId)}
+                              className="text-xs text-rose-500 hover:text-rose-600 font-bold px-2 py-1 bg-rose-50 dark:bg-rose-500/10 rounded"
+                            >
+                              Retirer
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="col-span-1 md:col-span-2 flex flex-col items-center justify-center p-8 opacity-50">
+                      <Link className="w-12 h-12 text-slate-400 mb-3" />
+                      <p className="text-sm font-bold text-slate-600">Aucune pièce de rechange associée</p>
+                      <p className="text-xs text-slate-500 mt-1">Sélectionnez une pièce ci-dessus pour l'associer.</p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
