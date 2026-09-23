@@ -40,7 +40,7 @@ export const fetchEquipments = async (): Promise<Equipment[]> => {
         photos: e.photoUrl ? [e.photoUrl] : [],
         sensors: [],
         spareParts: [],
-        parentId: e.localisationId?.toString()
+        parentId: e.parentEquipementId ? e.parentEquipementId.toString() : undefined
     }));
 };
 
