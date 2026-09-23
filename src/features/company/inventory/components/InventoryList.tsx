@@ -136,9 +136,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({
           {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
 
-        <select className="text-xs p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-medium text-slate-600 min-w-[150px]">
-          <option value="">Tous les emplacements</option>
-        </select>
+
         
         <select className="text-xs p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-medium text-slate-600 min-w-[150px]">
           <option value="">Tous les statuts</option>
@@ -161,7 +159,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({
               <th className="p-3 text-right">Stock actuel</th>
               <th className="p-3 text-right">Stock min</th>
               <th className="p-3 text-right">Stock max</th>
-              <th className="p-3">Emplacement</th>
+
               <th className="p-3">Fournisseur</th>
               <th className="p-3 text-right">Prix unitaire</th>
               <th className="p-3 text-right">Valeur stock</th>
@@ -195,7 +193,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({
                   <td className={`p-3 text-xs text-right ${getStockColor(part)}`}>{part.stockCurrent}</td>
                   <td className="p-3 text-xs text-slate-500 text-right">{part.stockMin}</td>
                   <td className="p-3 text-xs text-slate-500 text-right">{part.stockMax}</td>
-                  <td className="p-3 text-xs text-slate-500">{part.location}</td>
+
                   <td className="p-3 text-xs text-slate-500">{sup?.name || part.supplierId}</td>
                   <td className="p-3 text-xs text-slate-500 text-right">{part.unitPrice.toFixed(2)} €</td>
                   <td className="p-3 text-xs font-semibold text-slate-700 dark:text-slate-300 text-right">{(part.stockCurrent * part.unitPrice).toFixed(2)} €</td>

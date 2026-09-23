@@ -114,10 +114,7 @@ export const InventoryDetail: React.FC<InventoryDetailProps> = ({
                 <span className="text-slate-500">Fournisseur</span>
                 <span className="font-bold text-slate-700">{sup?.name || activePart.supplierId}</span>
               </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-500">Emplacement</span>
-                <span className="font-bold text-slate-700">{activePart.location}</span>
-              </div>
+
               <div className="flex justify-between items-center text-xs">
                 <span className="text-slate-500">Prix unitaire</span>
                 <span className="font-bold text-slate-700">{activePart.unitPrice.toFixed(2)} €</span>
@@ -192,9 +189,7 @@ export const InventoryDetail: React.FC<InventoryDetailProps> = ({
                     <span className={`text-xs font-black ${log.type === 'in' ? 'text-emerald-500' : 'text-red-500'}`}>
                       {log.type === 'in' ? '+' : '-'}{log.qty}
                     </span>
-                    <span className="text-[10px] font-bold text-slate-400 bg-white px-1.5 py-0.5 rounded border border-slate-200">
-                      {activePart.location}
-                    </span>
+
                   </div>
                 </div>
               ))}
