@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Filter, Eye, Edit2, MoreVertical, AlertCircle, CheckCircle2, ChevronRight, ChevronLeft, Package } from 'lucide-react';
+import { Search, Filter, Eye, Edit2, MoreVertical, AlertCircle, AlertTriangle, CheckCircle2, ChevronRight, ChevronLeft, Package } from 'lucide-react';
 import { SparePart, Supplier } from '@/shared/types/gmao';
 
 interface InventoryListProps {
