@@ -658,7 +658,7 @@ export const gmaoSlice = createSlice({
 
 export const {
   login, logout, toggleDarkMode, setSelectedCampaign, updateRolePermission,
-  addEquipment, updateEquipmentStatus, deleteEquipment,
+  addEquipment, updateEquipment, updateEquipmentStatus, deleteEquipment,
   addIncident, updateIncidentStatus, addWorkOrder, updateWorkOrderStatus,
   addPartMovement, updatePart, addSupplier, addNotification,
   markNotificationAsRead, markAllNotificationsAsRead, addUser,
