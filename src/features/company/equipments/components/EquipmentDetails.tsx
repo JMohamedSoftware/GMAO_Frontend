@@ -346,7 +346,7 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
             {activeTab === 'pieces' && (
               <div className="flex flex-col gap-4">
                 {/* Formulaire d'association */}
-                {!isAdding && can(PERMISSIONS.EQUIPMENTS_EDIT) && (
+                {!isAdding && can(PERMISSIONS.EQUIPMENT_UPDATE) && (
                   <div className="flex gap-2 items-end bg-slate-50 dark:bg-slate-800/50 p-3 rounded border border-slate-200 dark:border-slate-700">
                     <div className="flex-1">
                       <label className="text-[10px] text-slate-500 font-bold block mb-1">Associer une pièce du catalogue</label>
@@ -390,7 +390,7 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                               <p className="text-[10px] text-slate-500">Réf: {pieceId}</p>
                             </div>
                           </div>
-                          {!isAdding && can(PERMISSIONS.EQUIPMENTS_EDIT) && (
+                          {!isAdding && can(PERMISSIONS.EQUIPMENT_UPDATE) && (
                             <button 
                               onClick={() => handleUnlinkPiece(pieceId)}
                               className="text-xs text-rose-500 hover:text-rose-600 font-bold px-2 py-1 bg-rose-50 dark:bg-rose-500/10 rounded"
