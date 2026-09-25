@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useGmao } from '@/shared/hooks/useGmao';
 import { useAppDispatch } from '@/app/hooks';
 import { createWorkOrderAsync } from '@/app/gmaoSlice';
@@ -44,6 +45,7 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
   } = useGmao();
 
   const dispatch = useAppDispatch();
+  const location = useLocation();
 
   const { can, isTechnicien, isChefEquipe } = usePermissions();
 
@@ -72,6 +74,19 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
       setSelectedOtId(selectedOtFromUrl);
     }
   }, [selectedOtFromUrl]);
+
+  // Handle location state for new OT
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.newWorkOrder) {
+      setShowCreateModal(true);
+      if (state.equipmentId) {
+        setNewEqId(state.equipmentId);
+      }
+      // Clear state so refresh doesn't reopen
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   // Sync prefilledIncident
   useEffect(() => {

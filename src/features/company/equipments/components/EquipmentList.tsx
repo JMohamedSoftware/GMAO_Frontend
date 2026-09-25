@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search, Filter, Settings2, Package, CheckCircle, AlertTriangle, AlertCircle, Wrench } from 'lucide-react';
 import { Equipment as EquipmentType, Localisation } from '@/shared/types/gmao';
+import { useGmao } from '@/shared/hooks/useGmao';
 
 interface EquipmentListProps {
   equipments: EquipmentType[];
@@ -8,8 +9,8 @@ interface EquipmentListProps {
   selectedGeoNode: Localisation | null;
   search: string;
   onSearchChange: (search: string) => void;
-  filterCriticality: string;
-  onFilterCriticalityChange: (val: string) => void;
+  filterCategory: string;
+  onFilterCategoryChange: (val: string) => void;
   filterStatus: string;
   onFilterStatusChange: (val: string) => void;
   onSelectEquipment: (eq: EquipmentType) => void;
@@ -21,12 +22,27 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({
   selectedGeoNode,
   search,
   onSearchChange,
-  filterCriticality,
-  onFilterCriticalityChange,
+  filterCategory,
+  onFilterCategoryChange,
   filterStatus,
   onFilterStatusChange,
   onSelectEquipment,
 }) => {
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState(10);
+  
+  const { equipments: allEquipments } = useGmao();
+  const uniqueCategories = React.useMemo(() => {
+    return Array.from(new Set(allEquipments.map(e => e.category).filter(Boolean)));
+  }, [allEquipments]);
+
+  const totalPages = Math.max(1, Math.ceil(equipments.length / pageSize));
+  
+  const paginatedEquipments = React.useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return equipments.slice(start, start + pageSize);
+  }, [equipments, currentPage, pageSize]);
+
   return (
     <div className="w-[380px] flex flex-col bg-white/50 dark:bg-slate-900/30 rounded-xl border border-white/40 dark:border-slate-800/40 shadow-sm overflow-hidden shrink-0">
       {/* Header */}
@@ -35,13 +51,9 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({
           <Settings2 className="w-4 h-4 text-primary" />
           Liste des Équipements
         </h3>
-        <button className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-500">
-          <div className="flex gap-0.5">
-            <div className="w-1 h-1 bg-current rounded-full" />
-            <div className="w-1 h-1 bg-current rounded-full" />
-            <div className="w-1 h-1 bg-current rounded-full" />
-          </div>
-        </button>
+        <span className="text-xs font-bold text-slate-500 bg-slate-200/50 dark:bg-slate-700/50 px-2 py-0.5 rounded-md">
+          {equipments.length}
+        </span>
       </div>
 
       {/* Toolbar (Search & Filters) */}
@@ -59,11 +71,13 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({
         <div className="flex gap-2">
           <select 
             className="flex-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 outline-none"
-            value={filterCriticality} // We can reuse filterCriticality for "Famille" if we want, or keep it as is
-            onChange={e => onFilterCriticalityChange(e.target.value)}
+            value={filterCategory}
+            onChange={e => onFilterCategoryChange(e.target.value)}
           >
             <option value="Toutes">Toutes familles</option>
-            {/* Options will be mapped here if needed */}
+            {uniqueCategories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
           </select>
           <select 
             className="flex-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 outline-none"
@@ -83,7 +97,7 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({
 
       {/* List */}
       <div className="flex-1 overflow-y-auto custom-scrollbar p-2 flex flex-col gap-2">
-        {equipments.map(eq => {
+        {paginatedEquipments.map(eq => {
           const isSelected = selectedEqId === eq.id;
           return (
             <div 
@@ -141,22 +155,42 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({
         )}
       </div>
       
-      {/* Footer Pagination (mock) */}
+      {/* Footer Pagination */}
       <div className="p-2 border-t border-slate-200/50 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between text-xs">
         <div className="flex items-center gap-2 text-slate-500 font-semibold">
           <span>Afficher</span>
-          <select className="bg-transparent border border-slate-200 dark:border-slate-700 rounded px-1 outline-none text-slate-700 dark:text-slate-300">
-            <option>10</option>
-            <option>25</option>
-            <option>50</option>
+          <select 
+            className="bg-transparent border border-slate-200 dark:border-slate-700 rounded px-1 outline-none text-slate-700 dark:text-slate-300"
+            value={pageSize}
+            onChange={e => {
+              setPageSize(Number(e.target.value));
+              setCurrentPage(1);
+            }}
+          >
+            <option value={10}>10</option>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
           </select>
           <span>par page</span>
         </div>
         <div className="flex items-center gap-1 font-bold text-slate-500">
-          <button className="w-6 h-6 rounded flex items-center justify-center bg-white dark:bg-slate-800 border border-primary text-primary">1</button>
-          <button className="w-6 h-6 rounded flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700">2</button>
-          <button className="w-6 h-6 rounded flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700">3</button>
-          <span>...</span>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).slice(
+            Math.max(0, Math.min(currentPage - 2, totalPages - 3)),
+            Math.max(3, Math.min(currentPage + 1, totalPages))
+          ).map(p => (
+            <button 
+              key={p}
+              onClick={() => setCurrentPage(p)}
+              className={`w-6 h-6 rounded flex items-center justify-center ${
+                currentPage === p 
+                  ? 'bg-white dark:bg-slate-800 border border-primary text-primary shadow-sm' 
+                  : 'hover:bg-slate-200 dark:hover:bg-slate-700'
+              }`}
+            >
+              {p}
+            </button>
+          ))}
+          {totalPages > 3 && currentPage < totalPages - 1 && <span>...</span>}
         </div>
       </div>
     </div>

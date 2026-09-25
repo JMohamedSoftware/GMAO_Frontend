@@ -26,7 +26,7 @@ export const Equipment: React.FC<EquipmentProps> = ({
   const [search, setSearch] = useState('');
   
   const [customCategories, setCustomCategories] = useState<string[]>([]);
-  const [filterCriticality, setFilterCriticality] = useState<string>('Toutes');
+  const [filterCategory, setFilterCategory] = useState<string>('Toutes');
   const [filterStatus, setFilterStatus] = useState<string>('Tous');
 
   // Left Panel (Geo) State
@@ -86,15 +86,15 @@ export const Equipment: React.FC<EquipmentProps> = ({
       filtered = filtered.filter(e => e.name.toLowerCase().includes(search.toLowerCase()) || e.id.toLowerCase().includes(search.toLowerCase()));
     }
     
-    if (filterCriticality !== 'Toutes') {
-      filtered = filtered.filter(e => e.criticality === filterCriticality);
+    if (filterCategory !== 'Toutes') {
+      filtered = filtered.filter(e => e.category === filterCategory);
     }
     if (filterStatus !== 'Tous') {
       filtered = filtered.filter(e => e.status === filterStatus);
     }
 
     return filtered;
-  }, [selectedGeoNode, equipments, search, filterCriticality, filterStatus, geoTree]);
+  }, [selectedGeoNode, equipments, search, filterCategory, filterStatus, geoTree]);
 
   // Sync selectedEqFromDash
   useEffect(() => {
@@ -284,9 +284,9 @@ export const Equipment: React.FC<EquipmentProps> = ({
             <Package className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Valeur du Parc</p>
-            <p className="text-2xl font-black text-amber-600 leading-none mt-1">1 245 000 €</p>
-            <p className="text-[10px] font-bold text-emerald-500 mt-1">↑ +3% ce mois</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Valeur Estimée</p>
+            <p className="text-2xl font-black text-amber-600 leading-none mt-1">{(totalEqs * 15000).toLocaleString('fr-FR')} €</p>
+            <p className="text-[10px] font-bold text-emerald-500 mt-1">Estimative moyenne</p>
           </div>
         </div>
       </div>
@@ -307,8 +307,8 @@ export const Equipment: React.FC<EquipmentProps> = ({
           selectedGeoNode={selectedGeoNode}
           search={search}
           onSearchChange={setSearch}
-          filterCriticality={filterCriticality}
-          onFilterCriticalityChange={setFilterCriticality}
+          filterCategory={filterCategory}
+          onFilterCategoryChange={setFilterCategory}
           filterStatus={filterStatus}
           onFilterStatusChange={setFilterStatus}
           onSelectEquipment={(eq) => {

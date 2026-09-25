@@ -2,6 +2,7 @@ import React from 'react';
 import { Settings2, Wrench, Save, Edit, Plus, Info, History, Calendar, Link, FileText, ClipboardList } from 'lucide-react';
 import { usePermissions } from '@/shared/hooks/usePermissions';
 import { PERMISSIONS } from '@/shared/permissions';
+import { useNavigate } from 'react-router-dom';
 import { Equipment as EquipmentType, Localisation, WorkOrder, Incident } from '@/shared/types/gmao';
 import { useLocalisations } from '@/shared/hooks/useLocalisations';
 import { useGmao } from '@/shared/hooks/useGmao';
@@ -39,6 +40,20 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
   onSave
 }) => {
   const { can } = usePermissions();
+  const navigate = useNavigate();
+
+  // Handle Create OT
+  const handleCreateOT = () => {
+    if (activeEquipment) {
+      navigate('/company/work-orders', { state: { newWorkOrder: true, equipmentId: activeEquipment.id } });
+    } else {
+      navigate('/company/work-orders', { state: { newWorkOrder: true } });
+    }
+  };
+
+  const handlePlanMaintenance = () => {
+    onSetActiveTab('preventifs');
+  };
   const { tree } = useLocalisations();
   const { equipments, parts } = useGmao();
   const dispatch = useAppDispatch();
@@ -115,10 +130,10 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
         <div className="flex items-center gap-2">
           {(!isAdding && !isEditing) && (
             <>
-              <button className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm hover:bg-blue-700 transition-colors">
+              <button onClick={handleCreateOT} className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm hover:bg-blue-700 transition-colors">
                 <Wrench className="w-3.5 h-3.5" /> Créer un OT
               </button>
-              <button className="px-4 py-2 bg-emerald-500 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm hover:bg-emerald-600 transition-colors">
+              <button onClick={handlePlanMaintenance} className="px-4 py-2 bg-emerald-500 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm hover:bg-emerald-600 transition-colors">
                 <Calendar className="w-3.5 h-3.5" /> Planifier maintenance
               </button>
               <button onClick={() => onSetActiveTab('historique')} className="px-4 py-2 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
