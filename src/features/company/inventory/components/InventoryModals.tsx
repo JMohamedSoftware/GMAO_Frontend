@@ -15,6 +15,9 @@ interface InventoryModalsProps {
   moveReason: string;
   setMoveReason: (r: string) => void;
   inputCls: string;
+  movePartRef: string | null;
+  setMovePartRef: (ref: string) => void;
+  parts: SparePart[];
 
   showAddModal: boolean;
   setShowAddModal: (show: boolean) => void;
@@ -42,7 +45,6 @@ interface InventoryModalsProps {
   showOrderModal: boolean;
   setShowOrderModal: (show: boolean) => void;
   orderPartRef: string | null;
-  parts: SparePart[];
   handleConfirmOrder: (e: React.FormEvent) => void;
   orderSuccess: boolean;
   orderQty: number;
@@ -56,7 +58,7 @@ export const InventoryModals: React.FC<InventoryModalsProps> = ({
   newCat, setNewCat, newSupId, setNewSupId, suppliers, newStock, setNewStock, newMin, setNewMin,
   newMax, setNewMax, newPrice, setNewPrice, newLoc, setNewLoc,
   showOrderModal, setShowOrderModal, orderPartRef, parts, handleConfirmOrder, orderSuccess,
-  orderQty, setOrderQty
+  orderQty, setOrderQty, movePartRef, setMovePartRef
 }) => {
   return (
     <>
@@ -72,10 +74,20 @@ export const InventoryModals: React.FC<InventoryModalsProps> = ({
               <button onClick={() => setShowMoveModal(false)} className="p-1 rounded-full text-slate-400 cursor-pointer"><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={executeMovement} className="p-6 flex flex-col gap-4 text-xs">
-              <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded-lg border border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] text-slate-450 block font-mono">{moveModalPart.ref}</span>
-                <span className="font-bold text-slate-700 dark:text-slate-300">{moveModalPart.name}</span>
-                <span className="text-[10px] text-slate-400 block mt-1">En stock : {moveModalPart.stockCurrent}</span>
+              <div className="flex flex-col gap-1">
+                <label className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Pièce *</label>
+                <select 
+                  value={movePartRef || ''} 
+                  onChange={(e) => setMovePartRef(e.target.value)}
+                  className={inputCls + " dark:bg-slate-800 cursor-pointer"}
+                  required
+                >
+                  {parts.map(p => (
+                    <option key={p.ref} value={p.ref}>
+                      {p.ref} - {p.name} (Stock: {p.stockCurrent})
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Quantité *</label>

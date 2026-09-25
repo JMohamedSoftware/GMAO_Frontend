@@ -333,6 +333,9 @@ export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
         moveReason={moveReason}
         setMoveReason={setMoveReason}
         inputCls={inputCls}
+        movePartRef={movePartRef}
+        setMovePartRef={setMovePartRef}
+        parts={parts}
 
         showAddModal={showAddModal}
         setShowAddModal={setShowAddModal}
@@ -360,7 +363,6 @@ export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
         showOrderModal={showOrderModal}
         setShowOrderModal={setShowOrderModal}
         orderPartRef={orderPartRef}
-        parts={parts}
         handleConfirmOrder={handleConfirmOrder}
         orderSuccess={orderSuccess}
         orderQty={orderQty}
