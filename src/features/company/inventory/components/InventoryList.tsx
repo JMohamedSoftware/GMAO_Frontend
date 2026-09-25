@@ -23,8 +23,6 @@ export const InventoryList: React.FC<InventoryListProps> = ({
   suppliers, categories, selectedPartRef, setSelectedPartRef, CATEGORY_ICONS, can
 }) => {
   const [activeTab, setActiveTab] = useState<'all' | 'critical' | 'empty' | 'order' | 'movements'>('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
   
   // Calculate counts for tabs
   const criticalCount = parts.filter(p => p.stockCurrent > 0 && p.stockCurrent <= p.stockMin).length;
@@ -45,14 +43,6 @@ export const InventoryList: React.FC<InventoryListProps> = ({
     
     return true;
   });
-
-  const totalPages = Math.ceil(filteredParts.length / itemsPerPage);
-  const paginatedParts = filteredParts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-  // Reset page when filters change
-  React.useEffect(() => {
-    setCurrentPage(1);
-  }, [search, filterSupplier, activeTab, itemsPerPage]);
 
   const getStatusBadge = (part: SparePart) => {
     if (part.stockCurrent <= 0) {
@@ -178,7 +168,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {paginatedParts.map(part => {
+            {filteredParts.map(part => {
               const Icon = CATEGORY_ICONS[part.category || ''] || Package;
               const isSelected = selectedPartRef === part.ref;
               const sup = suppliers.find(s => s.id === part.supplierId);
@@ -238,87 +228,6 @@ export const InventoryList: React.FC<InventoryListProps> = ({
             )}
           </tbody>
         </table>
-      </div>
-
-      {/* Pagination */}
-      <div className="p-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900">
-        <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-          {filteredParts.length === 0 ? (
-            "Aucune pièce"
-          ) : (
-            <>
-              Affichage de {(currentPage - 1) * itemsPerPage + 1} à {Math.min(currentPage * itemsPerPage, filteredParts.length)} sur {filteredParts.length} pièces
-              {filteredParts.length > 10 && (
-                <>
-                  <span className="mx-1 text-slate-300">|</span>
-                  <select 
-                    value={itemsPerPage}
-                    onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                    className="border border-slate-200 rounded py-0.5 px-1 outline-none bg-white font-medium"
-                  >
-                    <option value={10}>10</option>
-                    <option value={20}>20</option>
-                    <option value={50}>50</option>
-                  </select> 
-                  / page
-                </>
-              )}
-            </>
-          )}
-        </div>
-        
-        {totalPages > 1 && (
-          <div className="flex items-center gap-1">
-            <button 
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="w-8 h-8 flex items-center justify-center rounded border border-slate-200 text-slate-400 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            
-            {/* Simple page numbers */}
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              // Calculate logic to show pages around current page
-              let pageNum = currentPage;
-              if (currentPage <= 3) pageNum = i + 1;
-              else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
-              else pageNum = currentPage - 2 + i;
-              
-              if (pageNum < 1 || pageNum > totalPages) return null;
-              
-              return (
-                <button 
-                  key={pageNum}
-                  onClick={() => setCurrentPage(pageNum)}
-                  className={`w-8 h-8 flex items-center justify-center rounded border text-xs font-bold ${currentPage === pageNum ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
-                >
-                  {pageNum}
-                </button>
-              );
-            })}
-            
-            {totalPages > 5 && currentPage < totalPages - 2 && (
-              <>
-                <span className="w-8 h-8 flex items-center justify-center text-slate-400">...</span>
-                <button 
-                  onClick={() => setCurrentPage(totalPages)}
-                  className="w-8 h-8 flex items-center justify-center rounded border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50"
-                >
-                  {totalPages}
-                </button>
-              </>
-            )}
-            
-            <button 
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="w-8 h-8 flex items-center justify-center rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        )}
       </div>
 
     </div>
