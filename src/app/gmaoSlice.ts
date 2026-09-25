@@ -516,14 +516,14 @@ export const gmaoSlice = createSlice({
         state.tenants.push(tenant);
       }
       if (tenant) {
-        tenant.equipments = action.payload.equipments;
-        tenant.suppliers = action.payload.suppliers;
-        tenant.parts = action.payload.parts;
-        tenant.incidents = action.payload.incidents;
-        tenant.workOrders = action.payload.workOrders;
-        tenant.campaigns = action.payload.campaigns;
-        tenant.technicians = action.payload.technicians;
-        tenant.users = action.payload.users;
+        if (!tenant.equipments?.length) tenant.equipments = action.payload.equipments;
+        if (!tenant.suppliers?.length) tenant.suppliers = action.payload.suppliers;
+        if (!tenant.parts?.length) tenant.parts = action.payload.parts;
+        if (!tenant.incidents?.length) tenant.incidents = action.payload.incidents;
+        if (!tenant.workOrders?.length) tenant.workOrders = action.payload.workOrders;
+        if (!tenant.campaigns?.length) tenant.campaigns = action.payload.campaigns;
+        if (!tenant.technicians?.length) tenant.technicians = action.payload.technicians;
+        if (!tenant.users?.length) tenant.users = action.payload.users;
         if (!tenant.equipes) tenant.equipes = [];
       }
     });
