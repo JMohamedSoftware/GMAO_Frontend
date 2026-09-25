@@ -272,11 +272,6 @@ export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
           </button>
           
 
-          <button
-            className="p-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm cursor-pointer transition-colors"
-          >
-            <MoreHorizontal className="w-4 h-4" />
-          </button>
         </div>
       </div>
 

@@ -277,13 +277,6 @@ export const InventoryDetail: React.FC<InventoryDetailProps> = ({
         >
           <Edit2 className="w-4 h-4" /> Modifier
         </button>
-        <button 
-          onClick={() => handleOpenOrder(activePart.ref)}
-          className="px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg transition-colors"
-          title="Commander cette pièce"
-        >
-          <MoreHorizontal className="w-4 h-4" />
-        </button>
       </div>
     </div>
   );

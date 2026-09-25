@@ -217,13 +217,6 @@ export const InventoryList: React.FC<InventoryListProps> = ({
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); handleOpenOrder(part.ref); }}
-                        className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors"
-                        title="Commander"
-                      >
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
                     </div>
                   </td>
                 </tr>
