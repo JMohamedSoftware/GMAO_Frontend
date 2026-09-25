@@ -113,13 +113,30 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
           {isAdding ? 'Nouvel Équipement' : 'Fiche Technique'}
         </h2>
         <div className="flex items-center gap-2">
+          {(!isAdding && !isEditing) && (
+            <>
+              <button className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm hover:bg-blue-700 transition-colors">
+                <Wrench className="w-3.5 h-3.5" /> Créer un OT
+              </button>
+              <button className="px-4 py-2 bg-emerald-500 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm hover:bg-emerald-600 transition-colors">
+                <Calendar className="w-3.5 h-3.5" /> Planifier maintenance
+              </button>
+              <button onClick={() => onSetActiveTab('historique')} className="px-4 py-2 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                <History className="w-3.5 h-3.5" /> Consulter historique
+              </button>
+              <button className="px-3 py-2 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-lg flex items-center justify-center shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                <span className="leading-none -mt-1 font-bold text-lg">...</span>
+              </button>
+            </>
+          )}
+
           {(isEditing || isAdding) ? (
-            <button onClick={onSave} className="px-3 py-1.5 bg-primary text-white text-xs font-bold rounded flex items-center gap-1.5 hover:bg-primary/90">
+            <button onClick={onSave} className="px-4 py-2 bg-primary text-white text-xs font-bold rounded-lg flex items-center gap-1.5 hover:bg-primary/90 shadow-sm transition-colors">
               <Save className="w-3.5 h-3.5" /> Enregistrer
             </button>
           ) : (
             can(PERMISSIONS.EQUIPMENT_UPDATE) && (
-            <button onClick={() => { onSetIsEditing(true); onSetFormData(activeEquipment || {}); }} className="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white text-xs font-bold rounded flex items-center gap-1.5 hover:bg-slate-300">
+            <button onClick={() => { onSetIsEditing(true); onSetFormData(activeEquipment || {}); }} className="px-4 py-2 bg-primary text-white text-xs font-bold rounded-lg flex items-center gap-1.5 hover:bg-primary/90 shadow-sm transition-colors">
               <Edit className="w-3.5 h-3.5" /> Modifier
             </button>
             )

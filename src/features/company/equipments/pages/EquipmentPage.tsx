@@ -5,9 +5,9 @@ import { useLocalisations } from '@/shared/hooks/useLocalisations';
 import { Equipment as EquipmentType, Localisation } from '@/shared/types/gmao';
 import { usePermissions } from '@/shared/hooks/usePermissions';
 import { PERMISSIONS } from '@/shared/permissions';
-import { Settings2, Plus } from 'lucide-react';
+import { Settings2, Plus, Package } from 'lucide-react';
 import { GeoTree } from '../components/GeoTree';
-import { EqTree, EqNode } from '../components/EqTree';
+import { EquipmentList } from '../components/EquipmentList';
 import { EquipmentDetails } from '../components/EquipmentDetails';
 
 interface EquipmentProps {
@@ -34,7 +34,6 @@ export const Equipment: React.FC<EquipmentProps> = ({
   const [selectedGeoNode, setSelectedGeoNode] = useState<Localisation | null>(null);
 
   // Middle Panel (Eq) State
-  const [eqExpanded, setEqExpanded] = useState<Set<string>>(new Set());
   const [selectedEqId, setSelectedEqId] = useState<string | null>(selectedEqFromDash?.id || null);
 
   // Right Panel (Form) State
@@ -75,8 +74,8 @@ export const Equipment: React.FC<EquipmentProps> = ({
     return ids;
   };
 
-  // 2. Build Equipment Tree
-  const eqTree = useMemo(() => {
+  // 2. Build Filtered Equipment List
+  const filteredEquipments = useMemo(() => {
     if (!selectedGeoNode) return [];
     
     const validLocIds = getDescendantLocalisationIds(selectedGeoNode.id);
@@ -94,45 +93,8 @@ export const Equipment: React.FC<EquipmentProps> = ({
       filtered = filtered.filter(e => e.status === filterStatus);
     }
 
-    const root: EqNode[] = [];
-    const categories = Array.from(new Set(filtered.map(e => e.category).filter(Boolean)));
-    
-    customCategories.forEach(c => {
-        if (!categories.includes(c)) categories.push(c);
-    });
-
-    categories.forEach(category => {
-      const isCustomCat = customCategories.includes(category);
-      const catNode: EqNode = { id: `cat-${category}`, name: category, type: 'category', children: [], isCustom: isCustomCat };
-      
-      const topEqs = filtered.filter(e => e.category === category && !e.parentId);
-      
-      const buildEqHierarchy = (eq: EquipmentType): EqNode => {
-        const node: EqNode = { id: eq.id, name: eq.name, type: 'equipment', children: [], equipmentRef: eq };
-        const children = equipments.filter(e => e.parentId === eq.id);
-        children.forEach(child => {
-          node.children.push(buildEqHierarchy(child));
-        });
-        return node;
-      };
-
-      topEqs.forEach(eq => {
-        catNode.children.push(buildEqHierarchy(eq));
-      });
-
-      root.push(catNode);
-    });
-
-    if (categories.length > 0) {
-      setEqExpanded(prev => {
-        const newSet = new Set(prev);
-        categories.forEach(c => newSet.add(`cat-${c}`));
-        return newSet;
-      });
-    }
-
-    return root;
-  }, [selectedGeoNode, equipments, search, filterCriticality, filterStatus, customCategories, geoTree]);
+    return filtered;
+  }, [selectedGeoNode, equipments, search, filterCriticality, filterStatus, geoTree]);
 
   // Sync selectedEqFromDash
   useEffect(() => {
@@ -169,14 +131,7 @@ export const Equipment: React.FC<EquipmentProps> = ({
     });
   };
 
-  const toggleEqNode = (id: string) => {
-    setEqExpanded(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(id)) newSet.delete(id);
-      else newSet.add(id);
-      return newSet;
-    });
-  };
+
 
   const activeEquipment = equipments.find(e => e.id === selectedEqId);
 
@@ -212,7 +167,7 @@ export const Equipment: React.FC<EquipmentProps> = ({
     });
   };
 
-  const handleAddNewFromEq = (node: EqNode, e: React.MouseEvent) => {
+  const handleAddNewFromEq = (nodeEq: EquipmentType, e: React.MouseEvent) => {
     e.stopPropagation();
     setIsAdding(true);
     setSelectedEqId(null);
@@ -223,59 +178,117 @@ export const Equipment: React.FC<EquipmentProps> = ({
       criticality: 'Moyenne',
       localisationId: selectedGeoNode ? selectedGeoNode.id : undefined,
       photos: [],
+      category: nodeEq.category,
+      parentId: nodeEq.id
     };
-
-    if (node.type === 'category') {
-      newEq.category = node.name;
-    } else if (node.type === 'equipment' && node.equipmentRef) {
-      newEq.category = node.equipmentRef.category;
-      newEq.parentId = node.equipmentRef.id;
-    }
 
     setFormData(newEq);
   };
 
-  const handleDeleteEqNode = (node: EqNode, e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (window.confirm(`Êtes-vous sûr de vouloir supprimer ${node.name} et tout son contenu ?`)) {
-          if (node.type === 'category') {
-              if (node.isCustom) {
-                  setCustomCategories(prev => prev.filter(c => c !== node.name));
-              } else {
-                  deleteEquipmentsByCategory(node.name);
-              }
-          } else if (node.type === 'equipment' && node.equipmentRef) {
-              deleteEquipment(node.equipmentRef.id);
-              if (selectedEqId === node.equipmentRef.id) setSelectedEqId(null);
-          }
+  const handleDeleteEq = (eqId: string, e?: React.MouseEvent) => {
+      e?.stopPropagation();
+      if (window.confirm(`Êtes-vous sûr de vouloir supprimer cet équipement et tout son contenu ?`)) {
+        deleteEquipment(eqId);
+        if (selectedEqId === eqId) setSelectedEqId(null);
       }
   };
 
+  const totalEqs = equipments.length;
+  const enService = equipments.filter(e => e.status === 'En service').length;
+  const horsService = equipments.filter(e => e.status === 'Hors service' || e.status === 'En panne').length;
+  const enMaintenance = equipments.filter(e => e.status === 'En maintenance').length;
+
   return (
     <div className="h-full flex flex-col gap-4 animate-[fadeIn_0.3s_ease-out]">
-      <div className="flex justify-between items-center bg-white/40 dark:bg-slate-900/40 p-4 rounded-custom-md border border-white/40 dark:border-slate-800/40 shadow-sm backdrop-blur-md">
+      {/* Header */}
+      <div className="flex justify-between items-center">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-primary/10 text-primary rounded-xl">
-            <Settings2 className="w-6 h-6" />
+          <div className="p-3 bg-primary/10 text-primary rounded-xl">
+            <Settings2 className="w-7 h-7" />
           </div>
           <div>
             <h1 className="text-2xl font-black text-slate-800 dark:text-white leading-tight tracking-tight">
               Gestion des Équipements
             </h1>
-            <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
-              Vue géographique et technique
+            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">
+              Suivi technique, maintenance et performance de vos équipements
             </p>
           </div>
         </div>
-        {can(PERMISSIONS.EQUIPMENT_CREATE) && (
-        <button 
-          onClick={handleAddNew}
-          className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/95 text-white font-bold text-xs rounded-custom-sm shadow-md hover-lift"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Nouveau</span>
-        </button>
-        )}
+        <div className="flex items-center gap-2">
+          {can(PERMISSIONS.EQUIPMENT_CREATE) && (
+            <button 
+              onClick={handleAddNew}
+              className="flex items-center gap-1.5 px-4 py-2.5 bg-primary hover:bg-primary/95 text-white font-bold text-xs rounded-lg shadow-sm hover-lift"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nouvel Équipement</span>
+            </button>
+          )}
+          <button className="flex items-center gap-1.5 px-4 py-2.5 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800">
+            Importer
+          </button>
+          <button className="flex items-center gap-1.5 px-4 py-2.5 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800">
+            Exporter
+          </button>
+          <button className="px-3 py-2.5 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800">
+            <Settings2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-5 gap-4">
+        <div className="bg-white dark:bg-slate-850 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-blue-500/10 text-blue-600 rounded-lg shrink-0">
+            <Package className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Équipements</p>
+            <p className="text-2xl font-black text-slate-800 dark:text-white leading-none mt-1">{totalEqs}</p>
+            <p className="text-[10px] font-bold text-emerald-500 mt-1">↑ +12% ce mois</p>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-slate-850 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-emerald-500/10 text-emerald-600 rounded-lg shrink-0">
+            <Settings2 className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">En Service</p>
+            <p className="text-2xl font-black text-emerald-600 leading-none mt-1">{enService}</p>
+            <p className="text-[10px] font-bold text-slate-500 mt-1">{totalEqs ? Math.round((enService/totalEqs)*100) : 0}% du parc</p>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-slate-850 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-rose-500/10 text-rose-600 rounded-lg shrink-0">
+            <Settings2 className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Hors Service</p>
+            <p className="text-2xl font-black text-rose-600 leading-none mt-1">{horsService}</p>
+            <p className="text-[10px] font-bold text-slate-500 mt-1">{totalEqs ? Math.round((horsService/totalEqs)*100) : 0}% du parc</p>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-slate-850 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-purple-500/10 text-purple-600 rounded-lg shrink-0">
+            <Settings2 className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">En Maintenance</p>
+            <p className="text-2xl font-black text-purple-600 leading-none mt-1">{enMaintenance}</p>
+            <p className="text-[10px] font-bold text-slate-500 mt-1">{totalEqs ? Math.round((enMaintenance/totalEqs)*100) : 0}% du parc</p>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-slate-850 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-amber-500/10 text-amber-600 rounded-lg shrink-0">
+            <Package className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Valeur du Parc</p>
+            <p className="text-2xl font-black text-amber-600 leading-none mt-1">1 245 000 €</p>
+            <p className="text-[10px] font-bold text-emerald-500 mt-1">↑ +3% ce mois</p>
+          </div>
+        </div>
       </div>
 
       <div className="flex-1 flex gap-4 min-h-0 overflow-hidden">
@@ -288,9 +301,8 @@ export const Equipment: React.FC<EquipmentProps> = ({
           onSelectNode={setSelectedGeoNode}
         />
 
-        <EqTree 
-          eqTree={eqTree}
-          eqExpanded={eqExpanded}
+        <EquipmentList 
+          equipments={filteredEquipments}
           selectedEqId={selectedEqId}
           selectedGeoNode={selectedGeoNode}
           search={search}
@@ -299,14 +311,11 @@ export const Equipment: React.FC<EquipmentProps> = ({
           onFilterCriticalityChange={setFilterCriticality}
           filterStatus={filterStatus}
           onFilterStatusChange={setFilterStatus}
-          onToggleNode={toggleEqNode}
           onSelectEquipment={(eq) => {
             setSelectedEqId(eq.id);
             setIsAdding(false);
             setIsEditing(false);
           }}
-          onAddNewFromEq={handleAddNewFromEq}
-          onDeleteEqNode={handleDeleteEqNode}
         />
 
         {/* Column 3: Details / Form */}
