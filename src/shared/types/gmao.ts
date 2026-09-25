@@ -234,6 +234,7 @@ export interface Tenant {
   campaigns: Campaign[];
   users: UserAccount[];
   equipes: Equipe[];           // Équipes de maintenance
+  movementLogs: any[];         // Journal des mouvements de stock
 }
 
 // ── Maintenance Préventive ───────────────────────────────────────────────────

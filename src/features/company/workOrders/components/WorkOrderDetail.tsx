@@ -27,7 +27,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
   updateWorkOrderStatus
 }) => {
   const { can, isResponsable, isChefEquipe } = usePermissions();
-  const { currentUser, users, equipes } = useGmao();
+  const { currentUser, users, equipes, addPartMovement } = useGmao();
 
   // Helper: build owner ID array safely (no NaN)
   const ownerIds = (): (number | undefined)[] => [
@@ -214,14 +214,23 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
 
     updateWorkOrderStatus(activeOt.id, activeOt.status, { partsUsed });
     
+    // Register the movement and deduct stock
+    addPartMovement(selectedPartRef, selectedPartQty, 'out', activeOt.id);
+
     setSelectedPartRef('');
     setSelectedPartQty(1);
   };
 
   const handleDeletePartFromOt = (partRef: string) => {
     if (!activeOt) return;
+    const partToRestore = activeOt.partsUsed.find(p => p.partRef === partRef);
     const partsUsed = activeOt.partsUsed.filter(p => p.partRef !== partRef);
     updateWorkOrderStatus(activeOt.id, activeOt.status, { partsUsed });
+
+    // Restore stock
+    if (partToRestore) {
+      addPartMovement(partRef, partToRestore.quantity, 'in', activeOt.id);
+    }
   };
 
   if (!activeOt) return null;

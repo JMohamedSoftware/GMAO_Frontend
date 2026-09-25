@@ -37,7 +37,8 @@ const getInitialTenants = (): Tenant[] => {
       suppliers: [],
       campaigns: [],
       equipes: [],
-      users: []
+      users: [],
+      movementLogs: []
     }
   ];
 };
@@ -82,7 +83,8 @@ export const createTenantAsync = createAsyncThunk(
       suppliers: [],
       campaigns: [],
       equipes: [],
-      users: []
+      users: [],
+      movementLogs: []
     } as Tenant;
   }
 );
@@ -408,6 +410,16 @@ export const gmaoSlice = createSlice({
           } else if (part.stockCurrent >= action.payload.qty) {
             part.stockCurrent -= action.payload.qty;
           }
+          if (!tenant.movementLogs) tenant.movementLogs = [];
+          tenant.movementLogs.unshift({
+            id: `MOV-${String(Date.now()).slice(-4)}`,
+            partRef: action.payload.ref,
+            qty: action.payload.qty,
+            type: action.payload.type,
+            reason: action.payload.otId ? `Consommation OT: ${action.payload.otId}` : (action.payload.type === 'in' ? 'Approvisionnement manuel' : 'Sortie manuelle'),
+            date: new Date().toISOString(),
+            category: action.payload.otId ? 'Maintenance' : 'Manuel'
+          });
         }
       }
     },
@@ -498,7 +510,8 @@ export const gmaoSlice = createSlice({
           suppliers: [],
           campaigns: [],
           equipes: [],
-          users: []
+          users: [],
+          movementLogs: []
         };
         state.tenants.push(tenant);
       }

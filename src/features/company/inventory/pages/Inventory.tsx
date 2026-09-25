@@ -49,7 +49,7 @@ const CATEGORY_ICONS: Record<string, React.ComponentType<any>> = {
 };
 
 export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
-  const { parts, suppliers, addPartMovement, updatePart } = useGmao();
+  const { parts, suppliers, addPartMovement, updatePart, movementLogs } = useGmao();
   const { can } = usePermissions();
 
   // 3-column navigation state
@@ -97,13 +97,6 @@ export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
   const [orderQty, setOrderQty] = useState(1);
   const [orderSuccess, setOrderSuccess] = useState(false);
 
-  // Movements log
-  const [movementLogs, setMovementLogs] = useState([
-    { id: 'MOV-001', partRef: 'REF-BRG-102', qty: 2, type: 'out', reason: 'OT-2026-001 - Remplacement roulement', date: '2026-07-07T09:35:00', category: 'Maintenance Corrective' },
-    { id: 'MOV-002', partRef: 'REF-GASK-EVAP', qty: 10, type: 'in', reason: 'Livraison commande SKF', date: '2026-07-06T14:20:00', category: 'Achat' },
-    { id: 'MOV-003', partRef: 'REF-VALV-304', qty: 1, type: 'out', reason: 'OT-2026-003 - Rechange vanne', date: '2026-07-05T09:40:00', category: 'Maintenance Préventive' },
-    { id: 'MOV-004', partRef: 'REF-BRG-102', qty: 1, type: 'out', reason: 'Pièce endommagée au montage', date: '2026-07-04T10:00:00', category: 'Casse' }
-  ]);
 
   // KPIs
   const lowStockParts = parts.filter(p => p.stockCurrent <= p.stockMin);
@@ -152,17 +145,9 @@ export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
   const executeMovement = (e: React.FormEvent) => {
     e.preventDefault();
     if (!movePartRef) return;
-    const success = addPartMovement(movePartRef, moveQty, moveType);
+    const success = addPartMovement(movePartRef, moveQty, moveType, undefined);
     if (success) {
-      setMovementLogs(prev => [{
-        id: `MOV-${String(Date.now()).slice(-3)}`,
-        partRef: movePartRef,
-        qty: moveQty,
-        type: moveType,
-        reason: moveReason || (moveType === 'in' ? 'Approvisionnement manuel' : 'Consommation manuelle'),
-        date: new Date().toISOString(),
-        category: moveCategory
-      }, ...prev]);
+      // Stock movement is now fully handled in Redux (both stock change and log)
       setShowMoveModal(false);
     } else {
       alert("Erreur: Quantité en stock insuffisante pour effectuer cette sortie.");

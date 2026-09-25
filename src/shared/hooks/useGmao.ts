@@ -47,6 +47,7 @@ export const useGmao = () => {
     suppliers: activeTenant ? activeTenant.suppliers : [],
     campaigns: activeTenant ? activeTenant.campaigns : [],
     equipes: activeTenant ? (activeTenant.equipes || []) : [],
+    movementLogs: activeTenant ? (activeTenant.movementLogs || []) : [],
 
     // Actions
     login: (email: string, password?: string, tenantId?: string | null, quickRole?: User['role'], forcedName?: string, userId?: string) => {
@@ -114,7 +115,10 @@ export const useGmao = () => {
       const result = await dispatch(updateWorkOrderStatusAsync({ id, status, fullOt, updates }));
       return result;
     },
-    addPartMovement: (ref: string, qty: number, type: 'in' | 'out', otId?: string) => dispatch(actions.addPartMovement({ref, qty, type, otId})),
+    addPartMovement: (ref: string, qty: number, type: 'in' | 'out', otId?: string) => {
+      dispatch(actions.addPartMovement({ref, qty, type, otId}));
+      return true;
+    },
     updatePart: (updated: SparePart) => dispatch(actions.updatePart(updated)),
     addSupplier: (sup: Supplier) => dispatch(actions.addSupplier(sup)),
     addNotification: (notif: Omit<Notification, 'id' | 'date' | 'read'>) => dispatch(actions.addNotification(notif)),
