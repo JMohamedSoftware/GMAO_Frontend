@@ -243,17 +243,28 @@ export const InventoryList: React.FC<InventoryListProps> = ({
       {/* Pagination */}
       <div className="p-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900">
         <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-          Afficher 
-          <select 
-            value={itemsPerPage}
-            onChange={(e) => setItemsPerPage(Number(e.target.value))}
-            className="border border-slate-200 rounded p-1 outline-none bg-white"
-          >
-            <option value={10}>10</option>
-            <option value={20}>20</option>
-            <option value={50}>50</option>
-          </select> 
-          par page (Total: {filteredParts.length})
+          {filteredParts.length === 0 ? (
+            "Aucune pièce"
+          ) : (
+            <>
+              Affichage de {(currentPage - 1) * itemsPerPage + 1} à {Math.min(currentPage * itemsPerPage, filteredParts.length)} sur {filteredParts.length} pièces
+              {filteredParts.length > 10 && (
+                <>
+                  <span className="mx-1 text-slate-300">|</span>
+                  <select 
+                    value={itemsPerPage}
+                    onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                    className="border border-slate-200 rounded py-0.5 px-1 outline-none bg-white font-medium"
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </select> 
+                  / page
+                </>
+              )}
+            </>
+          )}
         </div>
         
         {totalPages > 1 && (
