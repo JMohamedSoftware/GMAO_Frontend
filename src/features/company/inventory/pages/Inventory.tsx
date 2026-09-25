@@ -189,6 +189,21 @@ export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
     setSelectedCategory(newCat);
   };
 
+  const handleEditPart = (partRef: string) => {
+    const p = parts.find(x => x.ref === partRef);
+    if (!p) return;
+    setNewRef(p.ref);
+    setNewName(p.name);
+    setNewCat(p.category);
+    setNewSupId(p.supplierId || '');
+    setNewStock(p.stockCurrent);
+    setNewMin(p.stockMin);
+    setNewMax(p.stockMax);
+    setNewPrice(p.unitPrice);
+    setNewLoc(p.location || '');
+    setShowAddModal(true); // Reuse the add modal
+  };
+
   const handleOpenOrder = (partRef: string) => {
     setOrderPartRef(partRef);
     const p = parts.find(p => p.ref === partRef);
@@ -229,7 +244,10 @@ export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
         <div className="flex items-center gap-2">
           {can(PERMISSIONS.INVENTORY_CREATE) && (
             <button
-              onClick={() => setShowAddModal(true)}
+              onClick={() => {
+                setNewRef(''); setNewName(''); setNewSupId('');
+                setShowAddModal(true);
+              }}
               className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-sm cursor-pointer transition-colors"
             >
               <Plus className="w-4 h-4" />
@@ -282,6 +300,8 @@ export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
             setSelectedPartRef={setSelectedPartRef}
             CATEGORY_ICONS={CATEGORY_ICONS}
             can={can}
+            handleEditPart={handleEditPart}
+            handleOpenOrder={handleOpenOrder}
           />
         </div>
 
@@ -294,6 +314,8 @@ export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
             can={can}
             onNavigate={onNavigate}
             handleOpenMovement={handleOpenMovement}
+            handleEditPart={handleEditPart}
+            handleOpenOrder={handleOpenOrder}
             activeTab={activeTab}
             setActiveTab={setActiveTab}
             movementLogs={movementLogs}

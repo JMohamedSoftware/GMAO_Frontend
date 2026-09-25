@@ -13,11 +13,13 @@ interface InventoryDetailProps {
   setActiveTab: (tab: any) => void;
   movementLogs: any[];
   onClose: () => void;
+  handleEditPart: (ref: string) => void;
+  handleOpenOrder: (ref: string) => void;
 }
 
 export const InventoryDetail: React.FC<InventoryDetailProps> = ({
   activePart, suppliers, CATEGORY_ICONS, can, onNavigate, handleOpenMovement,
-  activeTab, setActiveTab, movementLogs, onClose
+  activeTab, setActiveTab, movementLogs, onClose, handleEditPart, handleOpenOrder
 }) => {
   if (!activePart) {
     return null; // Don't render anything if no part is selected (handled by translate-x-full in parent)
@@ -270,12 +272,15 @@ export const InventoryDetail: React.FC<InventoryDetailProps> = ({
           <ArrowUpFromLine className="w-4 h-4" /> Sortie stock
         </button>
         <button 
+          onClick={() => handleEditPart(activePart.ref)}
           className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg transition-colors"
         >
           <Edit2 className="w-4 h-4" /> Modifier
         </button>
         <button 
+          onClick={() => handleOpenOrder(activePart.ref)}
           className="px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg transition-colors"
+          title="Commander cette pièce"
         >
           <MoreHorizontal className="w-4 h-4" />
         </button>

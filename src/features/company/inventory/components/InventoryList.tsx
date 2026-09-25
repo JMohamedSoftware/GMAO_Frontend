@@ -16,11 +16,14 @@ interface InventoryListProps {
   setSelectedPartRef: (ref: string | null) => void;
   CATEGORY_ICONS: Record<string, React.ComponentType<any>>;
   can: (permission: string) => boolean;
+  handleEditPart: (ref: string) => void;
+  handleOpenOrder: (ref: string) => void;
 }
 
 export const InventoryList: React.FC<InventoryListProps> = ({
   parts, search, setSearch, filterSupplier, setFilterSupplier, filterAlertOnly, setFilterAlertOnly,
-  suppliers, categories, selectedPartRef, setSelectedPartRef, CATEGORY_ICONS, can
+  suppliers, categories, selectedPartRef, setSelectedPartRef, CATEGORY_ICONS, can,
+  handleEditPart, handleOpenOrder
 }) => {
   const [activeTab, setActiveTab] = useState<'all' | 'critical' | 'empty' | 'order' | 'movements'>('all');
   
@@ -202,13 +205,23 @@ export const InventoryList: React.FC<InventoryListProps> = ({
                   </td>
                   <td className="p-3 text-center">
                     <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-md transition-colors">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setSelectedPartRef(part.ref); }}
+                        className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-md transition-colors"
+                      >
                         <Eye className="w-4 h-4" />
                       </button>
-                      <button className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-md transition-colors">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleEditPart(part.ref); }}
+                        className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-md transition-colors"
+                      >
                         <Edit2 className="w-4 h-4" />
                       </button>
-                      <button className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleOpenOrder(part.ref); }}
+                        className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors"
+                        title="Commander"
+                      >
                         <MoreVertical className="w-4 h-4" />
                       </button>
                     </div>
