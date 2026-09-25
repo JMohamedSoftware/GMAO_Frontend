@@ -337,12 +337,31 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
 
           <div className="grid grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-800/80 pt-3">
             <div>
+              <span className="text-slate-400 block mb-0.5">Nature d'intervention</span>
+              <span className="font-bold text-slate-700 dark:text-slate-350">{activeOt.type}</span>
+            </div>
+            <div>
+              <span className="text-slate-400 block mb-0.5">Priorité</span>
+              <span className={`font-bold ${
+                activeOt.priority === 'Critique' ? 'text-rose-600' :
+                activeOt.priority === 'Haute' ? 'text-orange-500' :
+                activeOt.priority === 'Moyenne' ? 'text-amber-500' : 'text-emerald-500'
+              }`}>{activeOt.priority}</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-800/80 pt-3">
+            <div>
               <span className="text-slate-400 block mb-0.5">Date prévue</span>
-              <span className="font-bold text-slate-700 dark:text-slate-350">11/07/2026</span>
+              <span className="font-bold text-slate-700 dark:text-slate-350">
+                {new Date(activeOt.createdDate).toLocaleDateString('fr-FR')}
+              </span>
             </div>
             <div>
               <span className="text-slate-400 block mb-0.5">Date limite</span>
-              <span className="font-bold text-rose-600">12/07/2026</span>
+              <span className="font-bold text-rose-600">
+                {new Date(new Date(activeOt.createdDate).getTime() + 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR')}
+              </span>
             </div>
           </div>
           
@@ -539,16 +558,22 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
 
           {/* ——— ACTIONS TECHNICIEN ——— */}
           <div className="flex flex-col gap-2.5 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
-            {activeOt.status === 'En cours' && (
-              <div className="flex items-center justify-between bg-rose-500/5 border border-rose-500/20 rounded-xl px-4 py-3">
+            {(activeOt.status === 'En cours' || activeOt.status === 'Suspendu') && (
+              <div className={`flex items-center justify-between border rounded-xl px-4 py-3 ${
+                activeOt.status === 'En cours' 
+                  ? 'bg-rose-500/5 border-rose-500/20' 
+                  : 'bg-amber-500/5 border-amber-500/20'
+              }`}>
                 <div className="flex items-center gap-2.5">
                   <span className="flex h-2.5 w-2.5 relative">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+                    {activeOt.status === 'En cours' && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>}
+                    <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${activeOt.status === 'En cours' ? 'bg-rose-500' : 'bg-amber-500'}`}></span>
                   </span>
-                  <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider">OT En cours</span>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${activeOt.status === 'En cours' ? 'text-rose-600' : 'text-amber-600'}`}>
+                    {activeOt.status === 'En cours' ? 'OT En cours' : 'OT Suspendu'}
+                  </span>
                 </div>
-                <span className="font-mono text-lg font-black text-rose-500 tabular-nums tracking-tight">
+                <span className={`font-mono text-lg font-black tabular-nums tracking-tight ${activeOt.status === 'En cours' ? 'text-rose-500' : 'text-amber-500'}`}>
                   {formatTimer(timerSeconds)}
                 </span>
               </div>
@@ -571,7 +596,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
                   onClick={() => updateWorkOrderStatus(activeOt.id, 'Suspendu')}
                   className="flex-1 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg shadow-sm"
                 >
-                  Pause / Reprendre
+                  Mettre en pause
                 </button>
                 )}
                 {(can(PERMISSIONS.WORKORDER_FINISH, ownerIds()) || (String(activeOt.technicianId) === String(currentUser?.id))) && (
@@ -588,7 +613,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
               </div>
             )}
 
-            {can(PERMISSIONS.WORKORDER_START, ownerIds()) && activeOt.status === 'Suspendu' && (
+            {(can(PERMISSIONS.WORKORDER_START, ownerIds()) || (String(activeOt.technicianId) === String(currentUser?.id))) && activeOt.status === 'Suspendu' && (
               <button
                 onClick={() => updateWorkOrderStatus(activeOt.id, 'En cours')}
                 className="w-full py-2 bg-primary hover:bg-primary/95 text-white font-bold rounded-lg shadow-sm"
