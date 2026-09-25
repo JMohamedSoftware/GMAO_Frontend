@@ -76,11 +76,12 @@ export const Equipment: React.FC<EquipmentProps> = ({
 
   // 2. Build Filtered Equipment List
   const filteredEquipments = useMemo(() => {
-    if (!selectedGeoNode) return [];
-    
-    const validLocIds = getDescendantLocalisationIds(selectedGeoNode.id);
+    let filtered = equipments;
 
-    let filtered = equipments.filter(e => e.localisationId && validLocIds.includes(Number(e.localisationId)));
+    if (selectedGeoNode) {
+      const validLocIds = getDescendantLocalisationIds(selectedGeoNode.id);
+      filtered = filtered.filter(e => e.localisationId && validLocIds.includes(Number(e.localisationId)));
+    }
 
     if (search) {
       filtered = filtered.filter(e => e.name.toLowerCase().includes(search.toLowerCase()) || e.id.toLowerCase().includes(search.toLowerCase()));
