@@ -26,6 +26,8 @@ export const InventoryList: React.FC<InventoryListProps> = ({
   handleEditPart, handleOpenOrder
 }) => {
   const [activeTab, setActiveTab] = useState<'all' | 'critical' | 'empty' | 'order' | 'movements'>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
   
   // Calculate counts for tabs
   const criticalCount = parts.filter(p => p.stockCurrent > 0 && p.stockCurrent <= p.stockMin).length;
@@ -121,7 +123,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({
             className="w-full pl-9 pr-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs outline-none focus:border-blue-500 font-medium"
             placeholder="Rechercher une pièce..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
           />
         </div>
         
@@ -132,7 +134,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({
         
         <select 
           value={filterSupplier} 
-          onChange={(e) => setFilterSupplier(e.target.value)}
+          onChange={(e) => { setFilterSupplier(e.target.value); setCurrentPage(1); }}
           className="text-xs p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-medium text-slate-600 min-w-[150px]"
         >
           <option value="">Tous les fournisseurs</option>
@@ -171,7 +173,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {filteredParts.map(part => {
+            {filteredParts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(part => {
               const Icon = CATEGORY_ICONS[part.category || ''] || Package;
               const isSelected = selectedPartRef === part.ref;
               const sup = suppliers.find(s => s.id === part.supplierId);
@@ -234,6 +236,40 @@ export const InventoryList: React.FC<InventoryListProps> = ({
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Pagination & Footer */}
+      <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex justify-between items-center text-xs text-slate-500 font-medium">
+        <div className="flex items-center gap-2">
+          <span>Afficher</span>
+          <select 
+            value={itemsPerPage} 
+            onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+            className="p-1 rounded bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none cursor-pointer"
+          >
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={20}>20</option>
+            <option value={50}>50</option>
+          </select>
+          <span>par page (Total: {filteredParts.length})</span>
+        </div>
+        <div className="flex gap-1">
+          <button 
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage(c => Math.max(1, c - 1))}
+            className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 disabled:opacity-50 transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button 
+            disabled={currentPage * itemsPerPage >= filteredParts.length}
+            onClick={() => setCurrentPage(c => c + 1)}
+            className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 disabled:opacity-50 transition-colors"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
     </div>

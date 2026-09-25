@@ -415,7 +415,11 @@ export const gmaoSlice = createSlice({
       const tenant = state.tenants.find(t => t.id === state.currentTenantId);
       if (tenant) {
         const index = tenant.parts.findIndex(p => p.ref === action.payload.ref);
-        if (index !== -1) tenant.parts[index] = action.payload;
+        if (index !== -1) {
+          tenant.parts[index] = action.payload;
+        } else {
+          tenant.parts.unshift(action.payload);
+        }
       }
     },
     addSupplier: (state, action: PayloadAction<Supplier>) => {
