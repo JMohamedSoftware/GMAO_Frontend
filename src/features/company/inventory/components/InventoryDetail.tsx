@@ -1,5 +1,5 @@
 import React from 'react';
-import { Package, X, CheckCircle2, AlertCircle, TrendingDown, TrendingUp, Edit2, MoreHorizontal, FileText, ArrowUpFromLine, ArrowDownToLine, FileSpreadsheet } from 'lucide-react';
+import { Package, X, CheckCircle2, AlertCircle, TrendingDown, TrendingUp, Edit2, MoreHorizontal, FileText, ArrowUpFromLine, ArrowDownToLine, FileSpreadsheet, ArrowRightLeft } from 'lucide-react';
 import { SparePart, Supplier } from '@/shared/types/gmao';
 
 interface InventoryDetailProps {
@@ -93,114 +93,166 @@ export const InventoryDetail: React.FC<InventoryDetailProps> = ({
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
-        {/* Detail List & Stock Visualizer */}
-        <div className="flex flex-col gap-6">
-          <div className="flex gap-4">
-            {/* Infos */}
-            <div className="flex-1 flex flex-col gap-2.5">
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-500">Référence</span>
-                <span className="font-bold text-slate-700">{activePart.ref}</span>
-              </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-500">Désignation</span>
-                <span className="font-bold text-slate-700 truncate max-w-[150px]">{activePart.name}</span>
-              </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-500">Famille</span>
-                <span className="font-bold text-slate-700">{activePart.category}</span>
-              </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-500">Fournisseur</span>
-                <span className="font-bold text-slate-700">{sup?.name || activePart.supplierId}</span>
+        {(activeTab === 'informations' || activeTab === 'historique') && (
+          <div className="flex flex-col gap-6">
+            <div className="flex gap-4">
+              {/* Infos */}
+              <div className="flex-1 flex flex-col gap-2.5">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-500">Référence</span>
+                  <span className="font-bold text-slate-700">{activePart.ref}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-500">Désignation</span>
+                  <span className="font-bold text-slate-700 truncate max-w-[150px]">{activePart.name}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-500">Famille</span>
+                  <span className="font-bold text-slate-700">{activePart.category}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-500">Fournisseur</span>
+                  <span className="font-bold text-slate-700">{sup?.name || activePart.supplierId}</span>
+                </div>
+
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-500">Prix unitaire</span>
+                  <span className="font-bold text-slate-700">{activePart.unitPrice.toFixed(2)} €</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-500">Valeur stock</span>
+                  <span className="font-bold text-slate-700">{(activePart.stockCurrent * activePart.unitPrice).toFixed(2)} €</span>
+                </div>
               </div>
 
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-500">Prix unitaire</span>
-                <span className="font-bold text-slate-700">{activePart.unitPrice.toFixed(2)} €</span>
-              </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-500">Valeur stock</span>
-                <span className="font-bold text-slate-700">{(activePart.stockCurrent * activePart.unitPrice).toFixed(2)} €</span>
-              </div>
-            </div>
-
-            {/* Stock Big Display */}
-            <div className="w-[120px] flex flex-col gap-3">
-              <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 text-center">
-                <div className="flex justify-center mb-1 text-slate-400">
-                  <Package className="w-5 h-5 text-emerald-500" />
+              {/* Stock Big Display */}
+              <div className="w-[120px] flex flex-col gap-3">
+                <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 text-center">
+                  <div className="flex justify-center mb-1 text-slate-400">
+                    <Package className="w-5 h-5 text-emerald-500" />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-500 block">Stock actuel</span>
+                  <span className="text-lg font-black text-slate-800">{activePart.stockCurrent} pièces</span>
                 </div>
-                <span className="text-[10px] font-bold text-slate-500 block">Stock actuel</span>
-                <span className="text-lg font-black text-slate-800">{activePart.stockCurrent} pièces</span>
-              </div>
-              
-              <div className="bg-slate-50 border border-slate-100 rounded-lg p-2 text-center flex items-center justify-between">
-                <div className="p-1 bg-white rounded shadow-sm text-slate-400"><TrendingDown className="w-3.5 h-3.5" /></div>
-                <div className="text-right">
-                  <span className="text-[9px] font-bold text-slate-500 block">Stock min</span>
-                  <span className="text-xs font-bold text-slate-800">{activePart.stockMin} p.</span>
+                
+                <div className="bg-slate-50 border border-slate-100 rounded-lg p-2 text-center flex items-center justify-between">
+                  <div className="p-1 bg-white rounded shadow-sm text-slate-400"><TrendingDown className="w-3.5 h-3.5" /></div>
+                  <div className="text-right">
+                    <span className="text-[9px] font-bold text-slate-500 block">Stock min</span>
+                    <span className="text-xs font-bold text-slate-800">{activePart.stockMin} p.</span>
+                  </div>
                 </div>
-              </div>
-              
-              <div className="bg-slate-50 border border-slate-100 rounded-lg p-2 text-center flex items-center justify-between">
-                <div className="p-1 bg-white rounded shadow-sm text-slate-400"><TrendingUp className="w-3.5 h-3.5" /></div>
-                <div className="text-right">
-                  <span className="text-[9px] font-bold text-slate-500 block">Stock max</span>
-                  <span className="text-xs font-bold text-slate-800">{activePart.stockMax} p.</span>
+                
+                <div className="bg-slate-50 border border-slate-100 rounded-lg p-2 text-center flex items-center justify-between">
+                  <div className="p-1 bg-white rounded shadow-sm text-slate-400"><TrendingUp className="w-3.5 h-3.5" /></div>
+                  <div className="text-right">
+                    <span className="text-[9px] font-bold text-slate-500 block">Stock max</span>
+                    <span className="text-xs font-bold text-slate-800">{activePart.stockMax} p.</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-          
-          {/* Progress Bar */}
-          <div>
-            <div className="flex justify-between text-xs font-bold mb-1.5">
-              <span className="text-slate-700">Niveau de stock</span>
-              <span className="text-slate-500">{percent}%</span>
+            
+            {/* Progress Bar */}
+            <div>
+              <div className="flex justify-between text-xs font-bold mb-1.5">
+                <span className="text-slate-700">Niveau de stock</span>
+                <span className="text-slate-500">{percent}%</span>
+              </div>
+              <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full rounded-full ${isCritical ? 'bg-red-500' : isLow ? 'bg-amber-500' : 'bg-blue-600'}`} 
+                  style={{ width: `${percent}%` }}
+                ></div>
+              </div>
             </div>
-            <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-              <div 
-                className={`h-full rounded-full ${isCritical ? 'bg-red-500' : isLow ? 'bg-amber-500' : 'bg-blue-600'}`} 
-                style={{ width: `${percent}%` }}
-              ></div>
-            </div>
-          </div>
-          
-          <hr className="border-slate-100" />
-          
-          {/* Recent movements */}
-          <div>
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="text-xs font-bold text-slate-800">Derniers mouvements</h3>
-              <button className="text-[10px] font-bold text-blue-600 hover:underline">Voir tout</button>
-            </div>
-            <div className="flex flex-col gap-2">
-              {movementLogs.filter(log => log.partRef === activePart.ref).slice(0, 4).map((log, idx) => (
-                <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
-                  <div className="flex items-center gap-3 text-xs">
-                    <div className={`p-1.5 rounded text-white ${log.type === 'in' ? 'bg-emerald-400' : 'bg-red-400'}`}>
-                      {log.type === 'in' ? <ArrowDownToLine className="w-3 h-3" /> : <ArrowUpFromLine className="w-3 h-3" />}
+            
+            <hr className="border-slate-100" />
+            
+            {/* Recent movements */}
+            <div>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-xs font-bold text-slate-800">Derniers mouvements</h3>
+                <button 
+                  onClick={() => setActiveTab('mouvements')}
+                  className="text-[10px] font-bold text-blue-600 hover:underline"
+                >
+                  Voir tout
+                </button>
+              </div>
+              <div className="flex flex-col gap-2">
+                {movementLogs.filter(log => log.partRef === activePart.ref).slice(0, 4).map((log, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
+                    <div className="flex items-center gap-3 text-xs">
+                      <div className={`p-1.5 rounded text-white ${log.type === 'in' ? 'bg-emerald-400' : 'bg-red-400'}`}>
+                        {log.type === 'in' ? <ArrowDownToLine className="w-3 h-3" /> : <ArrowUpFromLine className="w-3 h-3" />}
+                      </div>
+                      <span className="font-medium text-slate-500">{new Date(log.date).toLocaleDateString()}</span>
+                      <span className="font-bold text-slate-700">{log.type === 'in' ? 'Entrée stock' : 'Sortie stock'}</span>
                     </div>
-                    <span className="font-medium text-slate-500">{new Date(log.date).toLocaleDateString()}</span>
-                    <span className="font-bold text-slate-700">{log.type === 'in' ? 'Entrée stock' : 'Sortie stock'}</span>
+                    <div className="flex items-center gap-4">
+                      <span className={`text-xs font-black ${log.type === 'in' ? 'text-emerald-500' : 'text-red-500'}`}>
+                        {log.type === 'in' ? '+' : '-'}{log.qty}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <span className={`text-xs font-black ${log.type === 'in' ? 'text-emerald-500' : 'text-red-500'}`}>
-                      {log.type === 'in' ? '+' : '-'}{log.qty}
-                    </span>
-
+                ))}
+                {movementLogs.filter(log => log.partRef === activePart.ref).length === 0 && (
+                  <div className="p-4 text-center text-xs text-slate-500 bg-slate-50 rounded border border-slate-100 italic">
+                    Aucun mouvement récent pour cette pièce.
                   </div>
-                </div>
-              ))}
-              {movementLogs.filter(log => log.partRef === activePart.ref).length === 0 && (
-                <div className="p-4 text-center text-xs text-slate-500 bg-slate-50 rounded border border-slate-100 italic">
-                  Aucun mouvement récent pour cette pièce.
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
+
+        {activeTab === 'mouvements' && (
+          <div className="flex flex-col gap-3">
+            <h3 className="text-sm font-bold text-slate-800 mb-2">Historique des mouvements</h3>
+            {movementLogs.filter(log => log.partRef === activePart.ref).map((log, idx) => (
+              <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-100">
+                <div className="flex items-center gap-4 text-xs">
+                  <div className={`p-2 rounded-lg text-white ${log.type === 'in' ? 'bg-emerald-400' : 'bg-red-400'}`}>
+                    {log.type === 'in' ? <ArrowDownToLine className="w-4 h-4" /> : <ArrowUpFromLine className="w-4 h-4" />}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-bold text-slate-700">{log.type === 'in' ? 'Entrée de stock' : 'Sortie de stock'}</span>
+                      <span className="text-[10px] font-bold text-slate-500 bg-slate-200 px-1.5 py-0.5 rounded">{log.category}</span>
+                    </div>
+                    <div className="text-slate-500">
+                      Le {new Date(log.date).toLocaleString()} • {log.reason || 'Aucun motif'}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <span className={`text-sm font-black ${log.type === 'in' ? 'text-emerald-500' : 'text-red-500'}`}>
+                    {log.type === 'in' ? '+' : '-'}{log.qty}
+                  </span>
+                </div>
+              </div>
+            ))}
+            {movementLogs.filter(log => log.partRef === activePart.ref).length === 0 && (
+              <div className="p-8 flex flex-col items-center justify-center text-center bg-slate-50 rounded-xl border border-slate-100">
+                <ArrowRightLeft className="w-12 h-12 text-slate-300 mb-3" />
+                <p className="text-sm font-bold text-slate-500">Aucun mouvement</p>
+                <p className="text-xs text-slate-400">Cette pièce n'a pas encore de mouvements de stock.</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'docs' && (
+          <div className="flex flex-col gap-3">
+            <h3 className="text-sm font-bold text-slate-800 mb-2">Documents attachés</h3>
+            <div className="p-8 flex flex-col items-center justify-center text-center bg-slate-50 rounded-xl border border-slate-100 border-dashed">
+              <FileText className="w-10 h-10 text-slate-300 mb-2" />
+              <p className="text-sm font-bold text-slate-500 mb-1">Aucun document</p>
+              <button className="text-xs font-bold text-blue-600 hover:underline">Ajouter un document</button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Footer Actions */}
