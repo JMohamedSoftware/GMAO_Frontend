@@ -254,7 +254,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({
           </select>
           <span>par page (Total: {filteredParts.length})</span>
         </div>
-        <div className="flex gap-1">
+        <div className="flex gap-1 items-center">
           <button 
             disabled={currentPage === 1}
             onClick={() => setCurrentPage(c => Math.max(1, c - 1))}
@@ -262,6 +262,21 @@ export const InventoryList: React.FC<InventoryListProps> = ({
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
+          
+          {Array.from({ length: Math.ceil(filteredParts.length / itemsPerPage) || 1 }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentPage(i + 1)}
+              className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold transition-colors ${
+                currentPage === i + 1 
+                  ? 'bg-blue-600 text-white shadow-sm' 
+                  : 'text-slate-600 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-800'
+              }`}
+            >
+              {i + 1}
+            </button>
+          ))}
+
           <button 
             disabled={currentPage * itemsPerPage >= filteredParts.length}
             onClick={() => setCurrentPage(c => c + 1)}
