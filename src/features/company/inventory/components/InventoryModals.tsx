@@ -148,18 +148,26 @@ export const InventoryModals: React.FC<InventoryModalsProps> = ({
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1">
                   <label className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Famille / Catégorie</label>
-                  <select value={newCat} onChange={e => setNewCat(e.target.value)} className={inputCls + " dark:bg-slate-800 cursor-pointer"}>
-                    <option>Roulements</option>
-                    <option>Joints</option>
-                    <option>Courroies</option>
-                    <option>Vannes</option>
-                    <option>Automatisme</option>
-                    <option>Garnitures</option>
-                    <option>Électrique</option>
-                    <option>Pneumatique</option>
-                    <option>Hydraulique</option>
-                    <option>Visserie</option>
-                  </select>
+                  <input 
+                    list="categories-list"
+                    value={newCat} 
+                    onChange={e => setNewCat(e.target.value)} 
+                    className={inputCls} 
+                    placeholder="Choisir ou écrire une famille..."
+                  />
+                  <datalist id="categories-list">
+                    <option value="Roulements" />
+                    <option value="Joints" />
+                    <option value="Courroies" />
+                    <option value="Vannes" />
+                    <option value="Automatisme" />
+                    <option value="Garnitures" />
+                    <option value="Électrique" />
+                    <option value="Pneumatique" />
+                    <option value="Hydraulique" />
+                    <option value="Visserie" />
+                    <option value="Lubrifiants" />
+                  </datalist>
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Fournisseur *</label>
