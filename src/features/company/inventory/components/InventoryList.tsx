@@ -18,12 +18,13 @@ interface InventoryListProps {
   can: (permission: string) => boolean;
   handleEditPart: (ref: string) => void;
   handleOpenOrder: (ref: string) => void;
+  movementLogs: any[];
 }
 
 export const InventoryList: React.FC<InventoryListProps> = ({
   parts, search, setSearch, filterSupplier, setFilterSupplier, filterAlertOnly, setFilterAlertOnly,
   suppliers, categories, selectedPartRef, setSelectedPartRef, CATEGORY_ICONS, can,
-  handleEditPart, handleOpenOrder
+  handleEditPart, handleOpenOrder, movementLogs
 }) => {
   const [activeTab, setActiveTab] = useState<'all' | 'critical' | 'empty' | 'order' | 'movements'>('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -154,6 +155,49 @@ export const InventoryList: React.FC<InventoryListProps> = ({
 
       {/* Table */}
       <div className="flex-1 overflow-auto">
+        {activeTab === 'movements' ? (
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase tracking-wider text-slate-500 font-bold bg-slate-50 dark:bg-slate-800/50">
+                <th className="p-3">ID Mouvement</th>
+                <th className="p-3">Date</th>
+                <th className="p-3">Référence Pièce</th>
+                <th className="p-3">Type</th>
+                <th className="p-3 text-right">Quantité</th>
+                <th className="p-3">Catégorie</th>
+                <th className="p-3">Raison / OT</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {movementLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((log, i) => (
+                <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                  <td className="p-3 text-xs font-semibold text-slate-600">{log.id}</td>
+                  <td className="p-3 text-xs text-slate-500">{new Date(log.date).toLocaleString()}</td>
+                  <td className="p-3 text-xs font-bold text-blue-600">{log.partRef}</td>
+                  <td className="p-3 text-xs font-bold">
+                    {log.type === 'in' ? (
+                      <span className="text-emerald-600 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Entrée</span>
+                    ) : (
+                      <span className="text-rose-600 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Sortie</span>
+                    )}
+                  </td>
+                  <td className={`p-3 text-xs font-bold text-right ${log.type === 'in' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    {log.type === 'in' ? '+' : '-'}{log.qty}
+                  </td>
+                  <td className="p-3 text-xs text-slate-500">{log.category}</td>
+                  <td className="p-3 text-xs text-slate-500">{log.reason}</td>
+                </tr>
+              ))}
+              {movementLogs.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="p-12 text-center text-slate-500">
+                    <p className="font-bold text-sm">Aucun mouvement trouvé</p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        ) : (
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase tracking-wider text-slate-500 font-bold bg-slate-50 dark:bg-slate-800/50">
@@ -236,6 +280,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({
             )}
           </tbody>
         </table>
+        )}
       </div>
 
       {/* Pagination & Footer */}
@@ -252,7 +297,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({
             <option value={20}>20</option>
             <option value={50}>50</option>
           </select>
-          <span>par page (Total: {filteredParts.length})</span>
+          <span>par page (Total: {activeTab === 'movements' ? movementLogs.length : filteredParts.length})</span>
         </div>
         <div className="flex gap-1 items-center">
           <button 
@@ -263,7 +308,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({
             <ChevronLeft className="w-4 h-4" />
           </button>
           
-          {Array.from({ length: Math.ceil(filteredParts.length / itemsPerPage) || 1 }).map((_, i) => (
+          {Array.from({ length: Math.ceil((activeTab === 'movements' ? movementLogs.length : filteredParts.length) / itemsPerPage) || 1 }).map((_, i) => (
             <button
               key={i}
               onClick={() => setCurrentPage(i + 1)}
@@ -278,7 +323,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({
           ))}
 
           <button 
-            disabled={currentPage * itemsPerPage >= filteredParts.length}
+            disabled={currentPage * itemsPerPage >= (activeTab === 'movements' ? movementLogs.length : filteredParts.length)}
             onClick={() => setCurrentPage(c => c + 1)}
             className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 disabled:opacity-50 transition-colors"
           >

@@ -297,6 +297,7 @@ export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
             can={can}
             handleEditPart={handleEditPart}
             handleOpenOrder={handleOpenOrder}
+            movementLogs={movementLogs}
           />
         </div>
 
