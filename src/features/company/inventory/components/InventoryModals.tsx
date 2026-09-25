@@ -18,6 +18,7 @@ interface InventoryModalsProps {
   movePartRef: string | null;
   setMovePartRef: (ref: string) => void;
   parts: SparePart[];
+  categories: string[];
 
   showAddModal: boolean;
   setShowAddModal: (show: boolean) => void;
@@ -56,7 +57,7 @@ export const InventoryModals: React.FC<InventoryModalsProps> = ({
   moveQty, setMoveQty, moveCategory, setMoveCategory, moveReason, setMoveReason, inputCls,
   showAddModal, setShowAddModal, handleAddNewPart, newRef, setNewRef, newName, setNewName,
   newCat, setNewCat, newSupId, setNewSupId, suppliers, newStock, setNewStock, newMin, setNewMin,
-  newMax, setNewMax, newPrice, setNewPrice, newLoc, setNewLoc,
+  newMax, setNewMax, newPrice, setNewPrice, newLoc, setNewLoc, categories,
   showOrderModal, setShowOrderModal, orderPartRef, parts, handleConfirmOrder, orderSuccess,
   orderQty, setOrderQty, movePartRef, setMovePartRef
 }) => {
@@ -156,17 +157,7 @@ export const InventoryModals: React.FC<InventoryModalsProps> = ({
                     placeholder="Choisir ou écrire une famille..."
                   />
                   <datalist id="categories-list">
-                    <option value="Roulements" />
-                    <option value="Joints" />
-                    <option value="Courroies" />
-                    <option value="Vannes" />
-                    <option value="Automatisme" />
-                    <option value="Garnitures" />
-                    <option value="Électrique" />
-                    <option value="Pneumatique" />
-                    <option value="Hydraulique" />
-                    <option value="Visserie" />
-                    <option value="Lubrifiants" />
+                    {categories.map(c => <option key={c} value={c} />)}
                   </datalist>
                 </div>
                 <div className="flex flex-col gap-1">

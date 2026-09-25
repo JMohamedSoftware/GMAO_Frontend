@@ -336,6 +336,7 @@ export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
         movePartRef={movePartRef}
         setMovePartRef={setMovePartRef}
         parts={parts}
+        categories={categories}
 
         showAddModal={showAddModal}
         setShowAddModal={setShowAddModal}
