@@ -196,37 +196,37 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                 <div className="grid grid-cols-3 gap-y-6 gap-x-4 mt-2">
                   <div>
                     <label className="text-[10px] text-slate-500 font-medium flex items-center gap-1 mb-1"><Settings2 className="w-3.5 h-3.5" /> Famille</label>
-                    <div className="text-sm font-semibold text-slate-800">{activeEquipment?.category || '-'}</div>
+                    <div className="text-[15px] font-bold text-slate-900">{activeEquipment?.category || '-'}</div>
                   </div>
                   <div>
                     <label className="text-[10px] text-slate-500 font-medium flex items-center gap-1 mb-1"><Layers className="w-3.5 h-3.5" /> Sous-famille</label>
-                    <div className="text-sm font-semibold text-slate-800">{activeEquipment?.subFamily || '-'}</div>
+                    <div className="text-[15px] font-bold text-slate-900">{activeEquipment?.subFamily || '-'}</div>
                   </div>
                   <div>
                     <label className="text-[10px] text-slate-500 font-medium flex items-center gap-1 mb-1"><Tag className="w-3.5 h-3.5" /> Marque</label>
-                    <div className="text-sm font-semibold text-slate-800">{activeEquipment?.brand || '-'}</div>
+                    <div className="text-[15px] font-bold text-slate-900">{activeEquipment?.brand || '-'}</div>
                   </div>
                   
                   <div>
                     <label className="text-[10px] text-slate-500 font-medium block mb-1">Modèle</label>
-                    <div className="text-sm font-semibold text-slate-800">{activeEquipment?.model || '-'}</div>
+                    <div className="text-[15px] font-bold text-slate-900">{activeEquipment?.model || '-'}</div>
                   </div>
                   <div>
                     <label className="text-[10px] text-slate-500 font-medium block mb-1">N° Série</label>
-                    <div className="text-sm font-semibold text-slate-800">{activeEquipment?.serialNumber || '-'}</div>
+                    <div className="text-[15px] font-bold text-slate-900">{activeEquipment?.serialNumber || '-'}</div>
                   </div>
                   <div>
                     <label className="text-[10px] text-slate-500 font-medium block mb-1">Année</label>
-                    <div className="text-sm font-semibold text-slate-800">{activeEquipment?.commissionDate ? new Date(activeEquipment.commissionDate).getFullYear() : '-'}</div>
+                    <div className="text-[15px] font-bold text-slate-900">{activeEquipment?.commissionDate ? new Date(activeEquipment.commissionDate).getFullYear() : '-'}</div>
                   </div>
                   
                   <div>
                     <label className="text-[10px] text-slate-500 font-medium flex items-center gap-1 mb-1"><MapPin className="w-3.5 h-3.5" /> Emplacement</label>
-                    <div className="text-sm font-semibold text-slate-800">{flatLocalisations.find(l => l.id === activeEquipment?.localisationId)?.nom || '-'}</div>
+                    <div className="text-[15px] font-bold text-slate-900 truncate pr-2">{flatLocalisations.find(l => l.id === activeEquipment?.localisationId)?.nom || '-'}</div>
                   </div>
                   <div>
                     <label className="text-[10px] text-slate-500 font-medium flex items-center gap-1 mb-1"><Building2 className="w-3.5 h-3.5" /> Localisation</label>
-                    <div className="text-sm font-semibold text-slate-800">
+                    <div className="text-[15px] font-bold text-slate-900 truncate pr-2">
                       {(() => {
                         const loc = flatLocalisations.find(l => l.id === activeEquipment?.localisationId);
                         return loc ? loc.nom : '-';
@@ -235,7 +235,7 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                   </div>
                   <div>
                     <label className="text-[10px] text-slate-500 font-medium flex items-center gap-1 mb-1"><AlertTriangle className="w-3.5 h-3.5 text-rose-500" /> Criticité</label>
-                    <div className={`text-sm font-semibold ${activeEquipment?.criticality === 'Critique' ? 'text-rose-600' : 'text-slate-800'}`}>{activeEquipment?.criticality || '-'}</div>
+                    <div className={`text-[15px] font-bold ${activeEquipment?.criticality === 'Critique' ? 'text-rose-600' : 'text-slate-900'}`}>{activeEquipment?.criticality || '-'}</div>
                   </div>
                 </div>
               </div>
@@ -376,28 +376,28 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                       <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
                         <Settings2 className="w-4 h-4 text-primary" /> Informations générales
                       </h3>
-                      <div className="grid grid-cols-2 gap-y-4 text-xs">
+                      <div className="grid grid-cols-[140px_1fr] gap-y-5 text-[13px]">
                         <div className="text-slate-500 font-medium">Code équipement</div>
-                        <div className="font-semibold text-slate-800">{activeEquipment?.id}</div>
+                        <div className="font-bold text-slate-900">{activeEquipment?.id}</div>
                         
                         <div className="text-slate-500 font-medium">Désignation</div>
-                        <div className="font-semibold text-slate-800">{activeEquipment?.name}</div>
+                        <div className="font-bold text-slate-900">{activeEquipment?.name}</div>
                         
                         <div className="text-slate-500 font-medium">Description</div>
-                        <div className="font-medium text-slate-800 pr-4">{(activeEquipment as any)?.description || "Compresseur d'air à vis lubrifiée utilisé pour l'alimentation en air comprimé des lignes de production."}</div>
+                        <div className="font-medium text-slate-800 pr-4 leading-relaxed">{(activeEquipment as any)?.description || "Compresseur d'air à vis lubrifiée utilisé pour l'alimentation en air comprimé des lignes de production."}</div>
                         
                         <div className="text-slate-500 font-medium">Statut</div>
                         <div>
-                          <span className={`inline-flex items-center px-2 py-1 text-[10px] font-bold rounded ${activeEquipment?.status === 'En panne' ? 'bg-rose-100 text-rose-700' : activeEquipment?.status === 'En maintenance' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                            <ShieldCheck className="w-3 h-3 mr-1" /> {activeEquipment?.status || 'En service'}
+                          <span className={`inline-flex items-center px-2 py-1 text-[11px] font-bold rounded ${activeEquipment?.status === 'En panne' ? 'bg-rose-100 text-rose-700' : activeEquipment?.status === 'En maintenance' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                            <ShieldCheck className="w-3.5 h-3.5 mr-1" /> {activeEquipment?.status || 'En service'}
                           </span>
                         </div>
                         
                         <div className="text-slate-500 font-medium">Date de mise en service</div>
-                        <div className="font-semibold text-slate-800">{activeEquipment?.commissionDate ? new Date(activeEquipment.commissionDate).toLocaleDateString() : '-'}</div>
+                        <div className="font-bold text-slate-900">{activeEquipment?.commissionDate ? new Date(activeEquipment.commissionDate).toLocaleDateString() : '-'}</div>
                         
                         <div className="text-slate-500 font-medium">Durée de vie estimée</div>
-                        <div className="font-semibold text-slate-800">15 ans</div>
+                        <div className="font-bold text-slate-900">15 ans</div>
                       </div>
                     </div>
 
@@ -408,20 +408,26 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                           <Building2 className="w-4 h-4 text-primary" /> Localisation
                         </h3>
                         <div className="flex gap-4">
-                          <div className="flex-1 grid grid-cols-2 gap-y-4 text-xs">
-                            <div className="text-slate-500 font-medium">Site</div>
-                            <div className="font-semibold text-slate-800">
-                              {(() => {
-                                const loc = flatLocalisations.find(l => l.id === activeEquipment?.localisationId);
-                                return loc ? loc.nom : '-';
-                              })()}
+                          <div className="flex-1 flex flex-col gap-4 text-[13px]">
+                            <div className="grid grid-cols-[100px_1fr] items-center">
+                              <div className="text-slate-500 font-medium">Site</div>
+                              <div className="font-bold text-slate-900 truncate">
+                                {(() => {
+                                  const loc = flatLocalisations.find(l => l.id === activeEquipment?.localisationId);
+                                  return loc ? loc.nom : '-';
+                                })()}
+                              </div>
                             </div>
                             
-                            <div className="text-slate-500 font-medium">Atelier/Ligne</div>
-                            <div className="font-semibold text-slate-800">Utilités</div>
+                            <div className="grid grid-cols-[100px_1fr] items-center">
+                              <div className="text-slate-500 font-medium">Atelier/Ligne</div>
+                              <div className="font-bold text-slate-900 truncate">Utilités</div>
+                            </div>
                             
-                            <div className="text-slate-500 font-medium">Emplacement</div>
-                            <div className="font-semibold text-slate-800">{flatLocalisations.find(l => l.id === activeEquipment?.localisationId)?.nom || '-'}</div>
+                            <div className="grid grid-cols-[100px_1fr] items-center">
+                              <div className="text-slate-500 font-medium truncate pr-2">Emplacement</div>
+                              <div className="font-bold text-slate-900 truncate">{flatLocalisations.find(l => l.id === activeEquipment?.localisationId)?.nom || '-'}</div>
+                            </div>
                           </div>
                           <div className="w-24 h-20 bg-slate-100 rounded-lg overflow-hidden relative flex flex-col border border-slate-200">
                             <div className="flex-1 bg-slate-200 flex items-center justify-center text-slate-400">
@@ -436,18 +442,18 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                         <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
                           <ClipboardList className="w-4 h-4 text-primary" /> Caractéristiques techniques
                         </h3>
-                        <div className="grid grid-cols-2 gap-y-4 text-xs">
+                        <div className="grid grid-cols-[100px_1fr] gap-y-4 text-[13px]">
                           <div className="text-slate-500 font-medium">Puissance</div>
-                          <div className="font-semibold text-slate-800">55 kW</div>
+                          <div className="font-bold text-slate-900">55 kW</div>
                           
                           <div className="text-slate-500 font-medium">Pression max</div>
-                          <div className="font-semibold text-slate-800">8 bar</div>
+                          <div className="font-bold text-slate-900">8 bar</div>
                           
                           <div className="text-slate-500 font-medium">Débit</div>
-                          <div className="font-semibold text-slate-800">9.5 m³/min</div>
+                          <div className="font-bold text-slate-900">9.5 m³/min</div>
                           
                           <div className="text-slate-500 font-medium">Tension</div>
-                          <div className="font-semibold text-slate-800">400 V</div>
+                          <div className="font-bold text-slate-900">400 V</div>
                         </div>
                       </div>
                     </div>
