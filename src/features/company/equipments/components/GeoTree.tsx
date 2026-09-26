@@ -108,19 +108,7 @@ export const GeoTree: React.FC<GeoTreeProps> = ({
           </button>
         </div>
       </div>
-      
-      <div className="px-3 pb-2">
-        <div className="relative">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Rechercher..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-slate-700 dark:text-slate-200"
-          />
-        </div>
-      </div>
+
 
       <div className="p-2 overflow-y-auto flex-1 custom-scrollbar flex flex-col gap-0.5">
         {renderNodes(geoTree)}
