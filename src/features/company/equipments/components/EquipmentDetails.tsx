@@ -128,18 +128,6 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
           {isAdding ? 'Nouvel Équipement' : 'Fiche Technique'}
         </h2>
         <div className="flex items-center gap-2">
-          {(!isAdding && !isEditing) && (
-            <>
-              <button onClick={handleCreateOT} className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg flex flex-col items-center justify-center leading-tight shadow-sm hover:bg-blue-700 transition-colors h-11 min-w-[70px]">
-                <span>Créer</span>
-                <span>un OT</span>
-              </button>
-              <button className="px-4 py-2 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-lg flex items-center justify-center shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors h-11">
-                <span className="leading-none pb-1 font-bold text-lg">...</span>
-              </button>
-            </>
-          )}
-
           {(isEditing || isAdding) ? (
             <button onClick={onSave} className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 hover:bg-blue-700 shadow-sm transition-colors h-11">
               <Save className="w-3.5 h-3.5" /> Enregistrer
@@ -476,11 +464,8 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
 
         {(!isAdding && !isEditing) && (
           <div className="mt-8 pt-4 border-t border-slate-200 dark:border-slate-700 flex flex-wrap gap-3">
-             <button onClick={handlePlanMaintenance} className="px-5 py-2.5 bg-emerald-500 text-white text-sm font-bold rounded-lg flex items-center gap-2 shadow-sm hover:bg-emerald-600 transition-colors">
-                <Calendar className="w-4 h-4" /> Planifier maintenance
-             </button>
-             <button onClick={() => onSetActiveTab('historique')} className="px-5 py-2.5 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm font-bold rounded-lg flex items-center gap-2 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                <History className="w-4 h-4" /> Consulter historique
+             <button onClick={handleCreateOT} className="px-5 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-lg flex items-center gap-2 shadow-sm hover:bg-blue-700 transition-colors">
+                <Wrench className="w-4 h-4" /> Créer un OT
              </button>
           </div>
         )}
