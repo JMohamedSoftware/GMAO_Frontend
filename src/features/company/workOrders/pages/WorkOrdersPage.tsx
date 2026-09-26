@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
 import { useGmao } from '@/shared/hooks/useGmao';
 import { useAppDispatch } from '@/app/hooks';
 import { createWorkOrderAsync } from '@/app/gmaoSlice';
@@ -26,13 +25,15 @@ interface WorkOrdersProps {
   onClearSelectedOt: () => void;
   prefilledIncident: Incident | null;
   onClearPrefilledIncident: () => void;
+  newWorkOrderEqId?: string | null;
 }
 
 export const WorkOrders: React.FC<WorkOrdersProps> = ({ 
   selectedOtFromUrl, 
   onClearSelectedOt,
   prefilledIncident,
-  onClearPrefilledIncident
+  onClearPrefilledIncident,
+  newWorkOrderEqId
 }) => {
   const { 
     workOrders, 
@@ -45,7 +46,6 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
   } = useGmao();
 
   const dispatch = useAppDispatch();
-  const location = useLocation();
 
   const { can, isTechnicien, isChefEquipe } = usePermissions();
 
@@ -75,18 +75,15 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
     }
   }, [selectedOtFromUrl]);
 
-  // Handle location state for new OT
+  // Handle state for new OT
   useEffect(() => {
-    const state = location.state as any;
-    if (state?.newWorkOrder) {
+    if (newWorkOrderEqId !== undefined) {
       setShowCreateModal(true);
-      if (state.equipmentId) {
-        setNewEqId(state.equipmentId);
+      if (newWorkOrderEqId) {
+        setNewEqId(newWorkOrderEqId);
       }
-      // Clear state so refresh doesn't reopen
-      window.history.replaceState({}, document.title);
     }
-  }, [location]);
+  }, [newWorkOrderEqId]);
 
   // Sync prefilledIncident
   useEffect(() => {

@@ -48,6 +48,7 @@ function AppContent() {
   const [selectedEqFromDash, setSelectedEqFromDash] = useState<EqType | null>(null);
   const [selectedOtFromUrl, setSelectedOtFromUrl] = useState<string | null>(null);
   const [prefilledIncident, setPrefilledIncident] = useState<IncType | null>(null);
+  const [newWorkOrderEqId, setNewWorkOrderEqId] = useState<string | null>(null);
 
   // Custom Router navigation resolver
   const handleNavigate = (target: string) => {
@@ -61,6 +62,10 @@ function AppContent() {
     } else if (target.startsWith('workorder-detail:')) {
       const otId = target.split(':')[1];
       setSelectedOtFromUrl(otId);
+      setCurrentScreen('workorders');
+    } else if (target.startsWith('workorder-new:')) {
+      const eqId = target.split(':')[1];
+      setNewWorkOrderEqId(eqId);
       setCurrentScreen('workorders');
     } else {
       setCurrentScreen(target);
@@ -121,6 +126,7 @@ function AppContent() {
             onClearSelectedOt={() => setSelectedOtFromUrl(null)}
             prefilledIncident={prefilledIncident}
             onClearPrefilledIncident={() => setPrefilledIncident(null)}
+            newWorkOrderEqId={newWorkOrderEqId}
           />
         </AccessGuard>
       )}

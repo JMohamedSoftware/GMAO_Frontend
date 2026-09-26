@@ -2,7 +2,6 @@ import React from 'react';
 import { Settings2, Wrench, Save, Edit, Plus, Info, History, Calendar, Link, FileText, ClipboardList } from 'lucide-react';
 import { usePermissions } from '@/shared/hooks/usePermissions';
 import { PERMISSIONS } from '@/shared/permissions';
-import { useNavigate } from 'react-router-dom';
 import { Equipment as EquipmentType, Localisation, WorkOrder, Incident } from '@/shared/types/gmao';
 import { useLocalisations } from '@/shared/hooks/useLocalisations';
 import { useGmao } from '@/shared/hooks/useGmao';
@@ -23,6 +22,7 @@ interface EquipmentDetailsProps {
   onSetActiveTab: (tab: 'info' | 'historique' | 'preventifs' | 'pieces' | 'documents' | 'ot') => void;
   onSetIsEditing: (isEditing: boolean) => void;
   onSave: () => void;
+  onNavigate: (screen: string) => void;
 }
 
 export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
@@ -37,17 +37,17 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
   onSetFormData,
   onSetActiveTab,
   onSetIsEditing,
-  onSave
+  onSave,
+  onNavigate
 }) => {
   const { can } = usePermissions();
-  const navigate = useNavigate();
 
   // Handle Create OT
   const handleCreateOT = () => {
     if (activeEquipment) {
-      navigate('/company/work-orders', { state: { newWorkOrder: true, equipmentId: activeEquipment.id } });
+      onNavigate(`workorder-new:${activeEquipment.id}`);
     } else {
-      navigate('/company/work-orders', { state: { newWorkOrder: true } });
+      onNavigate('workorders');
     }
   };
 

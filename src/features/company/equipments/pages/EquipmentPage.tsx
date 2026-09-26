@@ -18,6 +18,7 @@ interface EquipmentProps {
 
 export const Equipment: React.FC<EquipmentProps> = ({ 
   selectedEqFromDash, 
+  onNavigate
 }) => {
   const { equipments, suppliers, workOrders, incidents, deleteEquipmentsByCategory, deleteEquipment, addEquipment, updateEquipment } = useGmao();
   const { tree: geoTree } = useLocalisations();
@@ -334,6 +335,7 @@ export const Equipment: React.FC<EquipmentProps> = ({
             onSetActiveTab={setActiveTab}
             onSetIsEditing={setIsEditing}
             onSave={handleSave}
+            onNavigate={onNavigate}
           />
         </div>
       </div>
