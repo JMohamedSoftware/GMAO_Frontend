@@ -143,9 +143,9 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
 
         {(!isEditing && !isAdding) && (
           <div className="flex flex-col gap-6">
-            <div className="flex flex-col xl:flex-row gap-6 mb-2">
+            <div className="flex gap-6 mb-2">
               {/* Left: Images */}
-              <div className="w-full xl:w-72 shrink-0 flex flex-col gap-2">
+              <div className="w-[230px] shrink-0 flex flex-col gap-2">
                 <div className="aspect-[4/3] bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 relative">
                   {activeEquipment?.photos?.[0] ? (
                     <img src={activeEquipment.photos[0]} className="w-full h-full object-cover" />
@@ -370,9 +370,9 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
             {activeTab === 'info' && (
               <>
                 {(!isEditing && !isAdding) ? (
-                  <div className="flex flex-col md:flex-row gap-5 mt-4">
+                  <div className="flex gap-5 mt-4">
                     {/* General Info */}
-                    <div className="flex-1 bg-white dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+                    <div className="flex-1 min-w-0 bg-white dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-xl p-5 shadow-sm">
                       <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
                         <Settings2 className="w-4 h-4 text-primary" /> Informations générales
                       </h3>
@@ -402,7 +402,7 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                     </div>
 
                     {/* Right column */}
-                    <div className="flex-1 flex flex-col gap-5">
+                    <div className="flex-1 min-w-0 flex flex-col gap-5">
                       <div className="bg-white dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-xl p-5 shadow-sm">
                         <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
                           <Building2 className="w-4 h-4 text-primary" /> Localisation

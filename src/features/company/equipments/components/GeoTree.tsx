@@ -93,7 +93,7 @@ export const GeoTree: React.FC<GeoTreeProps> = ({
   };
 
   return (
-    <div className="w-[280px] flex flex-col bg-slate-50/30 dark:bg-slate-900/10 rounded-xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm overflow-hidden shrink-0">
+    <div className="w-[220px] flex flex-col bg-slate-50/30 dark:bg-slate-900/10 rounded-xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm overflow-hidden shrink-0">
       <div className="p-3 flex justify-between items-center">
         <h3 className="font-black text-sm text-slate-800 dark:text-slate-100 flex items-center gap-2">
           <MapPin className="w-4 h-4 text-blue-600" />

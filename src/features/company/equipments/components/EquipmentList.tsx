@@ -44,7 +44,7 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({
   }, [equipments, currentPage, pageSize]);
 
   return (
-    <div className="w-[380px] flex flex-col bg-white/50 dark:bg-slate-900/30 rounded-xl border border-white/40 dark:border-slate-800/40 shadow-sm overflow-hidden shrink-0">
+    <div className="w-[300px] flex flex-col bg-white/50 dark:bg-slate-900/30 rounded-xl border border-white/40 dark:border-slate-800/40 shadow-sm overflow-hidden shrink-0">
       {/* Header */}
       <div className="p-3 border-b border-slate-200/50 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-900/50 flex justify-between items-center">
         <h3 className="font-bold text-[13px] text-slate-800 dark:text-slate-100 flex items-center gap-2">
