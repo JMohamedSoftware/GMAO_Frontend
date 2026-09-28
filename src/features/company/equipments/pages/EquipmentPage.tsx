@@ -227,15 +227,6 @@ export const Equipment: React.FC<EquipmentProps> = ({
               <span>Nouvel Équipement</span>
             </button>
           )}
-          <button className="flex items-center gap-1.5 px-4 py-2.5 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-            <Upload className="w-4 h-4" /> Importer
-          </button>
-          <button className="flex items-center gap-1.5 px-4 py-2.5 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-            <Download className="w-4 h-4" /> Exporter
-          </button>
-          <button className="px-3 py-2.5 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-            <MoreHorizontal className="w-4 h-4" />
-          </button>
         </div>
       </div>
 
