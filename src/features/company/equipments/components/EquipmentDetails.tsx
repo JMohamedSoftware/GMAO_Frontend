@@ -108,7 +108,7 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
 
   const equipmentWorkOrders = workOrders.filter(wo => wo.equipmentId === activeEquipment?.id);
   const activeWorkOrders = equipmentWorkOrders.filter(wo => wo.status !== 'Clôturé' && wo.status !== 'Terminé');
-  const historyWorkOrders = equipmentWorkOrders.filter(wo => wo.status === 'Clôturé' || wo.status === 'Terminé');
+  const historyWorkOrders = [...equipmentWorkOrders].sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime());
 
   if (!activeEquipment && !isAdding) {
     return (
@@ -481,19 +481,30 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
             {activeTab === 'historique' && (
               <div className="flex flex-col gap-3">
                 {historyWorkOrders.length > 0 ? (
-                  historyWorkOrders.map(wo => (
-                    <div key={wo.id} className="p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded text-sm">
-                      <div className="flex justify-between items-start mb-1">
-                        <span className="font-bold text-slate-800 dark:text-white">{wo.title}</span>
-                        <span className="text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded font-bold">{wo.status}</span>
+                  <div className="flex flex-col gap-3">
+                  {historyWorkOrders.map(wo => (
+                    <div key={wo.id} className="p-4 bg-white dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-xl shadow-sm flex flex-col gap-2">
+                      <div className="flex justify-between items-start gap-2">
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">{wo.id}</span>
+                          <p className="font-bold text-slate-800 dark:text-white text-sm leading-tight">{wo.title}</p>
+                        </div>
+                        <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          wo.status === 'Terminé' || wo.status === 'Clôturé' ? 'bg-emerald-100 text-emerald-700' :
+                          wo.status === 'En cours' ? 'bg-rose-100 text-rose-700' :
+                          wo.status === 'En attente' ? 'bg-amber-100 text-amber-700' :
+                          'bg-blue-100 text-blue-700'
+                        }`}>{wo.status}</span>
                       </div>
-                      <p className="text-xs text-slate-500 mb-2">{wo.description}</p>
-                      <div className="flex gap-4 text-xs text-slate-400 font-bold">
-                        <span>Date: {new Date(wo.createdDate).toLocaleDateString()}</span>
-                        <span>Type: {wo.type}</span>
+                      {wo.description && <p className="text-xs text-slate-500 leading-relaxed">{wo.description}</p>}
+                      <div className="flex gap-4 text-[11px] text-slate-400 font-semibold border-t border-slate-100 pt-2 mt-1">
+                        <span>📅 {new Date(wo.createdDate).toLocaleDateString('fr-FR')}</span>
+                        <span>🔧 {wo.type}</span>
+                        {wo.priority && <span className={(wo.priority as string) === 'Urgente' ? 'text-rose-500' : ''}>⚡ {wo.priority}</span>}
                       </div>
                     </div>
-                  ))
+                  ))}
+                  </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center p-8 opacity-50">
                     <History className="w-12 h-12 text-slate-400 mb-3" />
