@@ -26,7 +26,6 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
           <div>
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Monthly Recurring Revenue</span>
             <span className="text-xl font-black text-slate-850 dark:text-white block mt-1 font-mono">{mrr.toLocaleString()} TND</span>
-            <span className="text-[9px] text-emerald-500 font-bold flex items-center gap-0.5 mt-0.5"><TrendingUp className="w-3 h-3" /> +15.4% ce mois</span>
           </div>
           <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-2xl"><DollarSign className="w-5 h-5" /></div>
         </div>
