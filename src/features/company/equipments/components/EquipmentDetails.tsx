@@ -267,6 +267,9 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                   <input type="text" list="subfamily-list" value={(isEditing || isAdding) ? formData.subFamily || '' : activeEquipment?.subFamily || ''} onChange={e => onSetFormData({...formData, subFamily: e.target.value})} className="w-full text-[13px] px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 outline-none focus:ring-2 focus:ring-primary/20 font-medium text-slate-800" placeholder="Ex: Centrifuges" />
                   <datalist id="subfamily-list">{uniqueSubFamilies.map(sub => <option key={sub} value={sub} />)}</datalist>
 
+                  <label className="text-slate-500 font-medium self-start mt-1.5">Description</label>
+                  <textarea value={(isEditing || isAdding) ? (formData as any).description || '' : (activeEquipment as any)?.description || ''} onChange={e => onSetFormData({...formData, description: e.target.value} as any)} className="w-full text-[13px] px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 outline-none focus:ring-2 focus:ring-primary/20 font-medium text-slate-800 resize-none h-20" placeholder="Description de l'équipement..." />
+
                   <label className="text-slate-500 font-medium self-center">Statut</label>
                   <select value={(isEditing || isAdding) ? formData.status || '' : activeEquipment?.status || ''} onChange={e => onSetFormData({...formData, status: e.target.value as any})} className="w-full text-[13px] px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 outline-none focus:ring-2 focus:ring-primary/20 font-medium text-slate-800 appearance-none">
                     <option value="En service">En service</option>
@@ -352,6 +355,22 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                     <option value="">Sélectionner...</option>
                     {suppliers.map(s => (<option key={s.id} value={s.id}>{s.name}</option>))}
                   </select>
+
+                  <label className="text-slate-500 font-medium self-center">Inventaire</label>
+                  <input type="text" value={(isEditing || isAdding) ? (formData as any).inventory || '' : (activeEquipment as any)?.inventory || ''} onChange={e => onSetFormData({...formData, inventory: e.target.value} as any)} className="w-full text-[13px] px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 outline-none focus:ring-2 focus:ring-primary/20 font-medium text-slate-800" />
+
+                  <label className="text-slate-500 font-medium self-center">Responsabilité</label>
+                  <input type="text" value={(isEditing || isAdding) ? (formData as any).responsibility || '' : (activeEquipment as any)?.responsibility || ''} onChange={e => onSetFormData({...formData, responsibility: e.target.value} as any)} className="w-full text-[13px] px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 outline-none focus:ring-2 focus:ring-primary/20 font-medium text-slate-800" />
+
+                  <label className="text-slate-500 font-medium self-center">Code barre</label>
+                  <input type="text" value={(isEditing || isAdding) ? (formData as any).barcode || '' : (activeEquipment as any)?.barcode || ''} onChange={e => onSetFormData({...formData, barcode: e.target.value} as any)} className="w-full text-[13px] px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 outline-none focus:ring-2 focus:ring-primary/20 font-medium text-slate-800 font-mono tracking-tight" />
+
+                  <div className="col-span-2 mt-2">
+                    <label className="flex items-center gap-2 text-[13px] font-bold text-slate-700 dark:text-slate-300 cursor-pointer w-fit">
+                      <input type="checkbox" checked={!!((isEditing || isAdding) ? (formData as any).gipPresence : (activeEquipment as any)?.gipPresence)} onChange={e => onSetFormData({...formData, gipPresence: e.target.checked} as any)} className="rounded text-primary focus:ring-primary w-4 h-4 border-slate-300" />
+                      Présence GIP
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>
@@ -608,15 +627,23 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
               <div className="flex flex-col gap-3">
                 {activeWorkOrders.length > 0 ? (
                   activeWorkOrders.map(wo => (
-                    <div key={wo.id} className="p-3 bg-white dark:bg-slate-800 border-l-4 border-l-primary border border-slate-200 dark:border-slate-700 rounded shadow-sm text-sm">
-                      <div className="flex justify-between items-start mb-1">
-                        <span className="font-bold text-slate-800 dark:text-white">{wo.title}</span>
-                        <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded font-bold">{wo.status}</span>
+                    <div key={wo.id} className="p-4 bg-white dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-xl shadow-sm flex flex-col gap-2">
+                      <div className="flex justify-between items-start gap-2">
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">{wo.id}</span>
+                          <p className="font-bold text-slate-800 dark:text-white text-sm leading-tight">{wo.title}</p>
+                        </div>
+                        <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          wo.status === 'En cours' ? 'bg-rose-100 text-rose-700' :
+                          wo.status === 'En attente' ? 'bg-amber-100 text-amber-700' :
+                          'bg-blue-100 text-blue-700'
+                        }`}>{wo.status}</span>
                       </div>
-                      <p className="text-xs text-slate-500 mb-2">{wo.description}</p>
-                      <div className="flex gap-4 text-xs text-slate-400 font-bold">
-                        <span>Date: {new Date(wo.createdDate).toLocaleDateString()}</span>
-                        <span>Priorité: {wo.priority}</span>
+                      {wo.description && <p className="text-xs text-slate-500 leading-relaxed">{wo.description}</p>}
+                      <div className="flex gap-4 text-[11px] text-slate-400 font-semibold border-t border-slate-100 pt-2 mt-1">
+                        <span>📅 {new Date(wo.createdDate).toLocaleDateString('fr-FR')}</span>
+                        <span>🔧 {wo.type}</span>
+                        {wo.priority && <span className={(wo.priority as string) === 'Urgente' ? 'text-rose-500' : ''}>⚡ {wo.priority}</span>}
                       </div>
                     </div>
                   ))
