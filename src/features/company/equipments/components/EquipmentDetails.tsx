@@ -443,23 +443,13 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                         <div className="flex gap-4">
                           <div className="flex-1 flex flex-col gap-4 text-[13px]">
                             <div className="grid grid-cols-[100px_1fr] items-center">
-                              <div className="text-slate-500 font-medium">Site</div>
+                              <div className="text-slate-500 font-medium">Site / Secteur</div>
                               <div className="font-bold text-slate-900 truncate">
                                 {(() => {
                                   const loc = flatLocalisations.find(l => l.id === activeEquipment?.localisationId);
                                   return loc ? loc.nom : '-';
                                 })()}
                               </div>
-                            </div>
-                            
-                            <div className="grid grid-cols-[100px_1fr] items-center">
-                              <div className="text-slate-500 font-medium">N° Série</div>
-                              <div className="font-bold text-slate-900 truncate">{activeEquipment?.serialNumber || '-'}</div>
-                            </div>
-                            
-                            <div className="grid grid-cols-[100px_1fr] items-center">
-                              <div className="text-slate-500 font-medium truncate pr-2">Emplacement</div>
-                              <div className="font-bold text-slate-900 truncate">{flatLocalisations.find(l => l.id === activeEquipment?.localisationId)?.nom || '-'}</div>
                             </div>
                           </div>
                           <div className="w-24 h-20 bg-slate-100 rounded-lg overflow-hidden relative flex flex-col border border-slate-200">
@@ -481,6 +471,9 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                           
                           <div className="text-slate-500 font-medium">Modèle</div>
                           <div className="font-bold text-slate-900">{activeEquipment?.model || '-'}</div>
+
+                          <div className="text-slate-500 font-medium">N° Série</div>
+                          <div className="font-bold text-slate-900">{activeEquipment?.serialNumber || '-'}</div>
 
                           <div className="text-slate-500 font-medium">Mise en service</div>
                           <div className="font-bold text-slate-900">{activeEquipment?.commissionDate ? new Date(activeEquipment.commissionDate).toLocaleDateString('fr-FR') : '-'}</div>
