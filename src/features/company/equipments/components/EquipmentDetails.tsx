@@ -385,7 +385,7 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
           <div>
             {activeTab === 'info' && (
               <>
-                {(!isEditing && !isAdding) ? (
+                {(!isEditing && !isAdding) && (
                   <div className="flex gap-5 mt-4">
                     {/* General Info */}
                     <div className="flex-1 min-w-0 bg-white dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-xl p-5 shadow-sm">
@@ -474,66 +474,6 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                       </div>
                     </div>
                   </div>
-                ) : (
-                  <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="text-[10px] text-slate-500 font-bold block mb-1">Marque</label>
-                  <input type="text" list="brand-list" readOnly={!isEditing && !isAdding} value={(isEditing || isAdding) ? formData.brand : activeEquipment?.brand} onChange={e => onSetFormData({...formData, brand: e.target.value})} className={`w-full text-xs p-1.5 rounded border ${isEditing || isAdding ? 'bg-white dark:bg-slate-800 border-slate-300' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'} outline-none`} />
-                  <datalist id="brand-list">
-                    {uniqueBrands.map(b => <option key={b} value={b} />)}
-                  </datalist>
-                </div>
-                <div>
-                  <label className="text-[10px] text-slate-500 font-bold block mb-1">Modèle</label>
-                  <input type="text" list="model-list" readOnly={!isEditing && !isAdding} value={(isEditing || isAdding) ? formData.model : activeEquipment?.model} onChange={e => onSetFormData({...formData, model: e.target.value})} className={`w-full text-xs p-1.5 rounded border ${isEditing || isAdding ? 'bg-white dark:bg-slate-800 border-slate-300' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'} outline-none`} />
-                  <datalist id="model-list">
-                    {uniqueModels.map(m => <option key={m} value={m} />)}
-                  </datalist>
-                </div>
-                <div>
-                  <label className="text-[10px] text-slate-500 font-bold block mb-1">N° Série</label>
-                  <input type="text" readOnly={!isEditing && !isAdding} value={(isEditing || isAdding) ? formData.serialNumber : activeEquipment?.serialNumber} onChange={e => onSetFormData({...formData, serialNumber: e.target.value})} className={`w-full text-xs p-1.5 rounded border ${isEditing || isAdding ? 'bg-white dark:bg-slate-800 border-slate-300' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'} outline-none`} />
-                </div>
-                <div>
-                  <label className="text-[10px] text-slate-500 font-bold block mb-1">Date de mise en service</label>
-                  <input type="date" readOnly={!isEditing && !isAdding} value={(isEditing || isAdding) ? formData.commissionDate : activeEquipment?.commissionDate || ''} onChange={e => onSetFormData({...formData, commissionDate: e.target.value})} className={`w-full text-xs p-1.5 rounded border ${isEditing || isAdding ? 'bg-white dark:bg-slate-800 border-slate-300' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'} outline-none`} />
-                </div>
-                <div>
-                  <label className="text-[10px] text-slate-500 font-bold block mb-1">Garantie</label>
-                  <input type="date" readOnly={!isEditing && !isAdding} value={(isEditing || isAdding) ? formData.endOfWarranty : activeEquipment?.endOfWarranty || ''} onChange={e => onSetFormData({...formData, endOfWarranty: e.target.value})} className={`w-full text-xs p-1.5 rounded border ${isEditing || isAdding ? 'bg-white dark:bg-slate-800 border-slate-300' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'} outline-none`} />
-                </div>
-                <div>
-                  <label className="text-[10px] text-slate-500 font-bold block mb-1">Fournisseur / Mainteneur</label>
-                  {(isEditing || isAdding) ? (
-                    <select value={formData.supplierId || ''} onChange={e => onSetFormData({...formData, supplierId: e.target.value})} className="w-full text-xs p-1.5 rounded border bg-white dark:bg-slate-800 border-slate-300 outline-none">
-                      <option value="">Sélectionner...</option>
-                      {suppliers.map(s => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input type="text" readOnly value={suppliers.find(s => s.id === activeEquipment?.supplierId)?.name || ''} className="w-full text-xs p-1.5 rounded border bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 outline-none" />
-                  )}
-                </div>
-                <div>
-                  <label className="text-[10px] text-slate-500 font-bold block mb-1">Inventaire</label>
-                  <input type="text" readOnly={!isEditing && !isAdding} value={(isEditing || isAdding) ? formData.inventory : activeEquipment?.inventory || ''} onChange={e => onSetFormData({...formData, inventory: e.target.value})} className={`w-full text-xs p-1.5 rounded border ${isEditing || isAdding ? 'bg-white dark:bg-slate-800 border-slate-300' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'} outline-none`} />
-                </div>
-                <div>
-                  <label className="text-[10px] text-slate-500 font-bold block mb-1">Responsabilité</label>
-                  <input type="text" readOnly={!isEditing && !isAdding} value={(isEditing || isAdding) ? formData.responsibility : activeEquipment?.responsibility || ''} onChange={e => onSetFormData({...formData, responsibility: e.target.value})} className={`w-full text-xs p-1.5 rounded border ${isEditing || isAdding ? 'bg-white dark:bg-slate-800 border-slate-300' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'} outline-none`} />
-                </div>
-                <div>
-                  <label className="text-[10px] text-slate-500 font-bold block mb-1">Code barre</label>
-                  <input type="text" readOnly={!isEditing && !isAdding} value={(isEditing || isAdding) ? formData.barcode : activeEquipment?.barcode || ''} onChange={e => onSetFormData({...formData, barcode: e.target.value})} className={`w-full text-xs p-1.5 rounded border ${isEditing || isAdding ? 'bg-white dark:bg-slate-800 border-slate-300' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'} outline-none font-mono tracking-tight`} />
-                </div>
-                <div className="col-span-3">
-                  <label className="flex items-center gap-2 text-xs font-bold text-slate-600 mt-2 cursor-pointer w-fit">
-                    <input type="checkbox" disabled={!isEditing && !isAdding} checked={!!((isEditing || isAdding) ? formData.gipPresence : activeEquipment?.gipPresence)} onChange={e => onSetFormData({...formData, gipPresence: e.target.checked})} className="rounded text-primary focus:ring-primary w-4 h-4" />
-                    Présence GIP
-                  </label>
-                </div>
-              </div>
                 )}
               </>
             )}
