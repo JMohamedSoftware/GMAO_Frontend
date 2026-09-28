@@ -15,10 +15,8 @@ interface GmaoState {
 }
 
 const getInitialTenants = (): Tenant[] => {
-  const saved = localStorage.getItem('gmao_tenants_v8');
-  if (saved) {
-    try { return JSON.parse(saved); } catch (e) {}
-  }
+  // We removed reading from localStorage to avoid loading old mock data.
+  // The app will now always start with empty data and wait for the backend.
   return [
     {
       id: 'tenant-midi',
