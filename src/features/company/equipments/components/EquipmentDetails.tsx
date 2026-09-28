@@ -60,6 +60,21 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
   const [selectedPieceId, setSelectedPieceId] = React.useState<string>('');
   const [isLinking, setIsLinking] = React.useState(false);
 
+  // MOCK PREVENTIFS STATE
+  const [isAddingPreventif, setIsAddingPreventif] = React.useState(false);
+  const [mockPreventifs, setMockPreventifs] = React.useState<any[]>([
+    { id: 1, title: 'Graissage des roulements', frequency: 'Mensuel', nextDate: '2026-10-15', status: 'Actif' }
+  ]);
+  const [preventifForm, setPreventifForm] = React.useState({ title: '', frequency: 'Mensuel', nextDate: '' });
+
+  const handleAddPreventif = () => {
+    if (preventifForm.title && preventifForm.nextDate) {
+      setMockPreventifs([...mockPreventifs, { ...preventifForm, id: Date.now(), status: 'Actif' }]);
+      setIsAddingPreventif(false);
+      setPreventifForm({ title: '', frequency: 'Mensuel', nextDate: '' });
+    }
+  };
+
   const handleLinkPiece = async () => {
     if (!activeEquipment?.id || !selectedPieceId) return;
     setIsLinking(true);
@@ -437,9 +452,69 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
             )}
 
             {activeTab === 'preventifs' && (
-              <div className="flex flex-col items-center justify-center p-8 opacity-50">
-                <Calendar className="w-12 h-12 text-slate-400 mb-3" />
-                <p className="text-sm font-bold text-slate-600">Aucun plan préventif associé</p>
+              <div className="flex flex-col gap-4">
+                {isAddingPreventif ? (
+                  <div className="bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm">
+                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-4">Nouveau Plan Préventif (Simulation)</h4>
+                    <div className="flex flex-col gap-3 text-[13px]">
+                      <div>
+                        <label className="text-[10px] text-slate-500 font-bold block mb-1">Titre de l'intervention *</label>
+                        <input type="text" value={preventifForm.title} onChange={e => setPreventifForm({...preventifForm, title: e.target.value})} className="w-full p-2 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 rounded outline-none focus:border-primary" placeholder="Ex: Inspection générale" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[10px] text-slate-500 font-bold block mb-1">Fréquence</label>
+                          <select value={preventifForm.frequency} onChange={e => setPreventifForm({...preventifForm, frequency: e.target.value})} className="w-full p-2 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 rounded outline-none">
+                            <option value="Hebdomadaire">Hebdomadaire</option>
+                            <option value="Mensuel">Mensuel</option>
+                            <option value="Trimestriel">Trimestriel</option>
+                            <option value="Semestriel">Semestriel</option>
+                            <option value="Annuel">Annuel</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-slate-500 font-bold block mb-1">Prochaine intervention *</label>
+                          <input type="date" value={preventifForm.nextDate} onChange={e => setPreventifForm({...preventifForm, nextDate: e.target.value})} className="w-full p-2 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 rounded outline-none" />
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2 mt-2">
+                        <button onClick={() => setIsAddingPreventif(false)} className="px-3 py-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded font-bold">Annuler</button>
+                        <button onClick={handleAddPreventif} disabled={!preventifForm.title || !preventifForm.nextDate} className="px-3 py-1.5 bg-blue-600 text-white rounded font-bold shadow-sm disabled:opacity-50 flex items-center gap-1"><Save className="w-3.5 h-3.5" /> Enregistrer</button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <span className="text-[13px] font-bold text-slate-700 dark:text-slate-300">Plans préventifs associés ({mockPreventifs.length})</span>
+                    <button onClick={() => setIsAddingPreventif(true)} className="px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-lg flex items-center gap-1 shadow-sm hover:bg-primary/90 transition-colors">
+                      <Plus className="w-3.5 h-3.5" /> Créer un plan
+                    </button>
+                  </div>
+                )}
+
+                {mockPreventifs.length > 0 ? (
+                  <div className="flex flex-col gap-3">
+                    {mockPreventifs.map(prev => (
+                      <div key={prev.id} className="p-4 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm flex flex-col gap-2 relative group">
+                        <div className="flex justify-between items-start gap-2">
+                          <p className="font-bold text-slate-800 dark:text-white text-sm">{prev.title}</p>
+                          <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">{prev.status}</span>
+                        </div>
+                        <div className="flex gap-4 text-[11px] text-slate-500 font-semibold border-t border-slate-100 dark:border-slate-800 pt-2 mt-1">
+                          <span>🔄 {prev.frequency}</span>
+                          <span>📅 Prochaine: {new Date(prev.nextDate).toLocaleDateString('fr-FR')}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  !isAddingPreventif && (
+                    <div className="flex flex-col items-center justify-center p-8 opacity-50 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl">
+                      <Calendar className="w-12 h-12 text-slate-400 mb-3" />
+                      <p className="text-sm font-bold text-slate-600 dark:text-slate-400">Aucun plan préventif associé</p>
+                    </div>
+                  )
+                )}
               </div>
             )}
 
