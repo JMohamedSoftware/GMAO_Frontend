@@ -352,43 +352,20 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
 
           <div className="grid grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-800/80 pt-3">
             <div>
-              <span className="text-slate-400 block mb-0.5">Date prévue</span>
+              <span className="text-slate-400 block mb-0.5">Date création</span>
               <span className="font-bold text-slate-700 dark:text-slate-350">
                 {new Date(activeOt.createdDate).toLocaleDateString('fr-FR')}
               </span>
             </div>
             <div>
-              <span className="text-slate-400 block mb-0.5">Date limite</span>
-              <span className="font-bold text-rose-600">
-                {new Date(new Date(activeOt.createdDate).getTime() + 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR')}
-              </span>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-800/80 pt-3">
-            <div>
-              <span className="text-slate-400 block mb-0.5">Temps estimé</span>
-              <span className="font-bold text-slate-700 dark:text-slate-350">2 h</span>
-            </div>
-            <div>
               <span className="text-slate-400 block mb-0.5">Temps réel</span>
               <span className="font-bold text-slate-700 dark:text-slate-350">
-                {activeOt.status === 'Terminé' || activeOt.status === 'Clôturé' ? (activeOt.durationMinutes ? `${Math.floor(activeOt.durationMinutes / 60)}h${activeOt.durationMinutes % 60}m` : '2h45') : formatTimer(timerSeconds)}
+                {activeOt.status === 'Terminé' || activeOt.status === 'Clôturé' ? (activeOt.durationMinutes ? `${Math.floor(activeOt.durationMinutes / 60)}h${activeOt.durationMinutes % 60}m` : '-') : formatTimer(timerSeconds)}
               </span>
             </div>
           </div>
 
-          {activeOt.type === 'Correctif' && (
-            <div className="grid grid-cols-1 gap-4 border-t border-slate-100 dark:border-slate-800/80 pt-3">
-              <div className="flex items-center gap-2 text-rose-600 bg-rose-50 dark:bg-rose-500/10 p-2 rounded border border-rose-500/20">
-                <Clock3 className="w-4 h-4" />
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider block leading-none mb-0.5">Machine arrêtée</span>
-                  <span className="font-bold">01h24</span>
-                </div>
-              </div>
-            </div>
-          )}
+
         </div>
 
         {/* Consignes de Sécurité LOTO */}
@@ -412,34 +389,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
           </div>
         </div>
 
-        {/* Documents joints */}
-        <div className="bg-white dark:bg-slate-850 p-4 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col gap-3">
-          <h4 className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">
-            Documents joints
-          </h4>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-1">
-            <button className="flex flex-col items-center justify-center p-3 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors gap-2">
-              <FileCheck className="w-6 h-6 text-rose-500" />
-              <span className="text-[9px] font-bold text-slate-600 dark:text-slate-400">PDF Notice</span>
-            </button>
-            <button className="flex flex-col items-center justify-center p-3 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors gap-2">
-              <FileCheck className="w-6 h-6 text-primary" />
-              <span className="text-[9px] font-bold text-slate-600 dark:text-slate-400">Manuel</span>
-            </button>
-            <button className="flex flex-col items-center justify-center p-3 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors gap-2">
-              <div className="w-6 h-6 rounded bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center">
-                <span className="text-[8px] font-bold">IMG</span>
-              </div>
-              <span className="text-[9px] font-bold text-slate-600 dark:text-slate-400">Photo 1</span>
-            </button>
-            <button className="flex flex-col items-center justify-center p-3 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors gap-2">
-              <div className="w-6 h-6 rounded bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center">
-                <span className="text-[8px] font-bold">IMG</span>
-              </div>
-              <span className="text-[9px] font-bold text-slate-600 dark:text-slate-400">Photo 2</span>
-            </button>
-          </div>
-        </div>
+
 
         {/* Assignment — 2-step workflow */}
         <div className="bg-white dark:bg-slate-850 p-4 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col gap-4">
@@ -822,39 +772,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
           </div>
         )}
 
-        {/* Historique Tracker */}
-        <div className="bg-white dark:bg-slate-850 p-4 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col gap-3 mt-4">
-          <h4 className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">
-            Historique de l'OT
-          </h4>
-          <div className="flex flex-col gap-4 relative pl-4 mt-2">
-            <div className="absolute left-1.5 top-2 bottom-2 w-0.5 bg-slate-200 dark:bg-slate-800"></div>
-            <div className="relative flex items-center gap-3">
-              <div className="absolute -left-[18px] w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600 ring-4 ring-white dark:ring-slate-850"></div>
-              <span className="text-[10px] text-slate-400 font-mono w-24">11/07 08:30</span>
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">OT Créé</span>
-            </div>
-            <div className="relative flex items-center gap-3">
-              <div className="absolute -left-[18px] w-2 h-2 rounded-full bg-primary ring-4 ring-white dark:ring-slate-850"></div>
-              <span className="text-[10px] text-slate-400 font-mono w-24">11/07 09:15</span>
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Affecté à {activeOtTech?.name || 'Technicien'}</span>
-            </div>
-            {activeOt.status !== 'En attente' && activeOt.status !== 'Affecté' && (
-              <div className="relative flex items-center gap-3">
-                <div className="absolute -left-[18px] w-2 h-2 rounded-full bg-rose-500 ring-4 ring-white dark:ring-slate-850"></div>
-                <span className="text-[10px] text-slate-400 font-mono w-24">11/07 10:00</span>
-                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">OT Démarré</span>
-              </div>
-            )}
-            {(activeOt.status === 'Terminé' || activeOt.status === 'Clôturé') && (
-              <div className="relative flex items-center gap-3">
-                <div className="absolute -left-[18px] w-2 h-2 rounded-full bg-emerald-500 ring-4 ring-white dark:ring-slate-850"></div>
-                <span className="text-[10px] text-slate-400 font-mono w-24">11/07 12:45</span>
-                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">OT Clôturé</span>
-              </div>
-            )}
-          </div>
-        </div>
+
 
       </div>
     </div>
