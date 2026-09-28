@@ -14,12 +14,12 @@ interface EquipmentDetailsProps {
   isAdding: boolean;
   isEditing: boolean;
   formData: Partial<EquipmentType>;
-  activeTab: 'historique' | 'preventifs' | 'pieces' | 'documents' | 'ot';
+  activeTab: 'informations' | 'historique' | 'preventifs' | 'pieces' | 'documents' | 'ot';
   suppliers: any[];
   workOrders?: WorkOrder[];
   incidents?: Incident[];
   onSetFormData: (data: Partial<EquipmentType>) => void;
-  onSetActiveTab: (tab: 'historique' | 'preventifs' | 'pieces' | 'documents' | 'ot') => void;
+  onSetActiveTab: (tab: 'informations' | 'historique' | 'preventifs' | 'pieces' | 'documents' | 'ot') => void;
   onSetIsEditing: (isEditing: boolean) => void;
   onSave: () => void;
   onNavigate: (screen: string) => void;
@@ -251,47 +251,6 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                     <div className={`text-[15px] font-bold ${activeEquipment?.criticality === 'Critique' ? 'text-rose-600' : 'text-slate-900'}`}>{activeEquipment?.criticality || '-'}</div>
                   </div>
                 </div>
-                
-                {/* Ligne séparatrice et champs additionnels (mil louta) */}
-                <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
-                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-                    <ClipboardList className="w-3.5 h-3.5" /> Informations complémentaires
-                  </h4>
-                  <div className="grid grid-cols-4 gap-y-6 gap-x-4">
-                    <div>
-                      <label className="text-[10px] text-slate-500 font-medium block mb-1">Date d'achat</label>
-                      <div className="text-[14px] font-bold text-slate-800 dark:text-slate-200">{activeEquipment?.purchaseDate ? new Date(activeEquipment.purchaseDate).toLocaleDateString('fr-FR') : '-'}</div>
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-slate-500 font-medium block mb-1">Fin garantie</label>
-                      <div className="text-[14px] font-bold text-slate-800 dark:text-slate-200">{activeEquipment?.endOfWarranty ? new Date(activeEquipment.endOfWarranty).toLocaleDateString('fr-FR') : '-'}</div>
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-slate-500 font-medium block mb-1">Fournisseur</label>
-                      <div className="text-[14px] font-bold text-slate-800 dark:text-slate-200">
-                        {suppliers.find(s => s.id === activeEquipment?.supplierId)?.name || activeEquipment?.supplierId || '-'}
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-slate-500 font-medium block mb-1">Code barre</label>
-                      <div className="text-[14px] font-bold text-slate-800 dark:text-slate-200 font-mono tracking-tight">{activeEquipment?.barcode || '-'}</div>
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-slate-500 font-medium block mb-1">Inventaire</label>
-                      <div className="text-[14px] font-bold text-slate-800 dark:text-slate-200">{activeEquipment?.inventory || '-'}</div>
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-slate-500 font-medium block mb-1">Responsabilité</label>
-                      <div className="text-[14px] font-bold text-slate-800 dark:text-slate-200">{activeEquipment?.responsibility || '-'}</div>
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-slate-500 font-medium block mb-1">Présence GIP</label>
-                      <div className="text-[14px] font-bold text-slate-800 dark:text-slate-200">
-                        {activeEquipment?.gipPresence ? <span className="text-emerald-600 flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5" /> Oui</span> : <span className="text-slate-400">Non</span>}
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -435,6 +394,9 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
         <div className="mt-4">
           <div className="flex items-center gap-1 border-b border-slate-200 dark:border-slate-700 mb-4 overflow-x-auto custom-scrollbar pb-1">
 
+            <button onClick={() => onSetActiveTab('informations')} className={`flex items-center gap-2 px-3 py-2 text-xs font-bold whitespace-nowrap border-b-2 transition-colors ${activeTab === 'informations' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}>
+              <ClipboardList className="w-4 h-4" /> Informations
+            </button>
             <button onClick={() => onSetActiveTab('historique')} className={`flex items-center gap-2 px-3 py-2 text-xs font-bold whitespace-nowrap border-b-2 transition-colors ${activeTab === 'historique' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}>
               <History className="w-4 h-4" /> Historique
             </button>
@@ -454,7 +416,45 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
 
           {/* Tab Content */}
           <div>
-
+          
+            {activeTab === 'informations' && (
+              <div className="bg-white dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+                  <div className="grid grid-cols-4 gap-y-6 gap-x-4">
+                    <div>
+                      <label className="text-[10px] text-slate-500 font-medium block mb-1">Date d'achat</label>
+                      <div className="text-[14px] font-bold text-slate-800 dark:text-slate-200">{activeEquipment?.purchaseDate ? new Date(activeEquipment.purchaseDate).toLocaleDateString('fr-FR') : '-'}</div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-500 font-medium block mb-1">Fin garantie</label>
+                      <div className="text-[14px] font-bold text-slate-800 dark:text-slate-200">{activeEquipment?.endOfWarranty ? new Date(activeEquipment.endOfWarranty).toLocaleDateString('fr-FR') : '-'}</div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-500 font-medium block mb-1">Fournisseur</label>
+                      <div className="text-[14px] font-bold text-slate-800 dark:text-slate-200">
+                        {suppliers.find(s => s.id === activeEquipment?.supplierId)?.name || activeEquipment?.supplierId || '-'}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-500 font-medium block mb-1">Code barre</label>
+                      <div className="text-[14px] font-bold text-slate-800 dark:text-slate-200 font-mono tracking-tight">{activeEquipment?.barcode || '-'}</div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-500 font-medium block mb-1">Inventaire</label>
+                      <div className="text-[14px] font-bold text-slate-800 dark:text-slate-200">{activeEquipment?.inventory || '-'}</div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-500 font-medium block mb-1">Responsabilité</label>
+                      <div className="text-[14px] font-bold text-slate-800 dark:text-slate-200">{activeEquipment?.responsibility || '-'}</div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-500 font-medium block mb-1">Présence GIP</label>
+                      <div className="text-[14px] font-bold text-slate-800 dark:text-slate-200">
+                        {activeEquipment?.gipPresence ? <span className="text-emerald-600 flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5" /> Oui</span> : <span className="text-slate-400">Non</span>}
+                      </div>
+                    </div>
+                  </div>
+              </div>
+            )}
             
             {activeTab === 'historique' && (
               <div className="flex flex-col gap-3">

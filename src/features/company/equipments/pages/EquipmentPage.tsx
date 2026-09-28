@@ -41,7 +41,7 @@ export const Equipment: React.FC<EquipmentProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [formData, setFormData] = useState<Partial<EquipmentType>>({});
-  const [activeTab, setActiveTab] = useState<'historique'|'preventifs'|'pieces'|'documents'|'ot'>('historique');
+  const [activeTab, setActiveTab] = useState<'informations'|'historique'|'preventifs'|'pieces'|'documents'|'ot'>('informations');
 
   // Helper to get all descendant IDs of a localisation
   const getDescendantLocalisationIds = (locId: number): number[] => {
