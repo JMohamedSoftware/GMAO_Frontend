@@ -14,12 +14,12 @@ interface EquipmentDetailsProps {
   isAdding: boolean;
   isEditing: boolean;
   formData: Partial<EquipmentType>;
-  activeTab: 'info' | 'historique' | 'preventifs' | 'pieces' | 'documents' | 'ot';
+  activeTab: 'historique' | 'preventifs' | 'pieces' | 'documents' | 'ot';
   suppliers: any[];
   workOrders?: WorkOrder[];
   incidents?: Incident[];
   onSetFormData: (data: Partial<EquipmentType>) => void;
-  onSetActiveTab: (tab: 'info' | 'historique' | 'preventifs' | 'pieces' | 'documents' | 'ot') => void;
+  onSetActiveTab: (tab: 'historique' | 'preventifs' | 'pieces' | 'documents' | 'ot') => void;
   onSetIsEditing: (isEditing: boolean) => void;
   onSave: () => void;
   onNavigate: (screen: string) => void;
@@ -378,9 +378,7 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
         {/* Tabs for details */}
         <div className="mt-4">
           <div className="flex items-center gap-1 border-b border-slate-200 dark:border-slate-700 mb-4 overflow-x-auto custom-scrollbar pb-1">
-            <button onClick={() => onSetActiveTab('info')} className={`flex items-center gap-2 px-3 py-2 text-xs font-bold whitespace-nowrap border-b-2 transition-colors ${activeTab === 'info' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}>
-              <Info className="w-4 h-4" /> Informations
-            </button>
+
             <button onClick={() => onSetActiveTab('historique')} className={`flex items-center gap-2 px-3 py-2 text-xs font-bold whitespace-nowrap border-b-2 transition-colors ${activeTab === 'historique' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}>
               <History className="w-4 h-4" /> Historique
             </button>
@@ -400,97 +398,7 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
 
           {/* Tab Content */}
           <div>
-            {activeTab === 'info' && (
-              <>
-                {(!isEditing && !isAdding) && (
-                  <div className="flex gap-5 mt-4">
-                    {/* General Info */}
-                    <div className="flex-1 min-w-0 bg-white dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-xl p-5 shadow-sm">
-                      <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
-                        <Settings2 className="w-4 h-4 text-primary" /> Informations générales
-                      </h3>
-                      <div className="grid grid-cols-[140px_1fr] gap-y-5 text-[13px]">
-                        <div className="text-slate-500 font-medium">Code équipement</div>
-                        <div className="font-bold text-slate-900">{activeEquipment?.id}</div>
-                        
-                        <div className="text-slate-500 font-medium">Désignation</div>
-                        <div className="font-bold text-slate-900">{activeEquipment?.name}</div>
-                        
-                        <div className="text-slate-500 font-medium">Description</div>
-                        <div className="font-medium text-slate-800 pr-4 leading-relaxed">{(activeEquipment as any)?.description || '-'}</div>
-                        
-                        <div className="text-slate-500 font-medium">Statut</div>
-                        <div>
-                          <span className={`inline-flex items-center px-2 py-1 text-[11px] font-bold rounded ${activeEquipment?.status === 'En panne' ? 'bg-rose-100 text-rose-700' : activeEquipment?.status === 'En maintenance' ? 'bg-amber-100 text-amber-700' : activeEquipment?.status === 'Hors service' ? 'bg-slate-100 text-slate-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                            <ShieldCheck className="w-3.5 h-3.5 mr-1" /> {activeEquipment?.status || 'En service'}
-                          </span>
-                        </div>
-                        
-                        <div className="text-slate-500 font-medium">Date de mise en service</div>
-                        <div className="font-bold text-slate-900">{activeEquipment?.commissionDate ? new Date(activeEquipment.commissionDate).toLocaleDateString() : '-'}</div>
-                        
-                        <div className="text-slate-500 font-medium">Fournisseur</div>
-                        <div className="font-bold text-slate-900">{suppliers.find(s => s.id === activeEquipment?.supplierId)?.name || '-'}</div>
-                      </div>
-                    </div>
 
-                    {/* Right column */}
-                    <div className="flex-1 min-w-0 flex flex-col gap-5">
-                      <div className="bg-white dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-xl p-5 shadow-sm">
-                        <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
-                          <Building2 className="w-4 h-4 text-primary" /> Localisation
-                        </h3>
-                        <div className="flex gap-4">
-                          <div className="flex-1 flex flex-col gap-4 text-[13px]">
-                            <div className="grid grid-cols-[100px_1fr] items-center">
-                              <div className="text-slate-500 font-medium">Site / Secteur</div>
-                              <div className="font-bold text-slate-900 truncate">
-                                {(() => {
-                                  const loc = flatLocalisations.find(l => l.id === activeEquipment?.localisationId);
-                                  return loc ? loc.nom : '-';
-                                })()}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="w-24 h-20 bg-slate-100 rounded-lg overflow-hidden relative flex flex-col border border-slate-200">
-                            <div className="flex-1 bg-slate-200 flex items-center justify-center text-slate-400">
-                               <MapPin className="w-6 h-6" />
-                            </div>
-                            <button className="bg-blue-50 text-blue-600 text-[10px] font-bold py-1.5 w-full text-center hover:bg-blue-100 transition-colors">Voir sur plan</button>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="bg-white dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-xl p-5 shadow-sm">
-                        <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
-                          <ClipboardList className="w-4 h-4 text-primary" /> Détails techniques
-                        </h3>
-                        <div className="grid grid-cols-[120px_1fr] gap-y-4 text-[13px]">
-                          <div className="text-slate-500 font-medium">Marque</div>
-                          <div className="font-bold text-slate-900">{activeEquipment?.brand || '-'}</div>
-                          
-                          <div className="text-slate-500 font-medium">Modèle</div>
-                          <div className="font-bold text-slate-900">{activeEquipment?.model || '-'}</div>
-
-                          <div className="text-slate-500 font-medium">N° Série</div>
-                          <div className="font-bold text-slate-900">{activeEquipment?.serialNumber || '-'}</div>
-
-
-                          <div className="text-slate-500 font-medium">Fin garantie</div>
-                          <div className="font-bold text-slate-900">{activeEquipment?.endOfWarranty ? new Date(activeEquipment.endOfWarranty).toLocaleDateString('fr-FR') : '-'}</div>
-
-                          <div className="text-slate-500 font-medium">Inventaire</div>
-                          <div className="font-bold text-slate-900">{(activeEquipment as any)?.inventory || '-'}</div>
-
-                          <div className="text-slate-500 font-medium">Code barre</div>
-                          <div className="font-bold text-slate-900 font-mono">{(activeEquipment as any)?.barcode || '-'}</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
             
             {activeTab === 'historique' && (
               <div className="flex flex-col gap-3">
