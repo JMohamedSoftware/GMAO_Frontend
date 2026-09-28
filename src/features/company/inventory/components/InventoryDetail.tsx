@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Package, X, CheckCircle2, AlertCircle, TrendingDown, TrendingUp, Edit2, MoreHorizontal, FileText, ArrowUpFromLine, ArrowDownToLine, FileSpreadsheet, ArrowRightLeft } from 'lucide-react';
 import { SparePart, Supplier } from '@/shared/types/gmao';
 
@@ -119,11 +119,11 @@ export const InventoryDetail: React.FC<InventoryDetailProps> = ({
 
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-slate-500">Prix unitaire</span>
-                  <span className="font-bold text-slate-700">{activePart.unitPrice.toFixed(2)} €</span>
+                  <span className="font-bold text-slate-700">{activePart.unitPrice.toFixed(2)} DT</span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-slate-500">Valeur stock</span>
-                  <span className="font-bold text-slate-700">{(activePart.stockCurrent * activePart.unitPrice).toFixed(2)} €</span>
+                  <span className="font-bold text-slate-700">{(activePart.stockCurrent * activePart.unitPrice).toFixed(2)} DT</span>
                 </div>
               </div>
 

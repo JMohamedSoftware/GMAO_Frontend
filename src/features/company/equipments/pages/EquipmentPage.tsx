@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+﻿import React, { useState, useMemo, useEffect } from 'react';
 import { useGmao } from '@/shared/hooks/useGmao';
 
 import { useLocalisations } from '@/shared/hooks/useLocalisations';
@@ -287,7 +287,7 @@ export const Equipment: React.FC<EquipmentProps> = ({
           </div>
           <div>
             <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">Valeur du Parc</p>
-            <p className="text-xl font-black text-slate-800 dark:text-white leading-none">{(totalEqs * 15000).toLocaleString('fr-FR')} €</p>
+            <p className="text-xl font-black text-slate-800 dark:text-white leading-none">{(totalEqs * 15000).toLocaleString('fr-FR')} DT</p>
             <p className="text-[10px] font-bold text-emerald-500 mt-1">↑ +3% ce mois</p>
           </div>
         </div>

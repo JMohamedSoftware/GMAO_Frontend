@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useGmao } from '@/shared/hooks/useGmao';
 import { Supplier } from '@/shared/types/gmao';
 import { usePermissions } from '@/shared/hooks/usePermissions';
@@ -147,7 +147,7 @@ export const Suppliers: React.FC = () => {
             <span className="text-[10px] font-bold text-rose-500 uppercase tracking-wider">Dépenses Globales</span>
             <DollarSign className="w-4 h-4 text-rose-500" />
           </div>
-          <span className="text-xl font-black text-slate-700 dark:text-slate-200">{totalCost.toLocaleString()} €</span>
+          <span className="text-xl font-black text-slate-700 dark:text-slate-200">{totalCost.toLocaleString()} DT</span>
           <p className="text-[10px] text-slate-400 mt-auto">Volume des contrats</p>
         </div>
 
@@ -274,7 +274,7 @@ export const Suppliers: React.FC = () => {
 
                       <div className="text-right shrink-0">
                         <span className="font-extrabold text-slate-800 dark:text-slate-200 block">
-                          {c.cost.toLocaleString()} €
+                          {c.cost.toLocaleString()} DT
                         </span>
                         <span className="text-[9px] font-bold text-emerald-500">{c.status}</span>
                       </div>
@@ -379,7 +379,7 @@ export const Suppliers: React.FC = () => {
                     />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Coût Annuel (€)</label>
+                    <label className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Coût Annuel (DT)</label>
                     <input
                       type="number"
                       value={newContractCost}

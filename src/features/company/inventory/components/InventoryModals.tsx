@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Tag, X, Boxes, Package, ArrowDownLeft } from 'lucide-react';
 import { SparePart, Supplier } from '@/shared/types/gmao';
 
@@ -184,7 +184,7 @@ export const InventoryModals: React.FC<InventoryModalsProps> = ({
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1">
-                  <label className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Prix Unitaire (€) *</label>
+                  <label className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Prix Unitaire (DT) *</label>
                   <input type="number" step="0.01" required min={0} value={newPrice} onChange={e => setNewPrice(Number(e.target.value))} className={inputCls} />
                 </div>
                 <div className="flex flex-col gap-1">
@@ -245,7 +245,7 @@ export const InventoryModals: React.FC<InventoryModalsProps> = ({
                       />
                       {orderPart && (
                         <span className="text-[10px] text-slate-400">
-                          Coût estimé : <strong className="text-primary">{(orderQty * orderPart.unitPrice).toFixed(2)} €</strong>
+                          Coût estimé : <strong className="text-primary">{(orderQty * orderPart.unitPrice).toFixed(2)} DT</strong>
                         </span>
                       )}
                     </div>

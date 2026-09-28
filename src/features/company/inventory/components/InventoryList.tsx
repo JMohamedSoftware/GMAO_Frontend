@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Search, Filter, Eye, Edit2, MoreVertical, AlertCircle, AlertTriangle, CheckCircle2, ChevronRight, ChevronLeft, Package } from 'lucide-react';
 import { SparePart, Supplier } from '@/shared/types/gmao';
 
@@ -244,8 +244,8 @@ export const InventoryList: React.FC<InventoryListProps> = ({
                   <td className="p-3 text-xs text-slate-500 text-right">{part.stockMax}</td>
 
                   <td className="p-3 text-xs text-slate-500">{sup?.name || part.supplierId}</td>
-                  <td className="p-3 text-xs text-slate-500 text-right">{part.unitPrice.toFixed(2)} €</td>
-                  <td className="p-3 text-xs font-semibold text-slate-700 dark:text-slate-300 text-right">{(part.stockCurrent * part.unitPrice).toFixed(2)} €</td>
+                  <td className="p-3 text-xs text-slate-500 text-right">{part.unitPrice.toFixed(2)} DT</td>
+                  <td className="p-3 text-xs font-semibold text-slate-700 dark:text-slate-300 text-right">{(part.stockCurrent * part.unitPrice).toFixed(2)} DT</td>
                   <td className="p-3 text-center">
                     {getStatusBadge(part)}
                   </td>

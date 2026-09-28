@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { ChevronUp, ChevronDown, Activity, Droplet, Thermometer, Battery } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -55,7 +55,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
                     <YAxis stroke="#94A3B8" fontSize={9} />
                     <Tooltip />
                     <Area type="monotone" dataKey="pannes" name="Pannes" stroke="#EF4444" fill="#EF4444" fillOpacity={0.05} strokeWidth={2} />
-                    <Area type="monotone" dataKey="cost" name="Coûts (€)" stroke="#2563EB" fill="#2563EB" fillOpacity={0.05} strokeWidth={2} />
+                    <Area type="monotone" dataKey="cost" name="Coûts (DT)" stroke="#2563EB" fill="#2563EB" fillOpacity={0.05} strokeWidth={2} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>

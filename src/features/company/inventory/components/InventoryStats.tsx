@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Package, AlertTriangle, PackageX, ShoppingCart, Box } from 'lucide-react';
 import { SparePart } from '@/shared/types/gmao';
 
@@ -78,7 +78,7 @@ export const InventoryStats: React.FC<InventoryStatsProps> = ({ parts }) => {
         </div>
         <div>
           <span className="text-xs text-slate-500 dark:text-slate-400 font-bold block mb-1">Valeur du Stock</span>
-          <h3 className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 leading-none">{Math.round(totalValuation).toLocaleString()} €</h3>
+          <h3 className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 leading-none">{Math.round(totalValuation).toLocaleString()} DT</h3>
           <p className="text-[10px] text-emerald-500 font-bold mt-1 flex items-center gap-1">
              +3% ce mois
           </p>
