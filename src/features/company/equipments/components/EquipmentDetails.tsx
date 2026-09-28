@@ -475,8 +475,6 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                           <div className="text-slate-500 font-medium">N° Série</div>
                           <div className="font-bold text-slate-900">{activeEquipment?.serialNumber || '-'}</div>
 
-                          <div className="text-slate-500 font-medium">Mise en service</div>
-                          <div className="font-bold text-slate-900">{activeEquipment?.commissionDate ? new Date(activeEquipment.commissionDate).toLocaleDateString('fr-FR') : '-'}</div>
 
                           <div className="text-slate-500 font-medium">Fin garantie</div>
                           <div className="font-bold text-slate-900">{activeEquipment?.endOfWarranty ? new Date(activeEquipment.endOfWarranty).toLocaleDateString('fr-FR') : '-'}</div>
