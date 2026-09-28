@@ -123,7 +123,7 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
 
   const equipmentWorkOrders = workOrders.filter(wo => wo.equipmentId === activeEquipment?.id);
   const activeWorkOrders = equipmentWorkOrders.filter(wo => wo.status !== 'Clôturé' && wo.status !== 'Terminé');
-  const historyWorkOrders = [...equipmentWorkOrders].sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime());
+  const historyWorkOrders = equipmentWorkOrders.filter(wo => wo.status === 'Clôturé' || wo.status === 'Terminé').sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime());
 
   if (!activeEquipment && !isAdding) {
     return (
@@ -438,7 +438,26 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                         <span>📅 {new Date(wo.createdDate).toLocaleDateString('fr-FR')}</span>
                         <span>🔧 {wo.type}</span>
                         {wo.priority && <span className={(wo.priority as string) === 'Urgente' ? 'text-rose-500' : ''}>⚡ {wo.priority}</span>}
+                        {wo.durationMinutes ? <span>⏱️ {Math.floor(wo.durationMinutes / 60)}h {wo.durationMinutes % 60}m</span> : null}
                       </div>
+
+                      {/* Diagnostic & Solution */}
+                      {(wo.diagnostic || wo.solution) && (
+                        <div className="flex flex-col gap-1 mt-1">
+                          {wo.diagnostic && (
+                            <div className="text-[11px] text-slate-600 dark:text-slate-400 bg-amber-50 dark:bg-amber-900/10 px-2 py-1.5 rounded border border-amber-100 dark:border-amber-900/30">
+                              <span className="font-bold text-amber-700 dark:text-amber-500 block mb-0.5">Diagnostic:</span>
+                              {wo.diagnostic}
+                            </div>
+                          )}
+                          {wo.solution && (
+                            <div className="text-[11px] text-slate-600 dark:text-slate-400 bg-emerald-50 dark:bg-emerald-900/10 px-2 py-1.5 rounded border border-emerald-100 dark:border-emerald-900/30">
+                              <span className="font-bold text-emerald-700 dark:text-emerald-500 block mb-0.5">Solution:</span>
+                              {wo.solution}
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       {/* Technician info */}
                       {wo.technicianId && (
