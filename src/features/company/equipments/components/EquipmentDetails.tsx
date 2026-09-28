@@ -244,102 +244,118 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
         )}
 
         {(isEditing || isAdding) && (
-          <>
-        {/* Photo & Main Identity */}
-        <div className="flex flex-col xl:flex-row gap-6">
-          {/* Image */}
-          <div className="w-full xl:w-64 shrink-0">
-            <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden relative group">
-              {(isEditing || isAdding) ? (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button className="px-3 py-1.5 bg-white text-slate-800 rounded text-xs font-bold">Changer l'image</button>
+          <div className="flex gap-5">
+            {/* LEFT: Identité + Localisation */}
+            <div className="flex-1 min-w-0 flex flex-col gap-4">
+              {/* Card: Informations générales */}
+              <div className="bg-white dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
+                  <Settings2 className="w-4 h-4 text-primary" /> Informations générales
+                </h3>
+                <div className="grid grid-cols-[140px_1fr] gap-y-4 text-[13px]">
+                  <label className="text-slate-500 font-medium self-center">Code équipement</label>
+                  <input type="text" readOnly={!isAdding} value={(isEditing || isAdding) ? formData.id || '' : activeEquipment?.id || ''} onChange={e => onSetFormData({...formData, id: e.target.value})} className="w-full text-[13px] px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 outline-none focus:ring-2 focus:ring-primary/20 font-medium text-slate-800" />
+
+                  <label className="text-slate-500 font-medium self-center">Désignation <span className="text-rose-500">*</span></label>
+                  <input type="text" value={(isEditing || isAdding) ? formData.name || '' : activeEquipment?.name || ''} onChange={e => onSetFormData({...formData, name: e.target.value})} className="w-full text-[13px] px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 outline-none focus:ring-2 focus:ring-primary/20 font-medium text-slate-800" placeholder="Ex: Pompe P-102" />
+
+                  <label className="text-slate-500 font-medium self-center">Famille <span className="text-rose-500">*</span></label>
+                  <input type="text" list="category-list" value={(isEditing || isAdding) ? formData.category || '' : activeEquipment?.category || ''} onChange={e => onSetFormData({...formData, category: e.target.value})} className="w-full text-[13px] px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 outline-none focus:ring-2 focus:ring-primary/20 font-medium text-slate-800" placeholder="Ex: Pompes" />
+                  <datalist id="category-list">{uniqueCategories.map(cat => <option key={cat} value={cat} />)}</datalist>
+
+                  <label className="text-slate-500 font-medium self-center">Sous-famille</label>
+                  <input type="text" list="subfamily-list" value={(isEditing || isAdding) ? formData.subFamily || '' : activeEquipment?.subFamily || ''} onChange={e => onSetFormData({...formData, subFamily: e.target.value})} className="w-full text-[13px] px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 outline-none focus:ring-2 focus:ring-primary/20 font-medium text-slate-800" placeholder="Ex: Centrifuges" />
+                  <datalist id="subfamily-list">{uniqueSubFamilies.map(sub => <option key={sub} value={sub} />)}</datalist>
+
+                  <label className="text-slate-500 font-medium self-center">Statut</label>
+                  <select value={(isEditing || isAdding) ? formData.status || '' : activeEquipment?.status || ''} onChange={e => onSetFormData({...formData, status: e.target.value as any})} className="w-full text-[13px] px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 outline-none focus:ring-2 focus:ring-primary/20 font-medium text-slate-800 appearance-none">
+                    <option value="En service">En service</option>
+                    <option value="En maintenance">En maintenance</option>
+                    <option value="En panne">En panne</option>
+                    <option value="Hors service">Hors service</option>
+                  </select>
+
+                  <label className="text-slate-500 font-medium self-center">Criticité</label>
+                  <select value={(isEditing || isAdding) ? formData.criticality || '' : activeEquipment?.criticality || ''} onChange={e => onSetFormData({...formData, criticality: e.target.value as any})} className="w-full text-[13px] px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 outline-none focus:ring-2 focus:ring-primary/20 font-medium text-slate-800 appearance-none">
+                    <option value="Faible">Faible</option>
+                    <option value="Moyenne">Moyenne</option>
+                    <option value="Haute">Haute</option>
+                    <option value="Critique">Critique</option>
+                  </select>
                 </div>
-              ) : null}
-              {((isEditing ? formData.photos : activeEquipment?.photos) || [])[0] ? (
-                <img src={((isEditing || isAdding) ? formData.photos : activeEquipment?.photos)?.[0]} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-slate-400">
-                  <Plus className="w-8 h-8" />
+              </div>
+
+              {/* Card: Localisation */}
+              <div className="bg-white dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
+                  <Building2 className="w-4 h-4 text-primary" /> Localisation
+                </h3>
+                <div className="grid grid-cols-[140px_1fr] gap-y-4 text-[13px]">
+                  <label className="text-slate-500 font-medium self-center">Emplacement <span className="text-rose-500">*</span></label>
+                  <select value={(isEditing || isAdding) ? formData.localisationId || '' : activeEquipment?.localisationId || ''} onChange={e => onSetFormData({...formData, localisationId: e.target.value ? Number(e.target.value) : undefined})} className="w-full text-[13px] px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 outline-none focus:ring-2 focus:ring-primary/20 font-medium text-slate-800 appearance-none">
+                    <option value="">-- Sélectionnez --</option>
+                    {flatLocalisations.map(loc => (
+                      <option key={loc.id} value={loc.id}>{'\u00A0'.repeat(loc.depth * 3)}{loc.depth > 0 ? '└ ' : ''}{loc.nom}</option>
+                    ))}
+                  </select>
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* En-tête (Identity) */}
-          <div className="flex-1 grid grid-cols-2 gap-x-4 gap-y-3">
-            <div className="col-span-2">
-              <h3 className="text-xs font-bold uppercase text-slate-500 border-b border-slate-200 dark:border-slate-700 pb-1 mb-2">En-tête</h3>
+              </div>
             </div>
 
-            <div>
-              <label className="text-[10px] text-slate-500 font-bold block mb-1">Réf. équipement (Code)</label>
-              <input type="text" readOnly={!isAdding} value={(isEditing || isAdding) ? formData.id : activeEquipment?.id} onChange={e => onSetFormData({...formData, id: e.target.value})} className={`w-full text-xs p-1.5 rounded border ${isEditing || isAdding ? 'bg-white dark:bg-slate-800 border-slate-300' : 'bg-transparent border-transparent font-bold'} outline-none`} />
-            </div>
-            <div>
-              <label className="text-[10px] text-slate-500 font-bold block mb-1">Désignation (Nom) <span className="text-rose-500">*</span></label>
-              <input type="text" readOnly={!isEditing && !isAdding} value={(isEditing || isAdding) ? formData.name : activeEquipment?.name} onChange={e => onSetFormData({...formData, name: e.target.value})} className={`w-full text-xs p-1.5 rounded border ${isEditing || isAdding ? 'bg-white dark:bg-slate-800 border-slate-300' : 'bg-transparent border-transparent font-bold text-primary'} outline-none`} placeholder="Ex: Pompe P-102" />
-            </div>
-            <div>
-              <label className="text-[10px] text-slate-500 font-bold block mb-1">Famille <span className="text-rose-500">*</span></label>
-              <input type="text" list="category-list" readOnly={!isEditing && !isAdding} value={(isEditing || isAdding) ? formData.category : activeEquipment?.category} onChange={e => onSetFormData({...formData, category: e.target.value})} className={`w-full text-xs p-1.5 rounded border ${isEditing || isAdding ? 'bg-white dark:bg-slate-800 border-slate-300' : 'bg-transparent border-transparent'} outline-none`} placeholder="Ex: Pompes" />
-              <datalist id="category-list">
-                {uniqueCategories.map(cat => <option key={cat} value={cat} />)}
-              </datalist>
-            </div>
-            <div>
-              <label className="text-[10px] text-slate-500 font-bold block mb-1">Sous-famille</label>
-              <input type="text" list="subfamily-list" readOnly={!isEditing && !isAdding} value={(isEditing || isAdding) ? formData.subFamily : activeEquipment?.subFamily || ''} onChange={e => onSetFormData({...formData, subFamily: e.target.value})} className={`w-full text-xs p-1.5 rounded border ${isEditing || isAdding ? 'bg-white dark:bg-slate-800 border-slate-300' : 'bg-transparent border-transparent'} outline-none`} placeholder="Ex: Centrifuges" />
-              <datalist id="subfamily-list">
-                {uniqueSubFamilies.map(sub => <option key={sub} value={sub} />)}
-              </datalist>
-            </div>
-            <div>
-              <label className="text-[10px] text-slate-500 font-bold block mb-1">État équipement</label>
-              <select disabled={!isEditing && !isAdding} value={(isEditing || isAdding) ? formData.status : activeEquipment?.status} onChange={e => onSetFormData({...formData, status: e.target.value as any})} className={`w-full text-xs p-1.5 rounded border ${isEditing || isAdding ? 'bg-white dark:bg-slate-800 border-slate-300' : 'bg-transparent border-transparent font-bold'} ${activeEquipment?.status === 'En panne' ? 'text-rose-500' : 'text-emerald-500'} outline-none appearance-none`}>
-                <option value="En service">En service</option>
-                <option value="En maintenance">En maintenance</option>
-                <option value="En panne">En panne</option>
-                <option value="Hors service">Hors service</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-[10px] text-slate-500 font-bold block mb-1">Criticité</label>
-              <select disabled={!isEditing && !isAdding} value={(isEditing || isAdding) ? formData.criticality : activeEquipment?.criticality} onChange={e => onSetFormData({...formData, criticality: e.target.value as any})} className={`w-full text-xs p-1.5 rounded border ${isEditing || isAdding ? 'bg-white dark:bg-slate-800 border-slate-300' : 'bg-transparent border-transparent'} outline-none appearance-none`}>
-                <option value="Faible">Faible</option>
-                <option value="Moyenne">Moyenne</option>
-                <option value="Haute">Haute</option>
-                <option value="Critique">Critique</option>
-              </select>
-            </div>
-          </div>
-        </div>
+            {/* RIGHT: Détails techniques + Photo */}
+            <div className="flex-1 min-w-0 flex flex-col gap-4">
+              {/* Card: Photo */}
+              <div className="bg-white dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
+                  <Tag className="w-4 h-4 text-primary" /> Photo équipement
+                </h3>
+                <div className="aspect-[4/3] bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 relative group cursor-pointer">
+                  {((isEditing || isAdding) ? formData.photos : activeEquipment?.photos)?.[0] ? (
+                    <img src={((isEditing || isAdding) ? formData.photos : activeEquipment?.photos)?.[0]} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 gap-2">
+                      <Plus className="w-8 h-8" />
+                      <span className="text-xs font-bold">Ajouter une photo</span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button className="px-3 py-1.5 bg-white text-slate-800 rounded-lg text-xs font-bold shadow">Changer l'image</button>
+                  </div>
+                </div>
+              </div>
 
-        {/* Localisation */}
-        <div className="grid grid-cols-4 gap-4">
-          <div className="col-span-4">
-            <h3 className="text-xs font-bold uppercase text-slate-500 border-b border-slate-200 dark:border-slate-700 pb-1 mb-2">
-              Localisation Géographique (Requise)
-            </h3>
-          </div>
-          <div className="col-span-4 md:col-span-2">
-            <label className="text-[10px] text-slate-500 font-bold block mb-1">Localisation <span className="text-rose-500">*</span></label>
-            <select 
-              disabled={!isEditing && !isAdding} 
-              value={(isEditing || isAdding) ? formData.localisationId || '' : activeEquipment?.localisationId || ''} 
-              onChange={e => onSetFormData({...formData, localisationId: e.target.value ? Number(e.target.value) : undefined})} 
-              className={`w-full text-xs p-1.5 rounded border ${isEditing || isAdding ? 'bg-white dark:bg-slate-800 border-slate-300' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'} outline-none`}
-            >
-              <option value="">-- Sélectionnez une localisation --</option>
-              {flatLocalisations.map(loc => (
-                <option key={loc.id} value={loc.id}>
-                  {'\u00A0'.repeat(loc.depth * 4)}{loc.depth > 0 ? '└ ' : ''}{loc.nom}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+              {/* Card: Détails techniques */}
+              <div className="bg-white dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
+                  <ClipboardList className="w-4 h-4 text-primary" /> Détails techniques
+                </h3>
+                <div className="grid grid-cols-[140px_1fr] gap-y-4 text-[13px]">
+                  <label className="text-slate-500 font-medium self-center">Marque</label>
+                  <input type="text" list="brand-list" value={(isEditing || isAdding) ? formData.brand || '' : activeEquipment?.brand || ''} onChange={e => onSetFormData({...formData, brand: e.target.value})} className="w-full text-[13px] px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 outline-none focus:ring-2 focus:ring-primary/20 font-medium text-slate-800" />
+                  <datalist id="brand-list">{uniqueBrands.map(b => <option key={b} value={b} />)}</datalist>
 
-          </>
+                  <label className="text-slate-500 font-medium self-center">Modèle</label>
+                  <input type="text" list="model-list" value={(isEditing || isAdding) ? formData.model || '' : activeEquipment?.model || ''} onChange={e => onSetFormData({...formData, model: e.target.value})} className="w-full text-[13px] px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 outline-none focus:ring-2 focus:ring-primary/20 font-medium text-slate-800" />
+                  <datalist id="model-list">{uniqueModels.map(m => <option key={m} value={m} />)}</datalist>
+
+                  <label className="text-slate-500 font-medium self-center">N° Série</label>
+                  <input type="text" value={(isEditing || isAdding) ? formData.serialNumber || '' : activeEquipment?.serialNumber || ''} onChange={e => onSetFormData({...formData, serialNumber: e.target.value})} className="w-full text-[13px] px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 outline-none focus:ring-2 focus:ring-primary/20 font-medium text-slate-800" />
+
+                  <label className="text-slate-500 font-medium self-center">Mise en service</label>
+                  <input type="date" value={(isEditing || isAdding) ? formData.commissionDate || '' : activeEquipment?.commissionDate || ''} onChange={e => onSetFormData({...formData, commissionDate: e.target.value})} className="w-full text-[13px] px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 outline-none focus:ring-2 focus:ring-primary/20 font-medium text-slate-800" />
+
+                  <label className="text-slate-500 font-medium self-center">Garantie</label>
+                  <input type="date" value={(isEditing || isAdding) ? formData.endOfWarranty || '' : activeEquipment?.endOfWarranty || ''} onChange={e => onSetFormData({...formData, endOfWarranty: e.target.value})} className="w-full text-[13px] px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 outline-none focus:ring-2 focus:ring-primary/20 font-medium text-slate-800" />
+
+                  <label className="text-slate-500 font-medium self-center">Fournisseur</label>
+                  <select value={(isEditing || isAdding) ? formData.supplierId || '' : activeEquipment?.supplierId || ''} onChange={e => onSetFormData({...formData, supplierId: e.target.value})} className="w-full text-[13px] px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 outline-none focus:ring-2 focus:ring-primary/20 font-medium text-slate-800 appearance-none">
+                    <option value="">Sélectionner...</option>
+                    {suppliers.map(s => (<option key={s.id} value={s.id}>{s.name}</option>))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Tabs for details */}
