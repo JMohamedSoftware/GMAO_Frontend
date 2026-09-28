@@ -27,6 +27,7 @@ export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreate
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedEqId, setSelectedEqId] = useState('');
   const [description, setDescription] = useState('');
+  const [impact, setImpact] = useState('Aucun impact (machine en marche)');
   const [urgency, setUrgency] = useState<Incident['urgency']>('Moyenne');
   const [photo, setPhoto] = useState('');
 
@@ -78,9 +79,10 @@ export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreate
     setIsSubmitting(true);
     setErrorMsg(null);
     try {
+      const finalDescription = `[Impact: ${impact}] \n${description}`;
       await addIncident({
         equipmentId: selectedEqId,
-        description,
+        description: finalDescription,
         reportedBy: currentUser?.name || 'Production',
         urgency,
         photo: photo || undefined
@@ -89,6 +91,7 @@ export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreate
       // Reset form
       setSelectedEqId('');
       setDescription('');
+      setImpact('Aucun impact (machine en marche)');
       setUrgency('Moyenne');
       setPhoto('');
       setShowAddModal(false);
@@ -219,6 +222,8 @@ export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreate
         setDescription={setDescription}
         urgency={urgency}
         setUrgency={setUrgency}
+        impact={impact}
+        setImpact={setImpact}
         photo={photo}
         setPhoto={setPhoto}
         handleReportIncident={handleReportIncident}

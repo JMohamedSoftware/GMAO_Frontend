@@ -10,6 +10,8 @@ interface IncidentModalsProps {
   setSelectedEqId: (id: string) => void;
   description: string;
   setDescription: (desc: string) => void;
+  impact: string;
+  setImpact: (impact: string) => void;
   urgency: Incident['urgency'];
   setUrgency: (urg: Incident['urgency']) => void;
   photo: string;
@@ -20,7 +22,7 @@ interface IncidentModalsProps {
 
 export const IncidentModals: React.FC<IncidentModalsProps> = ({
   showAddModal, setShowAddModal, equipments, selectedEqId, setSelectedEqId,
-  description, setDescription, urgency, setUrgency, photo, setPhoto,
+  description, setDescription, impact, setImpact, urgency, setUrgency, photo, setPhoto,
   handleReportIncident, isSubmitting = false
 }) => {
   return (
@@ -71,16 +73,20 @@ export const IncidentModals: React.FC<IncidentModalsProps> = ({
                   className="p-2 border border-slate-200 dark:border-slate-800 rounded-lg bg-white/50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 focus:border-rose-500 outline-none resize-none shadow-inner"
                 />
                 <div className="flex gap-2 mt-2">
-                  <button type="button" className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-slate-600 hover:bg-slate-200 cursor-pointer">Fuite</button>
-                  <button type="button" className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-slate-600 hover:bg-slate-200 cursor-pointer">Bruit anormal</button>
-                  <button type="button" className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-slate-600 hover:bg-slate-200 cursor-pointer">Arrêt machine</button>
+                  <button type="button" onClick={() => setDescription(description + (description ? ', ' : '') + 'Fuite')} className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-slate-600 hover:bg-slate-200 cursor-pointer">Fuite</button>
+                  <button type="button" onClick={() => setDescription(description + (description ? ', ' : '') + 'Bruit anormal')} className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-slate-600 hover:bg-slate-200 cursor-pointer">Bruit anormal</button>
+                  <button type="button" onClick={() => setDescription(description + (description ? ', ' : '') + 'Arrêt machine')} className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-slate-600 hover:bg-slate-200 cursor-pointer">Arrêt machine</button>
                 </div>
               </div>
 
               {/* Impact Production */}
               <div className="flex flex-col gap-1">
                 <label className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Impact sur la Production</label>
-                <select className="p-2 border border-slate-200 dark:border-slate-800 rounded-lg bg-white/50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 focus:border-rose-500 outline-none shadow-inner cursor-pointer">
+                <select 
+                  value={impact}
+                  onChange={(e) => setImpact(e.target.value)}
+                  className="p-2 border border-slate-200 dark:border-slate-800 rounded-lg bg-white/50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 focus:border-rose-500 outline-none shadow-inner cursor-pointer"
+                >
                   <option>Aucun impact (machine en marche)</option>
                   <option>Marche dégradée (cadence réduite)</option>
                   <option>Arrêt total de la ligne</option>
