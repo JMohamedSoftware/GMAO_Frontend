@@ -176,9 +176,7 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                     <h2 className="text-xl font-black text-slate-800 dark:text-white mt-1">{activeEquipment?.name}</h2>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-50 shadow-sm flex items-center justify-center h-10">
-                      <span className="leading-none pb-1 font-bold text-lg">...</span>
-                    </button>
+
                     {can(PERMISSIONS.EQUIPMENT_UPDATE) && (
                       <button onClick={() => { onSetIsEditing(true); onSetFormData(activeEquipment || {}); }} className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm hover:bg-blue-700 h-10">
                         <Edit className="w-3.5 h-3.5" /> Modifier
