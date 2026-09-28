@@ -400,7 +400,7 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                         <div className="font-bold text-slate-900">{activeEquipment?.name}</div>
                         
                         <div className="text-slate-500 font-medium">Description</div>
-                        <div className="font-medium text-slate-800 pr-4 leading-relaxed">{(activeEquipment as any)?.description || "Compresseur d'air à vis lubrifiée utilisé pour l'alimentation en air comprimé des lignes de production."}</div>
+                        <div className="font-medium text-slate-800 pr-4 leading-relaxed">{(activeEquipment as any)?.description || '-'}</div>
                         
                         <div className="text-slate-500 font-medium">Statut</div>
                         <div>
@@ -412,8 +412,8 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                         <div className="text-slate-500 font-medium">Date de mise en service</div>
                         <div className="font-bold text-slate-900">{activeEquipment?.commissionDate ? new Date(activeEquipment.commissionDate).toLocaleDateString() : '-'}</div>
                         
-                        <div className="text-slate-500 font-medium">Durée de vie estimée</div>
-                        <div className="font-bold text-slate-900">15 ans</div>
+                        <div className="text-slate-500 font-medium">Fournisseur</div>
+                        <div className="font-bold text-slate-900">{suppliers.find(s => s.id === activeEquipment?.supplierId)?.name || '-'}</div>
                       </div>
                     </div>
 
@@ -436,8 +436,8 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                             </div>
                             
                             <div className="grid grid-cols-[100px_1fr] items-center">
-                              <div className="text-slate-500 font-medium">Atelier/Ligne</div>
-                              <div className="font-bold text-slate-900 truncate">Utilités</div>
+                              <div className="text-slate-500 font-medium">N° Série</div>
+                              <div className="font-bold text-slate-900 truncate">{activeEquipment?.serialNumber || '-'}</div>
                             </div>
                             
                             <div className="grid grid-cols-[100px_1fr] items-center">
@@ -456,20 +456,26 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                       
                       <div className="bg-white dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-xl p-5 shadow-sm">
                         <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
-                          <ClipboardList className="w-4 h-4 text-primary" /> Caractéristiques techniques
+                          <ClipboardList className="w-4 h-4 text-primary" /> Détails techniques
                         </h3>
-                        <div className="grid grid-cols-[100px_1fr] gap-y-4 text-[13px]">
-                          <div className="text-slate-500 font-medium">Puissance</div>
-                          <div className="font-bold text-slate-900">55 kW</div>
+                        <div className="grid grid-cols-[120px_1fr] gap-y-4 text-[13px]">
+                          <div className="text-slate-500 font-medium">Marque</div>
+                          <div className="font-bold text-slate-900">{activeEquipment?.brand || '-'}</div>
                           
-                          <div className="text-slate-500 font-medium">Pression max</div>
-                          <div className="font-bold text-slate-900">8 bar</div>
-                          
-                          <div className="text-slate-500 font-medium">Débit</div>
-                          <div className="font-bold text-slate-900">9.5 m³/min</div>
-                          
-                          <div className="text-slate-500 font-medium">Tension</div>
-                          <div className="font-bold text-slate-900">400 V</div>
+                          <div className="text-slate-500 font-medium">Modèle</div>
+                          <div className="font-bold text-slate-900">{activeEquipment?.model || '-'}</div>
+
+                          <div className="text-slate-500 font-medium">Mise en service</div>
+                          <div className="font-bold text-slate-900">{activeEquipment?.commissionDate ? new Date(activeEquipment.commissionDate).toLocaleDateString('fr-FR') : '-'}</div>
+
+                          <div className="text-slate-500 font-medium">Fin garantie</div>
+                          <div className="font-bold text-slate-900">{activeEquipment?.endOfWarranty ? new Date(activeEquipment.endOfWarranty).toLocaleDateString('fr-FR') : '-'}</div>
+
+                          <div className="text-slate-500 font-medium">Inventaire</div>
+                          <div className="font-bold text-slate-900">{(activeEquipment as any)?.inventory || '-'}</div>
+
+                          <div className="text-slate-500 font-medium">Code barre</div>
+                          <div className="font-bold text-slate-900 font-mono">{(activeEquipment as any)?.barcode || '-'}</div>
                         </div>
                       </div>
                     </div>
