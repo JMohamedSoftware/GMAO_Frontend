@@ -186,7 +186,7 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                 </div>
                 
                 <div className="mt-2 mb-6">
-                  <span className={`inline-flex items-center px-3 py-1 text-xs font-bold rounded-md ${activeEquipment?.status === 'En panne' ? 'bg-rose-100 text-rose-700' : activeEquipment?.status === 'En maintenance' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                  <span className={`inline-flex items-center px-3 py-1 text-xs font-bold rounded-md ${activeEquipment?.status === 'En panne' ? 'bg-rose-100 text-rose-700' : activeEquipment?.status === 'En maintenance' ? 'bg-amber-100 text-amber-700' : activeEquipment?.status === 'Hors service' ? 'bg-slate-100 text-slate-700' : 'bg-emerald-100 text-emerald-700'}`}>
                     <ShieldCheck className="w-3.5 h-3.5 mr-1" /> {activeEquipment?.status || 'En service'}
                   </span>
                 </div>
@@ -421,7 +421,7 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                         
                         <div className="text-slate-500 font-medium">Statut</div>
                         <div>
-                          <span className={`inline-flex items-center px-2 py-1 text-[11px] font-bold rounded ${activeEquipment?.status === 'En panne' ? 'bg-rose-100 text-rose-700' : activeEquipment?.status === 'En maintenance' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                          <span className={`inline-flex items-center px-2 py-1 text-[11px] font-bold rounded ${activeEquipment?.status === 'En panne' ? 'bg-rose-100 text-rose-700' : activeEquipment?.status === 'En maintenance' ? 'bg-amber-100 text-amber-700' : activeEquipment?.status === 'Hors service' ? 'bg-slate-100 text-slate-700' : 'bg-emerald-100 text-emerald-700'}`}>
                             <ShieldCheck className="w-3.5 h-3.5 mr-1" /> {activeEquipment?.status || 'En service'}
                           </span>
                         </div>
