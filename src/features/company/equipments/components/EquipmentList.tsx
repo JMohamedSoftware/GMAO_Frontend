@@ -142,9 +142,11 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({
           );
         })}
         {equipments.length === 0 && (
-          <div className="flex flex-col items-center justify-center p-8 text-slate-400">
+          <div className="flex flex-col items-center justify-center p-8 text-slate-400 text-center">
             <Package className="w-8 h-8 mb-2 opacity-20" />
-            <p className="text-xs font-bold">Aucun équipement trouvé</p>
+            <p className="text-xs font-bold">
+              {!selectedGeoNode && !search ? "Sélectionnez un dossier (site/emplacement) pour afficher les équipements" : "Aucun équipement trouvé"}
+            </p>
           </div>
         )}
       </div>
