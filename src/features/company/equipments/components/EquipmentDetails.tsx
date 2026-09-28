@@ -251,6 +251,47 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                     <div className={`text-[15px] font-bold ${activeEquipment?.criticality === 'Critique' ? 'text-rose-600' : 'text-slate-900'}`}>{activeEquipment?.criticality || '-'}</div>
                   </div>
                 </div>
+                
+                {/* Ligne séparatrice et champs additionnels (mil louta) */}
+                <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <ClipboardList className="w-3.5 h-3.5" /> Informations complémentaires
+                  </h4>
+                  <div className="grid grid-cols-4 gap-y-6 gap-x-4">
+                    <div>
+                      <label className="text-[10px] text-slate-500 font-medium block mb-1">Date d'achat</label>
+                      <div className="text-[14px] font-bold text-slate-800 dark:text-slate-200">{activeEquipment?.purchaseDate ? new Date(activeEquipment.purchaseDate).toLocaleDateString('fr-FR') : '-'}</div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-500 font-medium block mb-1">Fin garantie</label>
+                      <div className="text-[14px] font-bold text-slate-800 dark:text-slate-200">{activeEquipment?.endOfWarranty ? new Date(activeEquipment.endOfWarranty).toLocaleDateString('fr-FR') : '-'}</div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-500 font-medium block mb-1">Fournisseur</label>
+                      <div className="text-[14px] font-bold text-slate-800 dark:text-slate-200">
+                        {suppliers.find(s => s.id === activeEquipment?.supplierId)?.name || activeEquipment?.supplierId || '-'}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-500 font-medium block mb-1">Code barre</label>
+                      <div className="text-[14px] font-bold text-slate-800 dark:text-slate-200 font-mono tracking-tight">{activeEquipment?.barcode || '-'}</div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-500 font-medium block mb-1">Inventaire</label>
+                      <div className="text-[14px] font-bold text-slate-800 dark:text-slate-200">{activeEquipment?.inventory || '-'}</div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-500 font-medium block mb-1">Responsabilité</label>
+                      <div className="text-[14px] font-bold text-slate-800 dark:text-slate-200">{activeEquipment?.responsibility || '-'}</div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-500 font-medium block mb-1">Présence GIP</label>
+                      <div className="text-[14px] font-bold text-slate-800 dark:text-slate-200">
+                        {activeEquipment?.gipPresence ? <span className="text-emerald-600 flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5" /> Oui</span> : <span className="text-slate-400">Non</span>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
