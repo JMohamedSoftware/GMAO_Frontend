@@ -57,9 +57,13 @@ export const IncidentList: React.FC<IncidentListProps> = ({
                   const diffMs = Date.now() - new Date(inc.reportedDate).getTime();
                   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
                   const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                  const exactDate = new Date(inc.reportedDate).toLocaleString('fr-FR', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                  });
                   const timeElapsedStr = diffDays > 0 
-                    ? `Il y a ${diffDays} j` 
-                    : (diffHours > 0 ? `Il y a ${diffHours} h` : 'À l\'instant');
+                    ? `Il y a ${diffDays} j (${exactDate})` 
+                    : (diffHours > 0 ? `Il y a ${diffHours} h (${exactDate})` : `À l'instant (${exactDate})`);
 
                   const reporterUser = users.find(u => u.id?.toString() === inc.reportedBy?.toString());
                   const reporterName = reporterUser ? reporterUser.name : (inc.reportedBy || 'Production');
@@ -111,7 +115,11 @@ export const IncidentList: React.FC<IncidentListProps> = ({
                       </div>
 
                       {inc.photo && (
-                        <div className="w-full h-24 rounded-lg overflow-hidden border border-slate-100 dark:border-slate-800 z-10 relative group-hover:shadow-md transition-shadow">
+                        <div 
+                          className="w-full h-24 rounded-lg overflow-hidden border border-slate-100 dark:border-slate-800 z-10 relative group-hover:shadow-md transition-shadow cursor-pointer"
+                          onClick={() => window.open(inc.photo, '_blank')}
+                          title="Cliquez pour agrandir l'image"
+                        >
                           <img src={inc.photo} alt="Panne" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
                         </div>
                       )}

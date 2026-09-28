@@ -54,7 +54,7 @@ export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreate
     const matchesUrgency = filterUrgency === 'Toutes' || inc.urgency === filterUrgency;
 
     return matchesSearch && matchesUrgency;
-  });
+  }).sort((a, b) => new Date(b.reportedDate).getTime() - new Date(a.reportedDate).getTime());
 
 
   const getUrgencyColor = (urg: Incident['urgency']) => {
