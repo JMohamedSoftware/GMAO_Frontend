@@ -55,7 +55,7 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
     onSetActiveTab('preventifs');
   };
   const { tree } = useLocalisations();
-  const { equipments, parts } = useGmao();
+  const { equipments, parts, technicians } = useGmao();
   const dispatch = useAppDispatch();
   const [selectedPieceId, setSelectedPieceId] = React.useState<string>('');
   const [isLinking, setIsLinking] = React.useState(false);
@@ -434,11 +434,35 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                         }`}>{wo.status}</span>
                       </div>
                       {wo.description && <p className="text-xs text-slate-500 leading-relaxed">{wo.description}</p>}
-                      <div className="flex gap-4 text-[11px] text-slate-400 font-semibold border-t border-slate-100 pt-2 mt-1">
+                      <div className="flex gap-4 text-[11px] text-slate-400 font-semibold border-t border-slate-100 dark:border-slate-700 pt-2 mt-1">
                         <span>📅 {new Date(wo.createdDate).toLocaleDateString('fr-FR')}</span>
                         <span>🔧 {wo.type}</span>
                         {wo.priority && <span className={(wo.priority as string) === 'Urgente' ? 'text-rose-500' : ''}>⚡ {wo.priority}</span>}
                       </div>
+
+                      {/* Technician info */}
+                      {wo.technicianId && (
+                        <div className="text-[11px] text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50 px-2 py-1.5 rounded mt-1 border border-slate-100 dark:border-slate-800">
+                          <span className="font-bold">Intervenant:</span> {technicians.find(t => t.id === wo.technicianId)?.name || 'Inconnu'}
+                        </div>
+                      )}
+                      
+                      {/* Parts used info */}
+                      {wo.partsUsed && wo.partsUsed.length > 0 && (
+                        <div className="text-[11px] text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50 px-2 py-1.5 rounded mt-1 border border-slate-100 dark:border-slate-800">
+                          <span className="font-bold block mb-1">Pièces utilisées:</span>
+                          <ul className="list-disc pl-4 space-y-0.5">
+                            {wo.partsUsed.map((p, idx) => {
+                              const partDetails = parts.find(part => part.ref === p.partRef);
+                              return (
+                                <li key={idx}>
+                                  <span className="font-bold">{p.quantity}x</span> {partDetails ? partDetails.name : p.partRef}
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   ))}
                   </div>
