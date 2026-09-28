@@ -82,15 +82,19 @@ export const IncidentModals: React.FC<IncidentModalsProps> = ({
               {/* Impact Production */}
               <div className="flex flex-col gap-1">
                 <label className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Impact sur la Production</label>
-                <select 
+                <input 
+                  type="text"
+                  list="impact-options"
                   value={impact}
                   onChange={(e) => setImpact(e.target.value)}
-                  className="p-2 border border-slate-200 dark:border-slate-800 rounded-lg bg-white/50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 focus:border-rose-500 outline-none shadow-inner cursor-pointer"
-                >
-                  <option>Aucun impact (machine en marche)</option>
-                  <option>Marche dégradée (cadence réduite)</option>
-                  <option>Arrêt total de la ligne</option>
-                </select>
+                  placeholder="Ex: Arrêt total, Baisse cadence..."
+                  className="p-2 border border-slate-200 dark:border-slate-800 rounded-lg bg-white/50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 focus:border-rose-500 outline-none shadow-inner"
+                />
+                <datalist id="impact-options">
+                  <option value="Aucun impact (machine en marche)" />
+                  <option value="Marche dégradée (cadence réduite)" />
+                  <option value="Arrêt total de la ligne" />
+                </datalist>
               </div>
 
               {/* Localisation (Auto-filled) */}
