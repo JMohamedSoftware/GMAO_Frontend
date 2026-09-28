@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useGmao } from '@/shared/hooks/useGmao';
 
 import { useLocalisations } from '@/shared/hooks/useLocalisations';
@@ -239,8 +239,7 @@ export const Equipment: React.FC<EquipmentProps> = ({
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-4 gap-4">
         <div className="bg-white dark:bg-slate-850 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
           <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-lg shrink-0">
             <Layers className="w-6 h-6" />
@@ -248,7 +247,6 @@ export const Equipment: React.FC<EquipmentProps> = ({
           <div>
             <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">Total Équipements</p>
             <p className="text-xl font-black text-slate-800 dark:text-white leading-none">{totalEqs}</p>
-            <p className="text-[10px] font-bold text-emerald-500 mt-1">↑ +12% ce mois</p>
           </div>
         </div>
         <div className="bg-white dark:bg-slate-850 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
@@ -279,16 +277,6 @@ export const Equipment: React.FC<EquipmentProps> = ({
             <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">En Maintenance</p>
             <p className="text-xl font-black text-purple-600 leading-none">{enMaintenance}</p>
             <p className="text-[10px] font-bold text-slate-500 mt-1">{totalEqs ? Math.round((enMaintenance/totalEqs)*100) : 0}% du parc</p>
-          </div>
-        </div>
-        <div className="bg-white dark:bg-slate-850 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-500 rounded-lg shrink-0">
-            <Coins className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">Valeur du Parc</p>
-            <p className="text-xl font-black text-slate-800 dark:text-white leading-none">{(totalEqs * 15000).toLocaleString('fr-FR')} DT</p>
-            <p className="text-[10px] font-bold text-emerald-500 mt-1">↑ +3% ce mois</p>
           </div>
         </div>
       </div>
