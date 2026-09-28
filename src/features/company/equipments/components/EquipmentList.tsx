@@ -51,9 +51,6 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({
           <Settings2 className="w-4 h-4 text-blue-600" />
           Liste des Équipements
         </h3>
-        <button className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded">
-          <MoreHorizontal className="w-4 h-4" />
-        </button>
       </div>
 
       {/* Toolbar (Search & Filters) */}
@@ -89,9 +86,6 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({
             <option value="Hors service">Hors service</option>
             <option value="En maintenance">En maintenance</option>
           </select>
-          <button className="p-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-primary bg-primary/5 hover:bg-primary/10">
-            <Filter className="w-4 h-4" />
-          </button>
         </div>
       </div>
 
