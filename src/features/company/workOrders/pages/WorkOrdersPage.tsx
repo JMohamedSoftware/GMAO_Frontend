@@ -310,7 +310,7 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
       </div>
 
       <div className="flex-1 flex gap-4 min-h-0 overflow-hidden mt-4">
-        <div className={`flex flex-col gap-4 overflow-y-auto ${selectedOtId ? 'w-1/3' : 'w-full'}`}>
+        <div className={`flex flex-col gap-4 overflow-y-auto transition-all duration-300 ${selectedOtId ? 'w-[45%] shrink-0' : 'w-full'}`}>
           {filteredOts.length === 0 ? (
             <div className="glass-panel p-16 text-center text-slate-400 dark:text-slate-500 rounded-custom-lg border border-white/45">
               <FileCheck className="w-12 h-12 mx-auto mb-4 text-slate-350 dark:text-slate-700" />
@@ -330,9 +330,9 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
                       <th className="p-3">Équipement</th>
                       <th className="p-3">Priorité</th>
                       <th className="p-3">Statut</th>
-                      <th className="p-3">Technicien</th>
-                      <th className="p-3">Date planifiée</th>
-                      <th className="p-3 text-center">Actions</th>
+                      {!selectedOtId && <th className="p-3">Technicien</th>}
+                      {!selectedOtId && <th className="p-3">Date planifiée</th>}
+                      {!selectedOtId && <th className="p-3 text-center">Actions</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
@@ -384,28 +384,34 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
                               {ot.status}
                             </span>
                           </td>
-                          <td className="p-3">
-                            {tech ? (
-                              <div className="flex items-center gap-2">
-                                <img src={tech.avatar} alt={tech.name} className="w-6 h-6 rounded-full" />
-                                <div className="flex flex-col">
-                                  <span className="font-bold text-slate-800 dark:text-slate-200 leading-none">{tech.name}</span>
+                          {!selectedOtId && (
+                            <td className="p-3">
+                              {tech ? (
+                                <div className="flex items-center gap-2">
+                                  <img src={tech.avatar} alt={tech.name} className="w-6 h-6 rounded-full" />
+                                  <div className="flex flex-col">
+                                    <span className="font-bold text-slate-800 dark:text-slate-200 leading-none">{tech.name}</span>
+                                  </div>
                                 </div>
+                              ) : (
+                                <span className="text-slate-400 italic">Non affecté</span>
+                              )}
+                            </td>
+                          )}
+                          {!selectedOtId && (
+                            <td className="p-3 text-slate-600 dark:text-slate-400 font-medium">
+                              {new Date(ot.createdDate || Date.now()).toLocaleDateString('fr-FR')}
+                            </td>
+                          )}
+                          {!selectedOtId && (
+                            <td className="p-3">
+                              <div className="flex items-center justify-center gap-2">
+                                <button className="p-1.5 text-slate-400 hover:text-primary transition-colors">
+                                  <FileCheck className="w-4 h-4" />
+                                </button>
                               </div>
-                            ) : (
-                              <span className="text-slate-400 italic">Non affecté</span>
-                            )}
-                          </td>
-                          <td className="p-3 text-slate-600 dark:text-slate-400 font-medium">
-                            {new Date(ot.createdDate || Date.now()).toLocaleDateString('fr-FR')}
-                          </td>
-                          <td className="p-3">
-                            <div className="flex items-center justify-center gap-2">
-                              <button className="p-1.5 text-slate-400 hover:text-primary transition-colors">
-                                <FileCheck className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
+                            </td>
+                          )}
                         </tr>
                       );
                     })}
@@ -417,7 +423,7 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
         </div>
 
         {selectedOtId && (
-          <div className="flex-[2] bg-white dark:bg-slate-900 rounded-custom-md border border-slate-200/50 dark:border-slate-800/50 shadow-md overflow-hidden relative flex flex-col">
+          <div className="flex-1 bg-white dark:bg-slate-900 rounded-custom-md border border-slate-200/50 dark:border-slate-800/50 shadow-md overflow-hidden relative flex flex-col">
             <WorkOrderDetail 
               activeOt={activeOt}
               activeOtEq={activeOtEq}
