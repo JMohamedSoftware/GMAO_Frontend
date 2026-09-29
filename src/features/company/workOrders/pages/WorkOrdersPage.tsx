@@ -77,9 +77,9 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
 
   // Handle state for new OT
   useEffect(() => {
-    if (newWorkOrderEqId !== undefined) {
+    if (newWorkOrderEqId !== undefined && newWorkOrderEqId !== null) {
       setShowCreateModal(true);
-      if (newWorkOrderEqId) {
+      if (newWorkOrderEqId !== '') {
         setNewEqId(newWorkOrderEqId);
       }
     }
@@ -308,108 +308,115 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
         </div>
       </div>
 
-      {/* Grid of work orders */}
-      {filteredOts.length === 0 ? (
-        <div className="glass-panel p-16 text-center text-slate-400 dark:text-slate-500 rounded-custom-lg border border-white/45">
-          <FileCheck className="w-12 h-12 mx-auto mb-4 text-slate-350 dark:text-slate-700" />
-          <h3 className="text-base font-bold">Aucun ordre de travail</h3>
-          <p className="text-xs mt-1">Ajustez vos filtres ou créez une nouvelle tâche de maintenance.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {filteredOts.map(ot => {
-            const eq = equipments.find(e => e.id === ot.equipmentId);
-            const tech = technicians.find(t => t.id === ot.technicianId);
-            
-            return (
-              <div
-                key={ot.id}
-                onClick={() => setSelectedOtId(ot.id)}
-                className={`p-5 rounded-custom-md border transition-all cursor-pointer relative overflow-hidden neumorphic-card hover-lift ${
-                  selectedOtId === ot.id ? 'border-primary/60 dark:border-primary/40 ring-2 ring-primary/10' : 'border-white/50 dark:border-slate-850/40'
-                }`}
-              >
-                {ot.priority === 'Critique' && (
-                  <div className="absolute right-0 top-0 w-12 h-12 bg-rose-500/10 dark:bg-rose-500/5 text-rose-500 rounded-bl-full flex items-center justify-center pl-2 pb-2">
-                    <AlertTriangle className="w-3.5 h-3.5" />
-                  </div>
-                )}
+      <div className="flex-1 flex gap-4 min-h-0 overflow-hidden mt-4">
+        <div className={`flex flex-col gap-4 overflow-y-auto ${selectedOtId ? 'w-1/3' : 'w-full'}`}>
+          {filteredOts.length === 0 ? (
+            <div className="glass-panel p-16 text-center text-slate-400 dark:text-slate-500 rounded-custom-lg border border-white/45">
+              <FileCheck className="w-12 h-12 mx-auto mb-4 text-slate-350 dark:text-slate-700" />
+              <h3 className="text-base font-bold">Aucun ordre de travail</h3>
+              <p className="text-xs mt-1">Ajustez vos filtres ou créez une nouvelle tâche de maintenance.</p>
+            </div>
+          ) : (
+            <div className={`grid gap-4 ${selectedOtId ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
+              {filteredOts.map(ot => {
+                const eq = equipments.find(e => e.id === ot.equipmentId);
+                const tech = technicians.find(t => t.id === ot.technicianId);
+                
+                return (
+                  <div
+                    key={ot.id}
+                    onClick={() => setSelectedOtId(ot.id)}
+                    className={`p-5 rounded-custom-md border transition-all cursor-pointer relative overflow-hidden neumorphic-card hover-lift ${
+                      selectedOtId === ot.id ? 'border-primary/60 dark:border-primary/40 ring-2 ring-primary/10' : 'border-white/50 dark:border-slate-850/40'
+                    }`}
+                  >
+                    {ot.priority === 'Critique' && (
+                      <div className="absolute right-0 top-0 w-12 h-12 bg-rose-500/10 dark:bg-rose-500/5 text-rose-500 rounded-bl-full flex items-center justify-center pl-2 pb-2">
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                      </div>
+                    )}
 
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex gap-2">
-                    <span className="text-[10px] font-bold text-slate-400 font-mono tracking-tight">{ot.id}</span>
-                    <span className="text-[10px] text-slate-350">•</span>
-                    <span className="text-[10px] text-slate-450">{ot.type}</span>
-                  </div>
-                  
-                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${getStatusColor(ot.status)}`}>
-                    {ot.status}
-                  </span>
-                </div>
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex gap-2">
+                        <span className="text-[10px] font-bold text-slate-400 font-mono tracking-tight">{ot.id}</span>
+                        <span className="text-[10px] text-slate-350">•</span>
+                        <span className="text-[10px] text-slate-450">{ot.type}</span>
+                      </div>
+                      
+                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${getStatusColor(ot.status)}`}>
+                        {ot.status}
+                      </span>
+                    </div>
 
-                <div className="mb-4">
-                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-snug">
-                    {ot.title}
-                  </h3>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 truncate">
-                    {ot.description}
-                  </p>
-                  
-                  {ot.type === 'Préventif' && ot.status !== 'Terminé' && ot.status !== 'Clôturé' && (
-                    <div className="mt-3 flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                      {parseInt(ot.id.split('-').pop() || '0') % 2 === 0 ? (
-                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded">Prévu aujourd'hui</span>
-                      ) : (
-                        <span className="text-[10px] font-bold text-rose-600 bg-rose-50 dark:bg-rose-900/20 px-1.5 py-0.5 rounded">En retard</span>
+                    <div className="mb-4">
+                      <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-snug">
+                        {ot.title}
+                      </h3>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 truncate">
+                        {ot.description}
+                      </p>
+                      
+                      {ot.type === 'Préventif' && ot.status !== 'Terminé' && ot.status !== 'Clôturé' && (
+                        <div className="mt-3 flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                          {parseInt(ot.id.split('-').pop() || '0') % 2 === 0 ? (
+                            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded">Prévu aujourd'hui</span>
+                          ) : (
+                            <span className="text-[10px] font-bold text-rose-600 bg-rose-50 dark:bg-rose-900/20 px-1.5 py-0.5 rounded">En retard</span>
+                          )}
+                        </div>
                       )}
                     </div>
-                  )}
-                </div>
 
-                <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
-                  <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
-                    <Wrench className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="font-semibold">{eq ? eq.name : ot.equipmentId}</span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {tech ? (
-                      <div className="flex items-center gap-2">
-                        <img src={tech.avatar} alt={tech.name} className="w-6 h-6 rounded-full object-cover border border-slate-200" />
-                        <div className="flex flex-col">
-                          <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 leading-none">
-                            {tech.name.split(' ')[0]}
-                          </span>
-                          <span className="text-[8px] font-semibold text-slate-400 mt-0.5 leading-none">
-                            {tech.role.split(' ')[0]}
-                          </span>
-                        </div>
+                    <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
+                      <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+                        <Wrench className="w-3.5 h-3.5 text-slate-400" />
+                        <span className="font-semibold">{eq ? eq.name : ot.equipmentId}</span>
                       </div>
-                    ) : (
-                      <span className="text-[9px] bg-slate-100 dark:bg-slate-900 border border-slate-200/50 text-slate-400 px-2 py-0.5 rounded">
-                        Non affecté
-                      </span>
-                    )}
+
+                      <div className="flex items-center gap-2">
+                        {tech ? (
+                          <div className="flex items-center gap-2">
+                            <img src={tech.avatar} alt={tech.name} className="w-6 h-6 rounded-full object-cover border border-slate-200" />
+                            <div className="flex flex-col">
+                              <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 leading-none">
+                                {tech.name.split(' ')[0]}
+                              </span>
+                              <span className="text-[8px] font-semibold text-slate-400 mt-0.5 leading-none">
+                                {tech.role.split(' ')[0]}
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-[9px] bg-slate-100 dark:bg-slate-900 border border-slate-200/50 text-slate-400 px-2 py-0.5 rounded">
+                            Non affecté
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
                   </div>
-                </div>
-
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          )}
         </div>
-      )}
 
-      <WorkOrderDetail 
-        activeOt={activeOt}
-        activeOtEq={activeOtEq}
-        activeOtTech={activeOtTech}
-        technicians={technicians}
-        parts={parts}
-        onClose={() => setSelectedOtId(null)}
-        onClearSelectedOt={onClearSelectedOt}
-        updateWorkOrderStatus={updateWorkOrderStatus}
-      />
+        {selectedOtId && (
+          <div className="flex-[2] bg-white dark:bg-slate-900 rounded-custom-md border border-slate-200/50 dark:border-slate-800/50 shadow-md overflow-hidden relative flex flex-col">
+            <WorkOrderDetail 
+              activeOt={activeOt}
+              activeOtEq={activeOtEq}
+              activeOtTech={activeOtTech}
+              technicians={technicians}
+              parts={parts}
+              onClose={() => setSelectedOtId(null)}
+              onClearSelectedOt={onClearSelectedOt}
+              updateWorkOrderStatus={updateWorkOrderStatus}
+            />
+          </div>
+        )}
+      </div>
 
       <WorkOrderForm
         show={showCreateModal}
