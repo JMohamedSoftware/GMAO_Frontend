@@ -310,7 +310,7 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
       </div>
 
       <div className="flex-1 flex gap-4 min-h-0 overflow-hidden mt-4">
-        <div className={`flex flex-col gap-4 overflow-y-auto transition-all duration-300 ${selectedOtId ? 'w-[45%] shrink-0' : 'w-full'}`}>
+        <div className={`flex flex-col gap-4 overflow-y-auto transition-all duration-500 ease-in-out ${selectedOtId ? 'w-[55%] shrink-0' : 'w-full'}`}>
           {filteredOts.length === 0 ? (
             <div className="glass-panel p-16 text-center text-slate-400 dark:text-slate-500 rounded-custom-lg border border-white/45">
               <FileCheck className="w-12 h-12 mx-auto mb-4 text-slate-350 dark:text-slate-700" />
@@ -423,7 +423,7 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
         </div>
 
         {selectedOtId && (
-          <div className="flex-1 bg-white dark:bg-slate-900 rounded-custom-md border border-slate-200/50 dark:border-slate-800/50 shadow-md overflow-hidden relative flex flex-col">
+          <div className="flex-1 bg-white dark:bg-slate-900 rounded-custom-md border border-slate-200/50 dark:border-slate-800/50 shadow-md overflow-hidden relative flex flex-col animate-[slideInRight_0.35s_ease-out]">
             <WorkOrderDetail 
               activeOt={activeOt}
               activeOtEq={activeOtEq}
