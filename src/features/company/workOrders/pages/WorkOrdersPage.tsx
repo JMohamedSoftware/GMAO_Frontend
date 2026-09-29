@@ -15,7 +15,8 @@ import {
   CheckCircle,
   Calendar,
   AlertTriangle,
-  Wrench
+  Wrench,
+  Settings2
 } from 'lucide-react';
 import { WorkOrderForm } from '../components/WorkOrderForm';
 import { WorkOrderDetail } from '../components/WorkOrderDetail';
@@ -317,87 +318,100 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
               <p className="text-xs mt-1">Ajustez vos filtres ou créez une nouvelle tâche de maintenance.</p>
             </div>
           ) : (
-            <div className={`grid gap-4 ${selectedOtId ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
-              {filteredOts.map(ot => {
-                const eq = equipments.find(e => e.id === ot.equipmentId);
-                const tech = technicians.find(t => t.id === ot.technicianId);
-                
-                return (
-                  <div
-                    key={ot.id}
-                    onClick={() => setSelectedOtId(ot.id)}
-                    className={`p-5 rounded-custom-md border transition-all cursor-pointer relative overflow-hidden neumorphic-card hover-lift ${
-                      selectedOtId === ot.id ? 'border-primary/60 dark:border-primary/40 ring-2 ring-primary/10' : 'border-white/50 dark:border-slate-850/40'
-                    }`}
-                  >
-                    {ot.priority === 'Critique' && (
-                      <div className="absolute right-0 top-0 w-12 h-12 bg-rose-500/10 dark:bg-rose-500/5 text-rose-500 rounded-bl-full flex items-center justify-center pl-2 pb-2">
-                        <AlertTriangle className="w-3.5 h-3.5" />
-                      </div>
-                    )}
-
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex gap-2">
-                        <span className="text-[10px] font-bold text-slate-400 font-mono tracking-tight">{ot.id}</span>
-                        <span className="text-[10px] text-slate-350">•</span>
-                        <span className="text-[10px] text-slate-450">{ot.type}</span>
-                      </div>
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-[12px] whitespace-nowrap">
+                  <thead className="bg-slate-50/80 dark:bg-slate-800/80 text-slate-500 font-bold border-b border-slate-200 dark:border-slate-800">
+                    <tr>
+                      <th className="p-3 w-10 text-center"><input type="checkbox" className="rounded border-slate-300" /></th>
+                      <th className="p-3">N° OT</th>
+                      <th className="p-3 text-center">Type</th>
+                      <th className="p-3">Titre / Description</th>
+                      <th className="p-3">Équipement</th>
+                      <th className="p-3">Priorité</th>
+                      <th className="p-3">Statut</th>
+                      <th className="p-3">Technicien</th>
+                      <th className="p-3">Date planifiée</th>
+                      <th className="p-3 text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                    {filteredOts.map(ot => {
+                      const eq = equipments.find(e => e.id === ot.equipmentId);
+                      const tech = technicians.find(t => t.id === ot.technicianId);
+                      const isSelected = selectedOtId === ot.id;
                       
-                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${getStatusColor(ot.status)}`}>
-                        {ot.status}
-                      </span>
-                    </div>
-
-                    <div className="mb-4">
-                      <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-snug">
-                        {ot.title}
-                      </h3>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 truncate">
-                        {ot.description}
-                      </p>
-                      
-                      {ot.type === 'Préventif' && ot.status !== 'Terminé' && ot.status !== 'Clôturé' && (
-                        <div className="mt-3 flex items-center gap-1.5">
-                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                          {parseInt(ot.id.split('-').pop() || '0') % 2 === 0 ? (
-                            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded">Prévu aujourd'hui</span>
-                          ) : (
-                            <span className="text-[10px] font-bold text-rose-600 bg-rose-50 dark:bg-rose-900/20 px-1.5 py-0.5 rounded">En retard</span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
-                      <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
-                        <Wrench className="w-3.5 h-3.5 text-slate-400" />
-                        <span className="font-semibold">{eq ? eq.name : ot.equipmentId}</span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {tech ? (
-                          <div className="flex items-center gap-2">
-                            <img src={tech.avatar} alt={tech.name} className="w-6 h-6 rounded-full object-cover border border-slate-200" />
-                            <div className="flex flex-col">
-                              <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 leading-none">
-                                {tech.name.split(' ')[0]}
-                              </span>
-                              <span className="text-[8px] font-semibold text-slate-400 mt-0.5 leading-none">
-                                {tech.role.split(' ')[0]}
-                              </span>
+                      return (
+                        <tr 
+                          key={ot.id}
+                          onClick={() => setSelectedOtId(ot.id)}
+                          className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/50 cursor-pointer transition-colors ${isSelected ? 'bg-primary/5 dark:bg-primary/10' : ''}`}
+                        >
+                          <td className="p-3 text-center" onClick={e => e.stopPropagation()}>
+                            <input type="checkbox" checked={isSelected} readOnly className="rounded border-slate-300 text-primary focus:ring-primary" />
+                          </td>
+                          <td className="p-3 font-bold text-slate-800 dark:text-slate-200">{ot.id}</td>
+                          <td className="p-3 text-center">
+                            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto text-slate-500">
+                              <Wrench className="w-4 h-4" />
                             </div>
-                          </div>
-                        ) : (
-                          <span className="text-[9px] bg-slate-100 dark:bg-slate-900 border border-slate-200/50 text-slate-400 px-2 py-0.5 rounded">
-                            Non affecté
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                  </div>
-                );
-              })}
+                          </td>
+                          <td className="p-3">
+                            <p className="font-bold text-slate-800 dark:text-slate-100 mb-0.5">{ot.title}</p>
+                            <p className="text-[10px] text-slate-500 truncate max-w-[200px]">{ot.description}</p>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                                <Settings2 className="w-3.5 h-3.5 text-slate-400" />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="font-bold text-slate-800 dark:text-slate-200">{eq ? eq.name : ot.equipmentId}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <span className={`text-[10px] font-bold ${
+                              ot.priority === 'Critique' ? 'text-rose-600' :
+                              ot.priority === 'Haute' ? 'text-orange-500' :
+                              ot.priority === 'Moyenne' ? 'text-amber-500' : 'text-emerald-500'
+                            }`}>
+                              {ot.priority}
+                            </span>
+                          </td>
+                          <td className="p-3">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${getStatusColor(ot.status)}`}>
+                              {ot.status}
+                            </span>
+                          </td>
+                          <td className="p-3">
+                            {tech ? (
+                              <div className="flex items-center gap-2">
+                                <img src={tech.avatar} alt={tech.name} className="w-6 h-6 rounded-full" />
+                                <div className="flex flex-col">
+                                  <span className="font-bold text-slate-800 dark:text-slate-200 leading-none">{tech.name}</span>
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-slate-400 italic">Non affecté</span>
+                            )}
+                          </td>
+                          <td className="p-3 text-slate-600 dark:text-slate-400 font-medium">
+                            {new Date(ot.createdDate || Date.now()).toLocaleDateString('fr-FR')}
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center justify-center gap-2">
+                              <button className="p-1.5 text-slate-400 hover:text-primary transition-colors">
+                                <FileCheck className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>
