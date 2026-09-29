@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FileCheck, AlertTriangle, Clock3, Trash2, CheckCircle, X, Calendar, Check, Users } from 'lucide-react';
 import { WorkOrder, Equipment, Technician, SparePart, UserAccount, User } from '@/shared/types/gmao';
 import { usePermissions } from '@/shared/hooks/usePermissions';
@@ -233,6 +233,8 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
     }
   };
 
+  const [activeDetailTab, setActiveDetailTab] = useState<'general' | 'pieces' | 'rapport'>('general');
+
   if (!activeOt) return null;
 
   const statusColor = (s: WorkOrder['status']) => {
@@ -264,7 +266,6 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
     { key: 'pieces', label: `PiÃ¨ces (${activeOt.partsUsed.length})` },
     { key: 'rapport', label: 'Rapport' },
   ] as const;
-  const [activeDetailTab, setActiveDetailTab] = React.useState<'general' | 'pieces' | 'rapport'>('general');
 
   return (
     <div className="fixed inset-y-0 right-0 w-full max-w-xl bg-white dark:bg-slate-900 border-l border-slate-200/80 dark:border-slate-800/80 shadow-2xl z-40 flex flex-col animate-[slideLeft_0.25s_cubic-bezier(0.16,1,0.3,1)]">
