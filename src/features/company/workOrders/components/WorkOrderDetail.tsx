@@ -34,7 +34,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
   updateWorkOrderStatus
 }) => {
   const { can } = usePermissions();
-  const { currentUser } = useGmao();
+  const { currentUser, incidents } = useGmao();
 
   const [activeTab, setActiveTab] = useState<Tab>('vue_generale');
 
@@ -101,7 +101,10 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
     notice:     'Notice constructeur',
   };
 
-  const photos = activeOtEq?.photos || [];
+  const eqPhotos = activeOtEq?.photos || [];
+  const linkedIncident = activeOt.incidentId ? incidents?.find(i => i.id === activeOt.incidentId) : null;
+  const incidentPhoto = linkedIncident?.photo;
+  const totalPhotosCount = eqPhotos.length + (incidentPhoto ? 1 : 0);
 
   return (
     <div className="h-full flex flex-col w-full bg-slate-50/50 dark:bg-slate-900 rounded-custom-md overflow-hidden animate-[fadeIn_0.3s_ease-out]">
@@ -396,29 +399,50 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
               )}
             </div>
 
-            {/* Photos équipement */}
+            {/* Photos équipement & incident */}
             <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
               <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
                 <h3 className="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-2">
-                  <ImageIcon className="w-4 h-4 text-slate-400" /> Photos ({photos.length})
+                  <ImageIcon className="w-4 h-4 text-slate-400" /> Photos ({totalPhotosCount})
                 </h3>
               </div>
-              {photos.length === 0 ? (
+              {totalPhotosCount === 0 ? (
                 <div className="px-4 py-8 text-center">
                   <ImageIcon className="w-8 h-8 text-slate-200 dark:text-slate-700 mx-auto mb-2" />
                   <p className="text-xs text-slate-400 italic">Aucune photo disponible.</p>
                 </div>
               ) : (
-                <div className="p-4 grid grid-cols-3 gap-3">
-                  {photos.map((url, i) => (
-                    <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                      <img
-                        src={url}
-                        alt={`Photo ${i + 1}`}
-                        className="w-full h-20 object-cover rounded-lg border border-slate-200 dark:border-slate-700 hover:opacity-80 transition-opacity"
-                      />
-                    </a>
-                  ))}
+                <div className="p-4 flex flex-col gap-4">
+                  {/* Photo de la panne (Incident) */}
+                  {incidentPhoto && (
+                    <div>
+                      <h4 className="text-[11px] font-bold text-rose-500 uppercase tracking-wider mb-2">Photo de la panne (Demande d'intervention)</h4>
+                      <a href={incidentPhoto} target="_blank" rel="noopener noreferrer">
+                        <img
+                          src={incidentPhoto}
+                          alt="Photo de la panne"
+                          className="w-full max-h-48 object-cover rounded-lg border-2 border-rose-100 dark:border-rose-900/30 hover:opacity-90 transition-opacity"
+                        />
+                      </a>
+                    </div>
+                  )}
+                  {/* Photos équipement */}
+                  {eqPhotos.length > 0 && (
+                    <div>
+                      <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Photos de l'équipement</h4>
+                      <div className="grid grid-cols-3 gap-3">
+                        {eqPhotos.map((url, i) => (
+                          <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                            <img
+                              src={url}
+                              alt={`Photo équipement ${i + 1}`}
+                              className="w-full h-20 object-cover rounded-lg border border-slate-200 dark:border-slate-700 hover:opacity-80 transition-opacity"
+                            />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
