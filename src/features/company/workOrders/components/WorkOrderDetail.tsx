@@ -138,7 +138,6 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
             <X className="w-4 h-4" />
           </button>
         </div>
-        </div>
 
         {/* ─── QUICK ACTIONS ─── */}
         <div className="mt-4 flex items-center justify-between gap-4 flex-wrap bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800">
