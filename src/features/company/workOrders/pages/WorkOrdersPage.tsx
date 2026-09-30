@@ -159,14 +159,28 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
 
   const getStatusColor = (status: WorkOrder['status']) => {
     switch (status) {
-      case 'Terminé': return 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/25';
-      case 'En cours': return 'bg-rose-500/10 text-rose-600 border border-rose-500/25 animate-pulse';
-      case 'En attente': return 'bg-amber-500/10 text-amber-600 border border-amber-500/25';
-      case 'Affecté Chef': return 'bg-purple-500/10 text-purple-600 border border-purple-500/25';
-      case 'Affecté': return 'bg-primary/10 text-primary border border-primary/25';
-      default: return 'bg-slate-100 text-slate-500';
+      case 'Terminé':     return 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/25';
+      case 'Clôturé':     return 'bg-emerald-600/10 text-emerald-700 border border-emerald-600/25';
+      case 'En cours':    return 'bg-rose-500/10 text-rose-600 border border-rose-500/25 animate-pulse';
+      case 'En attente':  return 'bg-amber-500/10 text-amber-600 border border-amber-500/25';
+      case 'Affecté Chef':return 'bg-purple-500/10 text-purple-600 border border-purple-500/25';
+      case 'Affecté':     return 'bg-primary/10 text-primary border border-primary/25';
+      case 'Suspendu':    return 'bg-orange-500/10 text-orange-600 border border-orange-500/25';
+      case 'Brouillon':   return 'bg-slate-100 text-slate-500 border border-slate-200';
+      default:            return 'bg-slate-100 text-slate-500';
     }
   };
+
+  // Computed KPI values from real data
+  const today = new Date();
+  const todayStr = today.toDateString();
+  const countToday = workOrders.filter(o =>
+    o.createdDate && new Date(o.createdDate).toDateString() === todayStr
+  ).length;
+  const countLate = workOrders.filter(o =>
+    o.endDate && new Date(o.endDate) < today &&
+    !['Terminé', 'Clôturé'].includes(o.status)
+  ).length;
 
   return (
     <div className="flex flex-col gap-6 relative">
@@ -241,7 +255,7 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
             <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           </div>
           <span className="text-xl font-black text-emerald-700 dark:text-emerald-300 z-10">
-            6
+            {countToday}
           </span>
         </div>
         <div className="glass-panel p-4 rounded-custom-md border border-orange-500/20 bg-orange-500/5 shadow-sm flex flex-col gap-2 relative overflow-hidden">
@@ -250,7 +264,7 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
             <AlertTriangle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
           </div>
           <span className="text-xl font-black text-orange-700 dark:text-orange-300 z-10">
-            4
+            {countLate}
           </span>
         </div>
       </div>
@@ -323,7 +337,6 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
                 <table className="w-full text-left text-[12px] whitespace-nowrap">
                   <thead className="bg-slate-50/80 dark:bg-slate-800/80 text-slate-500 font-bold border-b border-slate-200 dark:border-slate-800">
                     <tr>
-                      <th className="p-3 w-10 text-center"><input type="checkbox" className="rounded border-slate-300" /></th>
                       <th className="p-3">N° OT</th>
                       <th className="p-3 text-center">Type</th>
                       <th className="p-3">Titre / Description</th>
@@ -331,8 +344,7 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
                       <th className="p-3">Priorité</th>
                       <th className="p-3">Statut</th>
                       {!selectedOtId && <th className="p-3">Technicien</th>}
-                      {!selectedOtId && <th className="p-3">Date planifiée</th>}
-                      {!selectedOtId && <th className="p-3 text-center">Actions</th>}
+                      {!selectedOtId && <th className="p-3">Date création</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
@@ -347,9 +359,6 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
                           onClick={() => setSelectedOtId(ot.id)}
                           className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/50 cursor-pointer transition-colors ${isSelected ? 'bg-primary/5 dark:bg-primary/10' : ''}`}
                         >
-                          <td className="p-3 text-center" onClick={e => e.stopPropagation()}>
-                            <input type="checkbox" checked={isSelected} readOnly className="rounded border-slate-300 text-primary focus:ring-primary" />
-                          </td>
                           <td className="p-3 font-bold text-slate-800 dark:text-slate-200">{ot.id}</td>
                           <td className="p-3 text-center">
                             <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto text-slate-500">
@@ -365,16 +374,14 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
                               <div className="w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
                                 <Settings2 className="w-3.5 h-3.5 text-slate-400" />
                               </div>
-                              <div className="flex flex-col">
-                                <span className="font-bold text-slate-800 dark:text-slate-200">{eq ? eq.name : ot.equipmentId}</span>
-                              </div>
+                              <span className="font-bold text-slate-800 dark:text-slate-200">{eq ? eq.name : ot.equipmentId}</span>
                             </div>
                           </td>
                           <td className="p-3">
                             <span className={`text-[10px] font-bold ${
                               ot.priority === 'Critique' ? 'text-rose-600' :
-                              ot.priority === 'Haute' ? 'text-orange-500' :
-                              ot.priority === 'Moyenne' ? 'text-amber-500' : 'text-emerald-500'
+                              ot.priority === 'Haute'    ? 'text-orange-500' :
+                              ot.priority === 'Moyenne'  ? 'text-amber-500' : 'text-emerald-500'
                             }`}>
                               {ot.priority}
                             </span>
@@ -389,9 +396,7 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
                               {tech ? (
                                 <div className="flex items-center gap-2">
                                   <img src={tech.avatar} alt={tech.name} className="w-6 h-6 rounded-full" />
-                                  <div className="flex flex-col">
-                                    <span className="font-bold text-slate-800 dark:text-slate-200 leading-none">{tech.name}</span>
-                                  </div>
+                                  <span className="font-bold text-slate-800 dark:text-slate-200 leading-none">{tech.name}</span>
                                 </div>
                               ) : (
                                 <span className="text-slate-400 italic">Non affecté</span>
@@ -400,16 +405,7 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
                           )}
                           {!selectedOtId && (
                             <td className="p-3 text-slate-600 dark:text-slate-400 font-medium">
-                              {new Date(ot.createdDate || Date.now()).toLocaleDateString('fr-FR')}
-                            </td>
-                          )}
-                          {!selectedOtId && (
-                            <td className="p-3">
-                              <div className="flex items-center justify-center gap-2">
-                                <button className="p-1.5 text-slate-400 hover:text-primary transition-colors">
-                                  <FileCheck className="w-4 h-4" />
-                                </button>
-                              </div>
+                              {ot.createdDate ? new Date(ot.createdDate).toLocaleDateString('fr-FR') : '—'}
                             </td>
                           )}
                         </tr>
