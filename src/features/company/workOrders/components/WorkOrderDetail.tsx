@@ -136,16 +136,16 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
 
       <div className="flex-1 overflow-y-auto custom-scrollbar p-5 flex flex-col gap-4">
         {activeTab === 'vue_generale' && (
-          <div className="flex gap-5">
-            {/* Left Column (Equipment) */}
-            <div className="w-[180px] shrink-0 flex flex-col gap-3">
-              <div className="aspect-[4/3] bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 relative flex items-center justify-center">
-                <Settings2 className="w-12 h-12 text-slate-300 dark:text-slate-600" />
+          <div className="flex flex-col gap-5">
+            {/* Equipment Header (Was Left Column) */}
+            <div className="flex items-center gap-4 bg-white dark:bg-slate-850 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+              <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 relative flex items-center justify-center shrink-0">
+                <Settings2 className="w-8 h-8 text-slate-300 dark:text-slate-600" />
               </div>
               <div>
-                <p className="font-bold text-slate-800 dark:text-white text-sm leading-tight">{activeOtEq?.name || activeOt.equipmentId}</p>
-                <p className="text-xs text-slate-500 mt-0.5">Laveuse à tambour</p>
-                <div className="mt-2 flex items-center gap-1 text-emerald-600 text-xs font-bold">
+                <p className="font-bold text-slate-800 dark:text-white text-base leading-tight">{activeOtEq?.name || activeOt.equipmentId}</p>
+                <p className="text-sm text-slate-500 mt-0.5">Laveuse à tambour</p>
+                <div className="mt-1 flex items-center gap-1 text-emerald-600 text-xs font-bold">
                   <CheckCircle className="w-3.5 h-3.5" /> En service
                 </div>
               </div>
@@ -163,7 +163,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
                   </button>
                 </div>
                 
-                <div className="grid grid-cols-4 gap-6">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <span className="text-[11px] font-bold text-slate-500 block mb-1">N° OT</span>
                     <span className="font-bold text-sm text-slate-800 dark:text-white">{activeOt.id}</span>
@@ -207,7 +207,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
               </div>
 
               {/* Description & Zone */}
-              <div className="grid grid-cols-[2fr_1fr] gap-4">
+              <div className="flex flex-col gap-4">
                 <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
                   <h3 className="font-bold text-slate-800 dark:text-white mb-2 text-sm">Description des travaux</h3>
                   <p className="text-[13px] text-slate-600 dark:text-slate-400 leading-relaxed">
@@ -226,7 +226,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
               </div>
 
               {/* Technicians & Teams */}
-              <div className="grid grid-cols-[2fr_1fr] gap-4">
+              <div className="flex flex-col gap-4">
                 <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
                   <h3 className="font-bold text-slate-800 dark:text-white mb-4 text-sm">Technicien affecté</h3>
                   {activeOtTech ? (
@@ -289,7 +289,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
               </div>
 
               {/* Safety & Parts */}
-              <div className="grid grid-cols-[1.5fr_2fr] gap-4">
+              <div className="flex flex-col gap-4">
                 {/* LOTO */}
                 <div className="bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-200 dark:border-amber-800 overflow-hidden">
                   <div className="px-4 py-3 border-b border-amber-200 dark:border-amber-800 flex items-center gap-2 text-amber-700 dark:text-amber-500 font-bold text-sm">
