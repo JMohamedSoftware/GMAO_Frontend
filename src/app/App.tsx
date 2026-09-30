@@ -31,18 +31,27 @@ function AppContent() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const initialScreen = params.get('screen');
-    if (initialScreen) {
-      setCurrentScreen(initialScreen);
+    if (initialScreen && !currentUser) {
+      // Just keep it in state, login will happen
       return;
     }
-    if (currentUser?.role === 'SuperAdmin') {
-      if (impersonatedTenantId) {
-        setCurrentScreen('dashboard');
-      } else {
+    if (!initialScreen && currentUser?.role === 'SuperAdmin') {
+      if (!impersonatedTenantId) {
         setCurrentScreen('saas-dashboard');
       }
     }
   }, [currentUser, impersonatedTenantId]);
+
+  // Sync currentScreen to URL so refresh works
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('screen') !== currentScreen) {
+      const newUrl = currentScreen === 'dashboard' 
+        ? window.location.pathname 
+        : `${window.location.pathname}?screen=${currentScreen}`;
+      window.history.replaceState(null, '', newUrl);
+    }
+  }, [currentScreen]);
 
   // Inter-page state passes
   const [selectedEqFromDash, setSelectedEqFromDash] = useState<EqType | null>(null);
