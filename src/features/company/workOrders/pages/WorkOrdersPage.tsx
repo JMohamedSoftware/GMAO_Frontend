@@ -305,6 +305,7 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
               <option value="Affecté Chef">Affecté Chef</option>
               <option value="Affecté">Affecté Technicien</option>
               <option value="En cours">En Cours</option>
+              <option value="Suspendu">Suspendu</option>
               <option value="Terminé">Terminé</option>
               <option value="Clôturé">Clôturé</option>
           </select>
@@ -344,7 +345,8 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
                       <th className="p-3">Priorité</th>
                       <th className="p-3">Statut</th>
                       {!selectedOtId && <th className="p-3">Technicien</th>}
-                      {!selectedOtId && <th className="p-3">Date création</th>}
+                      {!selectedOtId && <th className="p-3">Date début</th>}
+                      {!selectedOtId && <th className="p-3">Date fin</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
@@ -405,7 +407,12 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
                           )}
                           {!selectedOtId && (
                             <td className="p-3 text-slate-600 dark:text-slate-400 font-medium">
-                              {ot.createdDate ? new Date(ot.createdDate).toLocaleDateString('fr-FR') : '—'}
+                              {ot.startDate ? new Date(ot.startDate).toLocaleDateString('fr-FR') : '—'}
+                            </td>
+                          )}
+                          {!selectedOtId && (
+                            <td className="p-3 text-slate-600 dark:text-slate-400 font-medium">
+                              {ot.endDate ? new Date(ot.endDate).toLocaleDateString('fr-FR') : '—'}
                             </td>
                           )}
                         </tr>

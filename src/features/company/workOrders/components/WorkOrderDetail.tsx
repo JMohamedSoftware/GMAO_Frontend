@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { 
-  X, Calendar, Check, FileText, Wrench, AlertTriangle,
-  Play, User, Printer, Pause,
-  CheckCircle, MoreHorizontal, FileCheck, Settings2, Clock
+  X, Calendar, Check, FileText, Wrench,
+  Play, User, Pause, Upload,
+  CheckCircle, FileCheck, Settings2, Clock,
+  File, Image as ImageIcon, FileSpreadsheet, FileBadge2
 } from 'lucide-react';
 import { WorkOrder, Equipment, Technician, SparePart } from '@/shared/types/gmao';
 import { usePermissions } from '@/shared/hooks/usePermissions';
@@ -20,6 +21,8 @@ interface WorkOrderDetailProps {
   updateWorkOrderStatus: (id: string, status: WorkOrder['status']) => void;
 }
 
+type Tab = 'vue_generale' | 'documents' | 'historique';
+
 export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
   activeOt,
   activeOtEq,
@@ -33,7 +36,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
   const { can } = usePermissions();
   const { currentUser } = useGmao();
 
-  const [activeTab, setActiveTab] = useState<'vue_generale' | 'historique'>('vue_generale');
+  const [activeTab, setActiveTab] = useState<Tab>('vue_generale');
 
   if (!activeOt) return null;
 
@@ -45,22 +48,13 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
       case 'Affecté':       return 'bg-emerald-100 text-emerald-700';
       case 'En cours':      return 'bg-amber-100 text-amber-700';
       case 'Suspendu':      return 'bg-orange-100 text-orange-700';
-      case 'Terminé':       return 'bg-emerald-100 text-emerald-700';
+      case 'Terminé':       return 'bg-teal-100 text-teal-700';
       case 'Clôturé':       return 'bg-emerald-100 text-emerald-800';
       default:              return 'bg-slate-100 text-slate-700';
     }
   };
 
-  const workflowSteps = [
-    { id: 'Créé',     label: 'Créé' },
-    { id: 'Affecté',  label: 'Affecté' },
-    { id: 'En cours', label: 'En cours' },
-    { id: 'Suspendu', label: 'Suspendu', optional: true },
-    { id: 'Terminé',  label: 'Terminé' },
-    { id: 'Clôturé',  label: 'Clôturé' },
-  ];
-
-  const statusOrder = ['Créé', 'Affecté Chef', 'Affecté', 'En cours', 'Suspendu', 'Terminé', 'Clôturé'];
+  const statusOrder = ['En attente', 'Affecté Chef', 'Affecté', 'En cours', 'Suspendu', 'Terminé', 'Clôturé'];
   const currentStepIdx = statusOrder.indexOf(activeOt.status);
 
   const partsUsed = (activeOt.partsUsed || []).map(pu => {
@@ -78,12 +72,36 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
   const partsCost = partsUsed.reduce((sum, p) => sum + p.unitPrice * p.quantity, 0);
   const totalCost = laborCost + partsCost + (activeOt.externalCost || 0);
 
-  const canStart    = can(PERMISSIONS.WORKORDER_START) &&
-    !['En cours', 'Terminé', 'Clôturé'].includes(activeOt.status);
-  const canSuspend  = can(PERMISSIONS.WORKORDER_SUSPEND) && activeOt.status === 'En cours';
-  const canResume   = can(PERMISSIONS.WORKORDER_START) && activeOt.status === 'Suspendu';
-  const canClose    = can(PERMISSIONS.WORKORDER_CLOSE) &&
-    ['En cours', 'Terminé'].includes(activeOt.status);
+  // Permissions-based action visibility
+  const canStart   = can(PERMISSIONS.WORKORDER_START)   && !['En cours', 'Terminé', 'Clôturé'].includes(activeOt.status);
+  const canSuspend = can(PERMISSIONS.WORKORDER_SUSPEND) && activeOt.status === 'En cours';
+  const canResume  = can(PERMISSIONS.WORKORDER_START)   && activeOt.status === 'Suspendu';
+  const canFinish  = can(PERMISSIONS.WORKORDER_FINISH)  && activeOt.status === 'En cours';
+  const canClose   = can(PERMISSIONS.WORKORDER_CLOSE)   && activeOt.status === 'Terminé';
+
+  // Documents attached to the OT's equipment (from existing Equipment.documents)
+  const eqDocuments = activeOtEq?.documents || [];
+
+  const getDocIcon = (type: string) => {
+    switch (type) {
+      case 'electrical':  return <FileBadge2 className="w-4 h-4 text-yellow-500" />;
+      case 'mechanical':  return <Wrench className="w-4 h-4 text-slate-500" />;
+      case 'notice':      return <FileText className="w-4 h-4 text-blue-500" />;
+      case 'hydraulic':   return <File className="w-4 h-4 text-cyan-500" />;
+      case 'pneumatic':   return <File className="w-4 h-4 text-purple-500" />;
+      default:            return <File className="w-4 h-4 text-slate-400" />;
+    }
+  };
+
+  const typeLabel: Record<string, string> = {
+    electrical: 'Schéma électrique',
+    mechanical: 'Plan mécanique',
+    hydraulic:  'Schéma hydraulique',
+    pneumatic:  'Schéma pneumatique',
+    notice:     'Notice constructeur',
+  };
+
+  const photos = activeOtEq?.photos || [];
 
   return (
     <div className="h-full flex flex-col w-full bg-slate-50/50 dark:bg-slate-900 rounded-custom-md overflow-hidden animate-[fadeIn_0.3s_ease-out]">
@@ -91,10 +109,10 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
       {/* ─── HEADER ─── */}
       <div className="p-5 pb-0 bg-white dark:bg-slate-900">
         <div className="flex justify-between items-start">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-sm font-bold text-slate-600 dark:text-slate-300">{activeOt.id}</span>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+              <span className="text-sm font-bold text-slate-600 dark:text-slate-300 shrink-0">{activeOt.id}</span>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
                 activeOt.priority === 'Critique' ? 'bg-rose-100 text-rose-700' :
                 activeOt.priority === 'Haute'    ? 'bg-orange-100 text-orange-700' :
                 activeOt.priority === 'Moyenne'  ? 'bg-amber-100 text-amber-700' :
@@ -102,42 +120,48 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
               }`}>
                 {activeOt.priority}
               </span>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${getStatusBg(activeOt.status)}`}>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${getStatusBg(activeOt.status)}`}>
                 {activeOt.status}
               </span>
             </div>
-            <h2 className="text-xl font-black text-slate-800 dark:text-white leading-tight">
+            <h2 className="text-xl font-black text-slate-800 dark:text-white leading-tight truncate">
               {activeOt.title}
             </h2>
           </div>
           <button
             onClick={() => { onClearSelectedOt(); onClose(); }}
-            className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors shadow-sm"
+            className="ml-3 p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors shadow-sm shrink-0"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* ─── TABS ─── */}
-        <div className="flex items-center gap-6 mt-5 border-b border-slate-200 dark:border-slate-700">
-          <button
-            onClick={() => setActiveTab('vue_generale')}
-            className={`pb-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'vue_generale' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
-          >
-            <FileCheck className="w-4 h-4" /> Vue générale
-          </button>
-          <button
-            onClick={() => setActiveTab('historique')}
-            className={`pb-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'historique' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
-          >
-            <Calendar className="w-4 h-4" /> Historique statut
-          </button>
+        <div className="flex items-center gap-1 mt-5 border-b border-slate-200 dark:border-slate-700 overflow-x-auto">
+          {([
+            { id: 'vue_generale', label: 'Vue générale',    icon: <FileCheck className="w-4 h-4" /> },
+            { id: 'documents',    label: `Documents${eqDocuments.length > 0 ? ` (${eqDocuments.length})` : ''}`, icon: <FileText className="w-4 h-4" /> },
+            { id: 'historique',   label: 'Historique statut', icon: <Calendar className="w-4 h-4" /> },
+          ] as { id: Tab; label: string; icon: React.ReactNode }[]).map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`pb-3 px-1 text-xs font-bold flex items-center gap-1.5 border-b-2 transition-colors whitespace-nowrap mr-4 ${
+                activeTab === tab.id
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+            >
+              {tab.icon} {tab.label}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* ─── CONTENT ─── */}
       <div className="flex-1 overflow-y-auto custom-scrollbar p-5 flex flex-col gap-4">
 
+        {/* ══ TAB: Vue générale ══ */}
         {activeTab === 'vue_generale' && (
           <div className="flex flex-col gap-4">
 
@@ -146,13 +170,15 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
               <div className="w-14 h-14 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
                 <Settings2 className="w-7 h-7 text-slate-300 dark:text-slate-600" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Équipement concerné</p>
-                <p className="font-bold text-slate-800 dark:text-white text-base leading-tight">
+                <p className="font-bold text-slate-800 dark:text-white text-base leading-tight truncate">
                   {activeOtEq?.name || activeOt.equipmentId}
                 </p>
                 {activeOtEq && (
-                  <p className="text-xs text-slate-500 mt-0.5">{activeOtEq.category} — {activeOtEq.localisation?.nom ?? '—'}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {activeOtEq.category}{activeOtEq.localisation?.nom ? ` — ${activeOtEq.localisation.nom}` : ''}
+                  </p>
                 )}
               </div>
             </div>
@@ -251,7 +277,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
               )}
             </div>
 
-            {/* Diagnostic & Solution */}
+            {/* Rapport d'intervention */}
             <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
               <h3 className="font-bold text-slate-800 dark:text-white mb-4 text-sm">Rapport d'intervention</h3>
               <div className="flex flex-col gap-4">
@@ -274,14 +300,16 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
               </div>
             </div>
 
-            {/* Pièces consommées */}
-            {partsUsed.length > 0 && (
-              <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-                <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-                  <h3 className="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-2">
-                    <Wrench className="w-4 h-4 text-slate-400" /> Pièces consommées ({partsUsed.length})
-                  </h3>
-                </div>
+            {/* Pièces consommées — always visible */}
+            <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+              <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between">
+                <h3 className="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-2">
+                  <Wrench className="w-4 h-4 text-slate-400" /> Pièces consommées ({partsUsed.length})
+                </h3>
+              </div>
+              {partsUsed.length === 0 ? (
+                <div className="px-4 py-5 text-center text-xs text-slate-400 italic">Aucune pièce enregistrée pour cet OT.</div>
+              ) : (
                 <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800">
                   {partsUsed.map((pu, i) => (
                     <div key={i} className="px-4 py-2.5 flex items-center justify-between text-xs">
@@ -295,8 +323,8 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Coûts */}
             <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
@@ -311,7 +339,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
                   <span className="font-bold text-slate-700 dark:text-slate-300">{partsCost.toFixed(2)} DT</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Prestataires externes</span>
+                  <span className="text-slate-500">Prestataires externes (sous-traitance)</span>
                   <span className="font-bold text-slate-700 dark:text-slate-300">{(activeOt.externalCost || 0).toFixed(2)} DT</span>
                 </div>
                 <div className="flex justify-between pt-2 border-t border-slate-200 dark:border-slate-700 mt-1">
@@ -324,73 +352,191 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
           </div>
         )}
 
-        {activeTab === 'historique' && (
-          <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
-            <h3 className="font-bold text-slate-800 dark:text-white mb-6 text-sm">Cycle de vie de l'OT</h3>
-            <div className="flex items-center justify-between relative px-2">
-              <div className="absolute top-3 left-4 right-4 h-0.5 bg-slate-200 dark:bg-slate-700 -z-10" />
-              <div
-                className="absolute top-3 left-4 h-0.5 bg-emerald-500 -z-10 transition-all duration-500"
-                style={{ width: `${Math.max(0, (currentStepIdx / (statusOrder.length - 1))) * 100}%` }}
-              />
-              {statusOrder.map((step, idx) => {
-                const isCompleted = idx <= currentStepIdx;
-                const isCurrent = idx === currentStepIdx;
-                return (
-                  <div key={step} className="flex flex-col items-center gap-2">
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center border-[3px] bg-white dark:bg-slate-900 ${
-                      isCompleted ? 'border-emerald-500' : 'border-slate-200 dark:border-slate-700'
-                    }`}>
-                      {isCompleted && <div className="w-2 h-2 rounded-full bg-emerald-500" />}
+        {/* ══ TAB: Documents / Photos ══ */}
+        {activeTab === 'documents' && (
+          <div className="flex flex-col gap-4">
+
+            {/* Documents techniques de l'équipement */}
+            <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+              <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between">
+                <h3 className="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-slate-400" /> Documents techniques ({eqDocuments.length})
+                </h3>
+              </div>
+              {eqDocuments.length === 0 ? (
+                <div className="px-4 py-8 text-center">
+                  <FileText className="w-8 h-8 text-slate-200 dark:text-slate-700 mx-auto mb-2" />
+                  <p className="text-xs text-slate-400 italic">Aucun document attaché à cet équipement.</p>
+                  <p className="text-[11px] text-slate-400 mt-1">Ajoutez des documents depuis la fiche équipement.</p>
+                </div>
+              ) : (
+                <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800">
+                  {eqDocuments.map((doc, i) => (
+                    <div key={i} className="px-4 py-3 flex items-center justify-between text-xs hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                          {getDocIcon(doc.type)}
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-700 dark:text-slate-300">{doc.name}</p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">{typeLabel[doc.type] || doc.type} · {doc.size}</p>
+                        </div>
+                      </div>
+                      <a
+                        href={doc.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg font-bold text-[10px] transition-colors"
+                      >
+                        Ouvrir
+                      </a>
                     </div>
-                    <div className="text-center">
-                      <p className={`text-[10px] font-bold ${isCurrent ? 'text-emerald-600' : isCompleted ? 'text-slate-700 dark:text-slate-300' : 'text-slate-400'}`}>
-                        {step}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
+                  ))}
+                </div>
+              )}
             </div>
 
-            <div className="mt-8 flex flex-col gap-3">
-              <div className="flex items-center gap-3 text-xs">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                <span className="text-slate-500">Créé le</span>
-                <span className="font-bold text-slate-700 dark:text-slate-300">
-                  {activeOt.createdDate ? new Date(activeOt.createdDate).toLocaleString('fr-FR') : '—'}
-                </span>
+            {/* Photos équipement */}
+            <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+              <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                <h3 className="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-slate-400" /> Photos ({photos.length})
+                </h3>
               </div>
-              {activeOt.startDate && (
-                <div className="flex items-center gap-3 text-xs">
-                  <div className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-                  <span className="text-slate-500">Démarré le</span>
-                  <span className="font-bold text-slate-700 dark:text-slate-300">
-                    {new Date(activeOt.startDate).toLocaleString('fr-FR')}
-                  </span>
+              {photos.length === 0 ? (
+                <div className="px-4 py-8 text-center">
+                  <ImageIcon className="w-8 h-8 text-slate-200 dark:text-slate-700 mx-auto mb-2" />
+                  <p className="text-xs text-slate-400 italic">Aucune photo disponible.</p>
                 </div>
-              )}
-              {activeOt.endDate && (
-                <div className="flex items-center gap-3 text-xs">
-                  <div className="w-2 h-2 rounded-full bg-emerald-600 shrink-0" />
-                  <span className="text-slate-500">Terminé le</span>
-                  <span className="font-bold text-slate-700 dark:text-slate-300">
-                    {new Date(activeOt.endDate).toLocaleString('fr-FR')}
-                  </span>
+              ) : (
+                <div className="p-4 grid grid-cols-3 gap-3">
+                  {photos.map((url, i) => (
+                    <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                      <img
+                        src={url}
+                        alt={`Photo ${i + 1}`}
+                        className="w-full h-20 object-cover rounded-lg border border-slate-200 dark:border-slate-700 hover:opacity-80 transition-opacity"
+                      />
+                    </a>
+                  ))}
                 </div>
               )}
             </div>
+
+            {/* Types de documents acceptés */}
+            <div className="bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+              <p className="text-[11px] font-bold text-slate-500 mb-2">Types de documents acceptés :</p>
+              <div className="flex flex-wrap gap-2">
+                {['PDF', 'Word', 'Excel', 'Images (JPG, PNG)'].map(t => (
+                  <span key={t} className="px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-[10px] font-bold text-slate-500">
+                    {t}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+          </div>
+        )}
+
+        {/* ══ TAB: Historique statut ══ */}
+        {activeTab === 'historique' && (
+          <div className="flex flex-col gap-4">
+
+            {/* Workflow visuel */}
+            <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
+              <h3 className="font-bold text-slate-800 dark:text-white mb-6 text-sm">Cycle de vie de l'OT</h3>
+              <div className="overflow-x-auto pb-2">
+                <div className="flex items-start justify-between relative px-2 min-w-[400px]">
+                  <div className="absolute top-3 left-4 right-4 h-0.5 bg-slate-200 dark:bg-slate-700 -z-10" />
+                  <div
+                    className="absolute top-3 left-4 h-0.5 bg-emerald-500 -z-10 transition-all duration-700"
+                    style={{ width: `${Math.max(0, currentStepIdx / (statusOrder.length - 1)) * 100}%` }}
+                  />
+                  {statusOrder.map((step, idx) => {
+                    const isCompleted = idx <= currentStepIdx && currentStepIdx >= 0;
+                    const isCurrent   = idx === currentStepIdx;
+                    return (
+                      <div key={step} className="flex flex-col items-center gap-2 shrink-0">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center border-[3px] bg-white dark:bg-slate-900 ${
+                          isCurrent   ? 'border-primary'     :
+                          isCompleted ? 'border-emerald-500' : 'border-slate-200 dark:border-slate-700'
+                        }`}>
+                          {isCompleted && !isCurrent && <div className="w-2 h-2 rounded-full bg-emerald-500" />}
+                          {isCurrent && <div className="w-2 h-2 rounded-full bg-primary" />}
+                        </div>
+                        <p className={`text-[10px] font-bold text-center ${
+                          isCurrent   ? 'text-primary' :
+                          isCompleted ? 'text-slate-700 dark:text-slate-300' : 'text-slate-400'
+                        }`}>
+                          {step}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Dates clés */}
+            <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
+              <h3 className="font-bold text-slate-800 dark:text-white mb-4 text-sm">Dates clés</h3>
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-3 text-xs">
+                  <div className="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0" />
+                  <span className="text-slate-500 w-28 shrink-0">Créé le</span>
+                  <span className="font-bold text-slate-700 dark:text-slate-300">
+                    {activeOt.createdDate ? new Date(activeOt.createdDate).toLocaleString('fr-FR') : '—'}
+                  </span>
+                </div>
+                {activeOt.startDate && (
+                  <div className="flex items-center gap-3 text-xs">
+                    <div className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
+                    <span className="text-slate-500 w-28 shrink-0">Démarré le</span>
+                    <span className="font-bold text-slate-700 dark:text-slate-300">
+                      {new Date(activeOt.startDate).toLocaleString('fr-FR')}
+                    </span>
+                  </div>
+                )}
+                {activeOt.endDate && (
+                  <div className="flex items-center gap-3 text-xs">
+                    <div className="w-2.5 h-2.5 rounded-full bg-teal-500 shrink-0" />
+                    <span className="text-slate-500 w-28 shrink-0">Terminé le</span>
+                    <span className="font-bold text-slate-700 dark:text-slate-300">
+                      {new Date(activeOt.endDate).toLocaleString('fr-FR')}
+                    </span>
+                  </div>
+                )}
+                {activeOt.status === 'Clôturé' && activeOt.endDate && (
+                  <div className="flex items-center gap-3 text-xs">
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-600 shrink-0" />
+                    <span className="text-slate-500 w-28 shrink-0">Clôturé le</span>
+                    <span className="font-bold text-slate-700 dark:text-slate-300">
+                      {new Date(activeOt.endDate).toLocaleString('fr-FR')}
+                    </span>
+                  </div>
+                )}
+                {activeOt.durationMinutes > 0 && (
+                  <div className="flex items-center gap-3 text-xs pt-2 border-t border-slate-100 dark:border-slate-800 mt-1">
+                    <div className="w-2.5 h-2.5 rounded-full bg-primary shrink-0" />
+                    <span className="text-slate-500 w-28 shrink-0">Durée totale</span>
+                    <span className="font-black text-primary">{durationH}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
           </div>
         )}
 
       </div>
 
       {/* ─── FOOTER ACTIONS ─── */}
-      <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex justify-between items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10">
-        <div className="text-xs text-slate-400 font-medium">
+      <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex justify-between items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10 gap-2 flex-wrap">
+        <div className="text-xs text-slate-400 font-medium shrink-0">
           {activeOt.id} · {activeOt.type}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Démarrer */}
           {canStart && (
             <button
               onClick={() => updateWorkOrderStatus(activeOt.id, 'En cours')}
@@ -399,6 +545,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
               <Play className="w-3.5 h-3.5" /> Démarrer
             </button>
           )}
+          {/* Reprendre (depuis Suspendu) */}
           {canResume && (
             <button
               onClick={() => updateWorkOrderStatus(activeOt.id, 'En cours')}
@@ -407,6 +554,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
               <Play className="w-3.5 h-3.5" /> Reprendre
             </button>
           )}
+          {/* Suspendre */}
           {canSuspend && (
             <button
               onClick={() => updateWorkOrderStatus(activeOt.id, 'Suspendu')}
@@ -415,6 +563,16 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
               <Pause className="w-3.5 h-3.5" /> Suspendre
             </button>
           )}
+          {/* Terminer */}
+          {canFinish && (
+            <button
+              onClick={() => updateWorkOrderStatus(activeOt.id, 'Terminé')}
+              className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold shadow-sm transition-colors"
+            >
+              <CheckCircle className="w-3.5 h-3.5" /> Terminer
+            </button>
+          )}
+          {/* Clôturer */}
           {canClose && (
             <button
               onClick={() => updateWorkOrderStatus(activeOt.id, 'Clôturé')}
@@ -423,8 +581,9 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
               <Check className="w-3.5 h-3.5" /> Clôturer
             </button>
           )}
+          {/* État final */}
           {activeOt.status === 'Clôturé' && (
-            <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-2 rounded-lg">
+            <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 rounded-lg border border-emerald-200 dark:border-emerald-800">
               <CheckCircle className="w-4 h-4" /> OT Clôturé
             </span>
           )}
