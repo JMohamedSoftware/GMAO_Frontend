@@ -73,7 +73,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
   const totalCost = laborCost + partsCost + (activeOt.externalCost || 0);
 
   // Permissions-based action visibility
-  const canStart   = can(PERMISSIONS.WORKORDER_START)   && !['En cours', 'Terminé', 'Clôturé'].includes(activeOt.status);
+  const canStart   = can(PERMISSIONS.WORKORDER_START)   && activeOt.status === 'Affecté';
   const canSuspend = can(PERMISSIONS.WORKORDER_SUSPEND) && activeOt.status === 'En cours';
   const canResume  = can(PERMISSIONS.WORKORDER_START)   && activeOt.status === 'Suspendu';
   const canFinish  = can(PERMISSIONS.WORKORDER_FINISH)  && activeOt.status === 'En cours';
