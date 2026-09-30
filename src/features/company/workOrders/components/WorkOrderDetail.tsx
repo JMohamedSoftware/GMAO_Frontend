@@ -564,7 +564,9 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
                 {activeOt.startDate && (
                   <div className="flex items-center gap-3 text-xs">
                     <div className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
-                    <span className="text-slate-500 w-28 shrink-0">Démarré le</span>
+                    <span className="text-slate-500 w-28 shrink-0">
+                      {['En attente', 'Brouillon'].includes(activeOt.status) ? 'Prévu le' : 'Démarré le'}
+                    </span>
                     <span className="font-bold text-slate-700 dark:text-slate-300">
                       {new Date(activeOt.startDate).toLocaleString('fr-FR')}
                     </span>
@@ -573,7 +575,9 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
                 {activeOt.endDate && (
                   <div className="flex items-center gap-3 text-xs">
                     <div className="w-2.5 h-2.5 rounded-full bg-teal-500 shrink-0" />
-                    <span className="text-slate-500 w-28 shrink-0">Terminé le</span>
+                    <span className="text-slate-500 w-28 shrink-0">
+                      {['Terminé', 'Clôturé'].includes(activeOt.status) ? 'Terminé le' : 'Date prévue'}
+                    </span>
                     <span className="font-bold text-slate-700 dark:text-slate-300">
                       {new Date(activeOt.endDate).toLocaleString('fr-FR')}
                     </span>

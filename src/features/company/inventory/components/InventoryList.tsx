@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Search, Filter, Eye, Edit2, MoreVertical, AlertCircle, AlertTriangle, CheckCircle2, ChevronRight, ChevronLeft, Package } from 'lucide-react';
 import { SparePart, Supplier } from '@/shared/types/gmao';
 
@@ -198,22 +198,22 @@ export const InventoryList: React.FC<InventoryListProps> = ({
             </tbody>
           </table>
         ) : (
-        <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase tracking-wider text-slate-500 font-bold bg-slate-50 dark:bg-slate-800/50">
-              <th className="p-3 w-10 text-center"><input type="checkbox" className="rounded border-slate-300" /></th>
-              <th className="p-3">Référence</th>
-              <th className="p-3">Désignation</th>
-              <th className="p-3">Famille</th>
-              <th className="p-3 text-right">Stock actuel</th>
-              <th className="p-3 text-right">Stock min</th>
-              <th className="p-3 text-right">Stock max</th>
+              <th className="px-2 py-3 w-10 text-center"><input type="checkbox" className="rounded border-slate-300" /></th>
+              <th className="px-2 py-3 whitespace-nowrap">Référence</th>
+              <th className="px-2 py-3">Désignation</th>
+              <th className="px-2 py-3">Famille</th>
+              <th className="px-2 py-3 text-right whitespace-nowrap">Stock actuel</th>
+              <th className="px-2 py-3 text-right whitespace-nowrap">Stock min</th>
+              <th className="px-2 py-3 text-right whitespace-nowrap">Stock max</th>
 
-              <th className="p-3">Fournisseur</th>
-              <th className="p-3 text-right">Prix unitaire</th>
-              <th className="p-3 text-right">Valeur stock</th>
-              <th className="p-3 text-center">Statut</th>
-              <th className="p-3 text-center">Actions</th>
+              <th className="px-2 py-3">Fournisseur</th>
+              <th className="px-2 py-3 text-right whitespace-nowrap">Prix unitaire</th>
+              <th className="px-2 py-3 text-right whitespace-nowrap">Valeur stock</th>
+              <th className="px-2 py-3 text-center">Statut</th>
+              <th className="px-2 py-3 text-center">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -228,28 +228,28 @@ export const InventoryList: React.FC<InventoryListProps> = ({
                   onClick={() => setSelectedPartRef(isSelected ? null : part.ref)}
                   className={`group cursor-pointer transition-colors ${isSelected ? 'bg-blue-50/50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
                 >
-                  <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                  <td className="px-2 py-3 text-center" onClick={(e) => e.stopPropagation()}>
                     <input type="checkbox" className="rounded border-slate-300" />
                   </td>
-                  <td className="p-3 text-xs font-semibold text-slate-600">{part.ref}</td>
-                  <td className="p-3 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 shrink-0">
-                      <Icon className="w-4 h-4" />
+                  <td className="px-2 py-3 text-xs font-semibold text-slate-600 whitespace-nowrap">{part.ref}</td>
+                  <td className="px-2 py-3 flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 shrink-0">
+                      <Icon className="w-3.5 h-3.5" />
                     </div>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate max-w-[200px]">{part.name}</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate max-w-[150px]">{part.name}</span>
                   </td>
-                  <td className="p-3 text-xs text-slate-500">{part.category}</td>
-                  <td className={`p-3 text-xs text-right ${getStockColor(part)}`}>{part.stockCurrent}</td>
-                  <td className="p-3 text-xs text-slate-500 text-right">{part.stockMin}</td>
-                  <td className="p-3 text-xs text-slate-500 text-right">{part.stockMax}</td>
+                  <td className="px-2 py-3 text-xs text-slate-500 truncate max-w-[100px]">{part.category}</td>
+                  <td className={`px-2 py-3 text-xs text-right font-bold ${getStockColor(part)}`}>{part.stockCurrent}</td>
+                  <td className="px-2 py-3 text-xs text-slate-500 text-right">{part.stockMin}</td>
+                  <td className="px-2 py-3 text-xs text-slate-500 text-right">{part.stockMax}</td>
 
-                  <td className="p-3 text-xs text-slate-500">{sup?.name || part.supplierId}</td>
-                  <td className="p-3 text-xs text-slate-500 text-right">{part.unitPrice.toFixed(2)} DT</td>
-                  <td className="p-3 text-xs font-semibold text-slate-700 dark:text-slate-300 text-right">{(part.stockCurrent * part.unitPrice).toFixed(2)} DT</td>
-                  <td className="p-3 text-center">
+                  <td className="px-2 py-3 text-xs text-slate-500 truncate max-w-[100px]">{sup?.name || part.supplierId}</td>
+                  <td className="px-2 py-3 text-xs text-slate-500 text-right whitespace-nowrap">{part.unitPrice.toFixed(2)} DT</td>
+                  <td className="px-2 py-3 text-xs font-semibold text-slate-700 dark:text-slate-300 text-right whitespace-nowrap">{(part.stockCurrent * part.unitPrice).toFixed(2)} DT</td>
+                  <td className="px-2 py-3 text-center">
                     {getStatusBadge(part)}
                   </td>
-                  <td className="p-3 text-center">
+                  <td className="px-2 py-3 text-center">
                     <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button 
                         onClick={(e) => { e.stopPropagation(); setSelectedPartRef(part.ref); }}

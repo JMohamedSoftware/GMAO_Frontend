@@ -484,10 +484,11 @@ export const PreventiveModal: React.FC<PreventiveModalProps> = ({
                       <input
                         type="number"
                         min={1}
-                        placeholder="min"
+                        placeholder="Durée (min)"
+                        title="Durée estimée de la tâche en minutes"
                         value={tache.dureeEstimeeMinutes || ''}
                         onChange={e => updateTache(i, 'dureeEstimeeMinutes', parseInt(e.target.value) || undefined)}
-                        className="w-16 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 text-xs text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-primary/30 transition text-center"
+                        className="w-24 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 text-xs text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-primary/30 transition text-center"
                       />
                     </div>
 
