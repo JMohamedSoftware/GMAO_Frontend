@@ -451,17 +451,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
               )}
             </div>
 
-            {/* Types de documents acceptés */}
-            <div className="bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
-              <p className="text-[11px] font-bold text-slate-500 mb-2">Types de documents acceptés :</p>
-              <div className="flex flex-wrap gap-2">
-                {['PDF', 'Word', 'Excel', 'Images (JPG, PNG)'].map(t => (
-                  <span key={t} className="px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-[10px] font-bold text-slate-500">
-                    {t}
-                  </span>
-                ))}
-              </div>
-            </div>
+
 
           </div>
         )}
