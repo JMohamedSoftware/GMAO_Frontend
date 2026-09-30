@@ -1,6 +1,6 @@
 import { useAppSelector, useAppDispatch } from '@/app/hooks';
 import * as actions from '@/app/gmaoSlice';
-import { createIncidentAsync, updateIncidentStatusAsync, updateWorkOrderStatusAsync, fetchTenantsAsync, createTenantAsync, updateTenantAsync, createEquipmentAsync, updateEquipmentAsync } from '@/app/gmaoSlice';
+import { createIncidentAsync, updateIncidentStatusAsync, updateWorkOrderStatusAsync, fetchTenantsAsync, createTenantAsync, updateTenantAsync, createEquipmentAsync, updateEquipmentAsync, createPartAsync, updatePartAsync } from '@/app/gmaoSlice';
 import { AppRole } from '@/shared/permissions';
 import { Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount, User, Tenant, Equipe } from '@/shared/types/gmao';
 import { useEffect } from 'react';
@@ -115,11 +115,26 @@ export const useGmao = () => {
       const result = await dispatch(updateWorkOrderStatusAsync({ id, status, fullOt, updates }));
       return result;
     },
-    addPartMovement: (ref: string, qty: number, type: 'in' | 'out', otId?: string) => {
+    addPartMovement: async (ref: string, qty: number, type: 'in' | 'out', otId?: string) => {
+      // First, update local state for the movement log
       dispatch(actions.addPartMovement({ref, qty, type, otId}));
+      
+      // Then, update the backend stock
+      const activeTenantLocal = state.tenants.find(t => t.id === state.currentTenantId);
+      const part = activeTenantLocal?.parts.find(p => p.ref === ref);
+      if (part) {
+        const newStock = type === 'in' ? part.stockCurrent + qty : part.stockCurrent - qty;
+        await dispatch(updatePartAsync({ ...part, stockCurrent: newStock }));
+      }
       return true;
     },
-    updatePart: (updated: SparePart) => dispatch(actions.updatePart(updated)),
+    updatePart: async (updated: SparePart) => {
+      if (!updated.id) {
+        await dispatch(createPartAsync(updated));
+      } else {
+        await dispatch(updatePartAsync(updated));
+      }
+    },
     addSupplier: (sup: Supplier) => dispatch(actions.addSupplier(sup)),
     addNotification: (notif: Omit<Notification, 'id' | 'date' | 'read'>) => dispatch(actions.addNotification(notif)),
     markNotificationAsRead: (id: string) => dispatch(actions.markNotificationAsRead(id)),

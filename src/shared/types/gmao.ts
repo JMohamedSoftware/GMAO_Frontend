@@ -121,6 +121,7 @@ export interface Equipe {
 }
 
 export interface SparePart {
+  id?: string;
   ref: string;
   name: string;
   category: string;

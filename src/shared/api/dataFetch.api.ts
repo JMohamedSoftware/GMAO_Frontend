@@ -74,6 +74,7 @@ const mapPieceCategory = (id?: number): string => {
 export const fetchParts = async (): Promise<SparePart[]> => {
     const response = await axios.get(`${API_URL}/Pieces`, getAuthHeaders());
     return response.data.map((p: any) => ({
+        id: p.id?.toString(),
         ref: p.reference,
         name: p.designation,
         category: mapPieceCategory(p.famillePieceId),
@@ -85,6 +86,56 @@ export const fetchParts = async (): Promise<SparePart[]> => {
         location: p.emplacement || '',
         photo: p.photoUrl
     }));
+};
+
+const reverseMapPieceCategory = (cat: string): number => {
+    switch (cat) {
+        case 'Roulements': return 1;
+        case 'Joints': return 2;
+        case 'Courroies': return 3;
+        case 'Garnitures': return 4;
+        case 'Lubrifiants': return 5;
+        case 'Électrique': return 6;
+        case 'Visserie': return 7;
+        default: return 8; // Autre
+    }
+};
+
+export const createPartApi = async (part: SparePart): Promise<any> => {
+    const payload = {
+        reference: part.ref,
+        designation: part.name,
+        famillePieceId: reverseMapPieceCategory(part.category),
+        fournisseurId: part.supplierId ? parseInt(part.supplierId) : null,
+        stockActuel: part.stockCurrent,
+        stockMinimum: part.stockMin,
+        stockMaximum: part.stockMax,
+        prixUnitaire: part.unitPrice,
+        emplacement: part.location,
+        photoUrl: part.photo,
+        societeId: 1
+    };
+    const response = await axios.post(`${API_URL}/Pieces`, payload, getAuthHeaders());
+    return response.data;
+};
+
+export const updatePartApi = async (id: string, part: SparePart): Promise<any> => {
+    const payload = {
+        id: parseInt(id),
+        reference: part.ref,
+        designation: part.name,
+        famillePieceId: reverseMapPieceCategory(part.category),
+        fournisseurId: part.supplierId ? parseInt(part.supplierId) : null,
+        stockActuel: part.stockCurrent,
+        stockMinimum: part.stockMin,
+        stockMaximum: part.stockMax,
+        prixUnitaire: part.unitPrice,
+        emplacement: part.location,
+        photoUrl: part.photo,
+        societeId: 1
+    };
+    const response = await axios.put(`${API_URL}/Pieces/${id}`, payload, getAuthHeaders());
+    return response.data;
 };
 
 const TECHNICIAN_ROLE_ID = 4;

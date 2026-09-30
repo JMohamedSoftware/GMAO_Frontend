@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { Tenant, User, Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount, Equipe } from '@/shared/types/gmao';
 import { AppRole } from '@/shared/permissions';
-import { fetchEquipments, fetchSuppliers, fetchParts, fetchIncidents, fetchWorkOrders, fetchCampaigns, fetchTechnicians, fetchUsers, fetchTenants, createTenantApi, updateTenantApi, createIncidentApi, patchIncidentStatusApi, CreateIncidentPayload, createWorkOrderApi, CreateWorkOrderPayload, patchWorkOrderStatusApi, updateEquipmentStatusApi, createEquipmentApi, updateEquipmentApi } from '@/shared/api/dataFetch.api';
+import { fetchEquipments, fetchSuppliers, fetchParts, fetchIncidents, fetchWorkOrders, fetchCampaigns, fetchTechnicians, fetchUsers, fetchTenants, createTenantApi, updateTenantApi, createIncidentApi, patchIncidentStatusApi, CreateIncidentPayload, createWorkOrderApi, CreateWorkOrderPayload, patchWorkOrderStatusApi, updateEquipmentStatusApi, createEquipmentApi, updateEquipmentApi, createPartApi, updatePartApi } from '@/shared/api/dataFetch.api';
 
 interface GmaoState {
   tenants: Tenant[];
@@ -185,6 +185,27 @@ export const updateWorkOrderStatusAsync = createAsyncThunk(
     }
 
     return { id: payload.id, status: payload.status, updates: payload.updates };
+  }
+);
+
+export const createPartAsync = createAsyncThunk(
+  'gmao/createPart',
+  async (payload: SparePart) => {
+    const created = await createPartApi(payload);
+    return { ...payload, id: created.id?.toString() || created.Id?.toString() };
+  }
+);
+
+export const updatePartAsync = createAsyncThunk(
+  'gmao/updatePart',
+  async (payload: SparePart) => {
+    if (payload.id) {
+       await updatePartApi(payload.id, payload);
+    } else {
+       const created = await createPartApi(payload);
+       return { ...payload, id: created.id?.toString() || created.Id?.toString() };
+    }
+    return payload;
   }
 );
 
@@ -682,6 +703,26 @@ export const gmaoSlice = createSlice({
         const idx = tenant.equipments.findIndex(e => e.id === action.payload.id);
         if (idx !== -1) {
           tenant.equipments[idx] = { ...tenant.equipments[idx], ...action.payload.updates };
+        }
+      }
+    });
+
+    // Parts actions
+    builder.addCase(createPartAsync.fulfilled, (state, action) => {
+      const tenant = state.tenants.find(t => t.id === state.currentTenantId);
+      if (tenant) {
+        tenant.parts.unshift(action.payload);
+      }
+    });
+
+    builder.addCase(updatePartAsync.fulfilled, (state, action) => {
+      const tenant = state.tenants.find(t => t.id === state.currentTenantId);
+      if (tenant) {
+        const idx = tenant.parts.findIndex(p => p.ref === action.payload.ref);
+        if (idx !== -1) {
+          tenant.parts[idx] = action.payload;
+        } else {
+          tenant.parts.unshift(action.payload);
         }
       }
     });
