@@ -138,6 +138,62 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
             <X className="w-4 h-4" />
           </button>
         </div>
+        </div>
+
+        {/* ─── QUICK ACTIONS ─── */}
+        <div className="mt-4 flex items-center justify-between gap-4 flex-wrap bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800">
+          <div className="text-xs text-slate-500 font-bold shrink-0 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
+            {activeOt.id} · {activeOt.type}
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {canStart && (
+              <button
+                onClick={() => updateWorkOrderStatus(activeOt.id, 'En cours')}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded text-xs font-bold shadow-sm transition-colors"
+              >
+                <Play className="w-3.5 h-3.5" /> Démarrer
+              </button>
+            )}
+            {canResume && (
+              <button
+                onClick={() => updateWorkOrderStatus(activeOt.id, 'En cours')}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded text-xs font-bold shadow-sm transition-colors"
+              >
+                <Play className="w-3.5 h-3.5" /> Reprendre
+              </button>
+            )}
+            {canSuspend && (
+              <button
+                onClick={() => updateWorkOrderStatus(activeOt.id, 'Suspendu')}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded text-xs font-bold shadow-sm transition-colors"
+              >
+                <Pause className="w-3.5 h-3.5" /> Suspendre
+              </button>
+            )}
+            {canFinish && (
+              <button
+                onClick={() => updateWorkOrderStatus(activeOt.id, 'Terminé')}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded text-xs font-bold shadow-sm transition-colors"
+              >
+                <CheckCircle className="w-3.5 h-3.5" /> Terminer
+              </button>
+            )}
+            {canClose && (
+              <button
+                onClick={() => updateWorkOrderStatus(activeOt.id, 'Clôturé')}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold shadow-sm transition-colors"
+              >
+                <Check className="w-3.5 h-3.5" /> Clôturer
+              </button>
+            )}
+            {activeOt.status === 'Clôturé' && (
+              <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 rounded border border-emerald-200 dark:border-emerald-800">
+                <CheckCircle className="w-3.5 h-3.5" /> OT Clôturé
+              </span>
+            )}
+          </div>
+        </div>
 
         {/* ─── TABS ─── */}
         <div className="flex items-center gap-1 mt-5 border-b border-slate-200 dark:border-slate-700 overflow-x-auto">
@@ -547,67 +603,6 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
         )}
 
       </div>
-
-      {/* ─── FOOTER ACTIONS ─── */}
-      <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex justify-between items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10 gap-2 flex-wrap">
-        <div className="text-xs text-slate-400 font-medium shrink-0">
-          {activeOt.id} · {activeOt.type}
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Démarrer */}
-          {canStart && (
-            <button
-              onClick={() => updateWorkOrderStatus(activeOt.id, 'En cours')}
-              className="flex items-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-sm transition-colors"
-            >
-              <Play className="w-3.5 h-3.5" /> Démarrer
-            </button>
-          )}
-          {/* Reprendre (depuis Suspendu) */}
-          {canResume && (
-            <button
-              onClick={() => updateWorkOrderStatus(activeOt.id, 'En cours')}
-              className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold shadow-sm transition-colors"
-            >
-              <Play className="w-3.5 h-3.5" /> Reprendre
-            </button>
-          )}
-          {/* Suspendre */}
-          {canSuspend && (
-            <button
-              onClick={() => updateWorkOrderStatus(activeOt.id, 'Suspendu')}
-              className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-bold shadow-sm transition-colors"
-            >
-              <Pause className="w-3.5 h-3.5" /> Suspendre
-            </button>
-          )}
-          {/* Terminer */}
-          {canFinish && (
-            <button
-              onClick={() => updateWorkOrderStatus(activeOt.id, 'Terminé')}
-              className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold shadow-sm transition-colors"
-            >
-              <CheckCircle className="w-3.5 h-3.5" /> Terminer
-            </button>
-          )}
-          {/* Clôturer */}
-          {canClose && (
-            <button
-              onClick={() => updateWorkOrderStatus(activeOt.id, 'Clôturé')}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm transition-colors"
-            >
-              <Check className="w-3.5 h-3.5" /> Clôturer
-            </button>
-          )}
-          {/* État final */}
-          {activeOt.status === 'Clôturé' && (
-            <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 rounded-lg border border-emerald-200 dark:border-emerald-800">
-              <CheckCircle className="w-4 h-4" /> OT Clôturé
-            </span>
-          )}
-        </div>
-      </div>
-
     </div>
   );
 };
