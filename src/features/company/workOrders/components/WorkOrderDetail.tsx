@@ -152,7 +152,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
                   {activeOtEq?.name || activeOt.equipmentId}
                 </p>
                 {activeOtEq && (
-                  <p className="text-xs text-slate-500 mt-0.5">{activeOtEq.family} — {activeOtEq.location}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{activeOtEq.category} — {activeOtEq.localisation?.nom ?? '—'}</p>
                 )}
               </div>
             </div>
