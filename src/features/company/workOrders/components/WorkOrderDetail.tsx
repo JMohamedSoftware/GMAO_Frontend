@@ -170,8 +170,12 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
 
             {/* Équipement concerné */}
             <div className="flex items-center gap-4 bg-white dark:bg-slate-850 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-              <div className="w-14 h-14 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
-                <Settings2 className="w-7 h-7 text-slate-300 dark:text-slate-600" />
+              <div className="w-14 h-14 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700 overflow-hidden">
+                {activeOtEq?.photos && activeOtEq.photos.length > 0 ? (
+                  <img src={activeOtEq.photos[0]} alt={activeOtEq.name} className="w-full h-full object-cover" />
+                ) : (
+                  <Settings2 className="w-7 h-7 text-slate-300 dark:text-slate-600" />
+                )}
               </div>
               <div className="min-w-0">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Équipement concerné</p>
