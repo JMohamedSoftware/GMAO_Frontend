@@ -58,54 +58,61 @@ export const fetchSuppliers = async (): Promise<Supplier[]> => {
     }));
 };
 
-const mapPieceCategory = (id?: number): string => {
-    switch (id) {
-        case 1: return 'Roulements';
-        case 2: return 'Joints';
-        case 3: return 'Courroies';
-        case 4: return 'Garnitures';
-        case 5: return 'Lubrifiants';
-        case 6: return 'Électrique';
-        case 7: return 'Visserie';
-        default: return 'Autre';
+let cachedCategories: { id: number, nom: string }[] | null = null;
+
+export const fetchPieceCategoriesApi = async () => {
+    const response = await axios.get(`${API_URL}/FamillePieces`, getAuthHeaders());
+    return response.data;
+};
+
+export const createPieceCategoryApi = async (nom: string) => {
+    const response = await axios.post(`${API_URL}/FamillePieces`, { nom }, getAuthHeaders());
+    return response.data;
+};
+
+const getCategoryIdByName = async (catName: string): Promise<number> => {
+    if (!cachedCategories) {
+        cachedCategories = await fetchPieceCategoriesApi();
     }
+    let cat = cachedCategories?.find(c => c.nom.toLowerCase() === catName.toLowerCase());
+    if (!cat) {
+        cat = await createPieceCategoryApi(catName);
+        if (cachedCategories && cat) {
+            cachedCategories.push(cat);
+        }
+    }
+    return cat?.id || 1;
 };
 
 export const fetchParts = async (): Promise<SparePart[]> => {
-    const response = await axios.get(`${API_URL}/Pieces`, getAuthHeaders());
-    return response.data.map((p: any) => ({
-        id: p.id?.toString(),
-        ref: p.reference,
-        name: p.designation,
-        category: mapPieceCategory(p.famillePieceId),
-        supplierId: p.fournisseurId?.toString() || '',
-        stockCurrent: p.stockActuel || 0,
-        stockMin: p.stockMinimum || 0,
-        stockMax: p.stockMaximum || 100,
-        unitPrice: p.prixUnitaire || 0,
-        location: p.emplacement || '',
-        photo: p.photoUrl
-    }));
-};
-
-const reverseMapPieceCategory = (cat: string): number => {
-    switch (cat) {
-        case 'Roulements': return 1;
-        case 'Joints': return 2;
-        case 'Courroies': return 3;
-        case 'Garnitures': return 4;
-        case 'Lubrifiants': return 5;
-        case 'Électrique': return 6;
-        case 'Visserie': return 7;
-        default: return 8; // Autre
+    if (!cachedCategories) {
+        cachedCategories = await fetchPieceCategoriesApi();
     }
+    const response = await axios.get(`${API_URL}/Pieces`, getAuthHeaders());
+    return response.data.map((p: any) => {
+        const cat = cachedCategories?.find(c => c.id === p.famillePieceId);
+        return {
+            id: p.id?.toString(),
+            ref: p.reference,
+            name: p.designation,
+            category: cat ? cat.nom : 'Autre',
+            supplierId: p.fournisseurId?.toString() || '',
+            stockCurrent: p.stockActuel || 0,
+            stockMin: p.stockMinimum || 0,
+            stockMax: p.stockMaximum || 100,
+            unitPrice: p.prixUnitaire || 0,
+            location: p.emplacement || '',
+            photo: p.photoUrl
+        };
+    });
 };
 
 export const createPartApi = async (part: SparePart): Promise<any> => {
+    const catId = await getCategoryIdByName(part.category);
     const payload = {
         reference: part.ref,
         designation: part.name,
-        famillePieceId: reverseMapPieceCategory(part.category),
+        famillePieceId: catId,
         fournisseurId: part.supplierId ? parseInt(part.supplierId) : null,
         stockActuel: part.stockCurrent,
         stockMinimum: part.stockMin,
@@ -120,11 +127,12 @@ export const createPartApi = async (part: SparePart): Promise<any> => {
 };
 
 export const updatePartApi = async (id: string, part: SparePart): Promise<any> => {
+    const catId = await getCategoryIdByName(part.category);
     const payload = {
         id: parseInt(id),
         reference: part.ref,
         designation: part.name,
-        famillePieceId: reverseMapPieceCategory(part.category),
+        famillePieceId: catId,
         fournisseurId: part.supplierId ? parseInt(part.supplierId) : null,
         stockActuel: part.stockCurrent,
         stockMinimum: part.stockMin,
