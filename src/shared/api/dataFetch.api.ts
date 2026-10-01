@@ -71,6 +71,7 @@ export const createPieceCategoryApi = async (nom: string) => {
 };
 
 const getCategoryIdByName = async (catName: string): Promise<number> => {
+    if (!catName) return 1; // Default to ID 1 ('Autre' or similar) if category is missing
     if (!cachedCategories) {
         cachedCategories = await fetchPieceCategoriesApi();
     }

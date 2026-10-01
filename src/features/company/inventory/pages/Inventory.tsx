@@ -154,10 +154,13 @@ export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
     }
   };
 
+  const [editPartId, setEditPartId] = useState<string | undefined>(undefined);
+
   const handleAddNewPart = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newRef || !newName || !newSupId) return;
     const newPart: SparePart = {
+      id: editPartId,
       ref: newRef.toUpperCase(),
       name: newName,
       category: newCat,
@@ -169,7 +172,7 @@ export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
       location: newLoc || 'Étagère Générique'
     };
     updatePart(newPart);
-    setNewRef(''); setNewName(''); setNewSupId('');
+    setNewRef(''); setNewName(''); setNewSupId(''); setEditPartId(undefined);
     setShowAddModal(false);
     setSelectedCategory(newCat);
   };
@@ -177,6 +180,7 @@ export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
   const handleEditPart = (partRef: string) => {
     const p = parts.find(x => x.ref === partRef);
     if (!p) return;
+    setEditPartId(p.id);
     setNewRef(p.ref);
     setNewName(p.name);
     setNewCat(p.category);
@@ -230,6 +234,7 @@ export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
           {can(PERMISSIONS.INVENTORY_CREATE) && (
             <button
               onClick={() => {
+                setEditPartId(undefined);
                 setNewRef(''); setNewName(''); setNewSupId('');
                 setShowAddModal(true);
               }}
