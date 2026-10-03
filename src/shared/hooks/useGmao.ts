@@ -116,16 +116,21 @@ export const useGmao = () => {
       return result;
     },
     addPartMovement: async (ref: string, qty: number, type: 'in' | 'out', otId?: string) => {
+      const activeTenantLocal = state.tenants.find(t => t.id === state.currentTenantId);
+      const part = activeTenantLocal?.parts.find(p => p.ref === ref);
+      
+      if (!part) return false;
+      if (type === 'out' && part.stockCurrent < qty) {
+        return false;
+      }
+
       // First, update local state for the movement log
       dispatch(actions.addPartMovement({ref, qty, type, otId}));
       
       // Then, update the backend stock
-      const activeTenantLocal = state.tenants.find(t => t.id === state.currentTenantId);
-      const part = activeTenantLocal?.parts.find(p => p.ref === ref);
-      if (part) {
-        const newStock = type === 'in' ? part.stockCurrent + qty : part.stockCurrent - qty;
-        await dispatch(updatePartAsync({ ...part, stockCurrent: newStock }));
-      }
+      const newStock = type === 'in' ? part.stockCurrent + qty : part.stockCurrent - qty;
+      await dispatch(updatePartAsync({ ...part, stockCurrent: newStock }));
+      
       return true;
     },
     updatePart: async (updated: SparePart) => {
