@@ -1,6 +1,6 @@
 import { useAppSelector, useAppDispatch } from '@/app/hooks';
 import * as actions from '@/app/gmaoSlice';
-import { createIncidentAsync, updateIncidentStatusAsync, updateWorkOrderStatusAsync, fetchTenantsAsync, createTenantAsync, updateTenantAsync, createEquipmentAsync, updateEquipmentAsync, createPartAsync, updatePartAsync } from '@/app/gmaoSlice';
+import { createIncidentAsync, updateIncidentStatusAsync, updateWorkOrderStatusAsync, fetchTenantsAsync, createTenantAsync, updateTenantAsync, createEquipmentAsync, updateEquipmentAsync, createPartAsync, updatePartAsync, createMovementAsync } from '@/app/gmaoSlice';
 import { AppRole } from '@/shared/permissions';
 import { Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount, User, Tenant, Equipe } from '@/shared/types/gmao';
 import { useEffect } from 'react';
@@ -127,6 +127,17 @@ export const useGmao = () => {
       // First, update local state for the movement log
       dispatch(actions.addPartMovement({ref, qty, type, otId}));
       
+      // Send the movement to the backend
+      if (part.id && state.currentUser) {
+        await dispatch(createMovementAsync({
+          pieceId: part.id,
+          qty,
+          type,
+          otId,
+          userId: state.currentUser.id
+        }));
+      }
+
       // Then, update the backend stock
       const newStock = type === 'in' ? part.stockCurrent + qty : part.stockCurrent - qty;
       await dispatch(updatePartAsync({ ...part, stockCurrent: newStock }));

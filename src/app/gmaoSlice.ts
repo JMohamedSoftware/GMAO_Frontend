@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { Tenant, User, Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount, Equipe } from '@/shared/types/gmao';
 import { AppRole } from '@/shared/permissions';
-import { fetchEquipments, fetchSuppliers, fetchParts, fetchIncidents, fetchWorkOrders, fetchCampaigns, fetchTechnicians, fetchUsers, fetchTenants, createTenantApi, updateTenantApi, createIncidentApi, patchIncidentStatusApi, CreateIncidentPayload, createWorkOrderApi, CreateWorkOrderPayload, patchWorkOrderStatusApi, updateEquipmentStatusApi, createEquipmentApi, updateEquipmentApi, createPartApi, updatePartApi } from '@/shared/api/dataFetch.api';
+import { fetchEquipments, fetchSuppliers, fetchParts, fetchIncidents, fetchWorkOrders, fetchCampaigns, fetchTechnicians, fetchUsers, fetchTenants, createTenantApi, updateTenantApi, createIncidentApi, patchIncidentStatusApi, CreateIncidentPayload, createWorkOrderApi, CreateWorkOrderPayload, patchWorkOrderStatusApi, updateEquipmentStatusApi, createEquipmentApi, updateEquipmentApi, createPartApi, updatePartApi, createMovementApi, fetchMovements } from '@/shared/api/dataFetch.api';
 
 interface GmaoState {
   tenants: Tenant[];
@@ -108,7 +108,7 @@ export const updateTenantAsync = createAsyncThunk(
 export const fetchTenantDataAsync = createAsyncThunk(
   'gmao/fetchTenantData',
   async () => {
-    const [equipments, suppliers, parts, incidents, workOrders, campaigns, technicians, users] = await Promise.all([
+    const [equipments, suppliers, parts, incidents, workOrders, campaigns, technicians, users, movements] = await Promise.all([
       fetchEquipments(),
       fetchSuppliers(),
       fetchParts(),
@@ -117,8 +117,9 @@ export const fetchTenantDataAsync = createAsyncThunk(
       fetchCampaigns(),
       fetchTechnicians(),
       fetchUsers(),
+      fetchMovements(),
     ]);
-    return { equipments, suppliers, parts, incidents, workOrders, campaigns, technicians, users };
+    return { equipments, suppliers, parts, incidents, workOrders, campaigns, technicians, users, movements };
   }
 );
 
@@ -206,6 +207,14 @@ export const updatePartAsync = createAsyncThunk(
        return { ...payload, id: created.id?.toString() || created.Id?.toString() };
     }
     return payload;
+  }
+);
+
+export const createMovementAsync = createAsyncThunk(
+  'gmao/createMovement',
+  async (payload: { pieceId: string, qty: number, type: 'in' | 'out', otId?: string, reason?: string, userId: string }) => {
+    const created = await createMovementApi(payload);
+    return created;
   }
 );
 
@@ -544,6 +553,7 @@ export const gmaoSlice = createSlice({
         if (!tenant.technicians?.length) tenant.technicians = action.payload.technicians;
         if (!tenant.users?.length) tenant.users = action.payload.users;
         if (!tenant.equipes) tenant.equipes = [];
+        if (!tenant.movementLogs?.length && action.payload.movements) tenant.movementLogs = action.payload.movements;
       }
     });
 

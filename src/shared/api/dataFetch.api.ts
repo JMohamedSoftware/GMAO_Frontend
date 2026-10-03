@@ -147,6 +147,33 @@ export const updatePartApi = async (id: string, part: SparePart): Promise<any> =
     return response.data;
 };
 
+export const createMovementApi = async (movement: { pieceId: string, qty: number, type: 'in' | 'out', otId?: string, reason?: string, userId: string }): Promise<any> => {
+    const payload = {
+        pieceId: parseInt(movement.pieceId),
+        oTId: movement.otId ? parseInt(movement.otId) : null,
+        userId: parseInt(movement.userId),
+        type: movement.type === 'in' ? 1 : 2, // 1 = Entree, 2 = Sortie
+        quantite: movement.qty,
+        prixUnitaire: 0,
+        prixTotal: 0,
+        motif: movement.reason || (movement.type === 'in' ? 'Achat/Retour' : 'Maintenance/Sortie')
+    };
+    const response = await axios.post(`${API_URL}/MouvementsStock`, payload, getAuthHeaders());
+    return response.data;
+};
+
+export const fetchMovements = async (): Promise<any[]> => {
+    const response = await axios.get(`${API_URL}/MouvementsStock`, getAuthHeaders());
+    return response.data.map((m: any) => ({
+        id: `MVT-${new Date(m.date).getFullYear()}-${m.id.toString().padStart(3, '0')}`,
+        date: m.date,
+        partRef: m.piece?.reference || m.pieceId?.toString(),
+        qty: m.quantite,
+        type: m.type === 1 ? 'in' : 'out',
+        reason: m.motif || (m.type === 1 ? 'Achat/Retour' : 'Maintenance/Sortie')
+    }));
+};
+
 const TECHNICIAN_ROLE_ID = 4;
 
 /** Maps a role label to the closest Technician.role union type */
