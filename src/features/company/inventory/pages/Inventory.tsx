@@ -142,10 +142,10 @@ export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
     setShowMoveModal(true);
   };
 
-  const executeMovement = (e: React.FormEvent) => {
+  const executeMovement = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!movePartRef) return;
-    const success = addPartMovement(movePartRef, moveQty, moveType, undefined);
+    const success = await addPartMovement(movePartRef, moveQty, moveType, undefined);
     if (success) {
       // Stock movement is now fully handled in Redux (both stock change and log)
       setShowMoveModal(false);
