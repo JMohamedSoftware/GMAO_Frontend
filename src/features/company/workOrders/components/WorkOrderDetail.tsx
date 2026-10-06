@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { 
+import {
   X, Calendar, Check, FileText, Wrench,
-  Play, User, Pause, Upload,
+  Play, User, Pause,
   CheckCircle, FileCheck, Settings2, Clock,
-  File, Image as ImageIcon, FileSpreadsheet, FileBadge2
+  File, Image as ImageIcon, FileBadge2,
+  SendHorizontal, UserPlus, PenLine, Plus, Trash2,
+  Loader2, Package
 } from 'lucide-react';
 import { WorkOrder, Equipment, Technician, SparePart } from '@/shared/types/gmao';
 import { usePermissions } from '@/shared/hooks/usePermissions';
@@ -18,7 +20,7 @@ interface WorkOrderDetailProps {
   parts: SparePart[];
   onClose: () => void;
   onClearSelectedOt: () => void;
-  updateWorkOrderStatus: (id: string, status: WorkOrder['status']) => void;
+  updateWorkOrderStatus: (id: string, status: WorkOrder['status'], updates?: Partial<WorkOrder>) => void;
 }
 
 type Tab = 'vue_generale' | 'documents' | 'historique';
@@ -33,10 +35,28 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
   onClearSelectedOt,
   updateWorkOrderStatus
 }) => {
-  const { can } = usePermissions();
+  const { can, isManagerLevel, isChefEquipe, isTechnicien, isAdmin } = usePermissions();
   const { currentUser, incidents } = useGmao();
 
   const [activeTab, setActiveTab] = useState<Tab>('vue_generale');
+
+  // ── Rapport d'intervention (edit mode) ──
+  const [editingReport, setEditingReport] = useState(false);
+  const [diagnostic, setDiagnostic] = useState('');
+  const [solution, setSolution] = useState('');
+  const [externalCost, setExternalCost] = useState('');
+  const [savingReport, setSavingReport] = useState(false);
+
+  // ── Ajout de pièce consommée ──
+  const [showAddPart, setShowAddPart] = useState(false);
+  const [newPartRef, setNewPartRef] = useState('');
+  const [newPartQty, setNewPartQty] = useState('1');
+  const [partError, setPartError] = useState<string | null>(null);
+
+  // ── Affectation Chef / Technicien ──
+  const [showAssignModal, setShowAssignModal] = useState<'chef' | 'tech' | null>(null);
+  const [assignTechId, setAssignTechId] = useState('');
+  const [assigningWho, setAssigningWho] = useState(false);
 
   if (!activeOt) return null;
 
@@ -72,12 +92,82 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
   const partsCost = partsUsed.reduce((sum, p) => sum + p.unitPrice * p.quantity, 0);
   const totalCost = laborCost + partsCost + (activeOt.externalCost || 0);
 
-  // Permissions-based action visibility
-  const canStart   = can(PERMISSIONS.WORKORDER_START)   && activeOt.status === 'Affecté';
-  const canSuspend = can(PERMISSIONS.WORKORDER_SUSPEND) && activeOt.status === 'En cours';
-  const canResume  = can(PERMISSIONS.WORKORDER_START)   && activeOt.status === 'Suspendu';
-  const canFinish  = can(PERMISSIONS.WORKORDER_FINISH)  && activeOt.status === 'En cours';
-  const canClose   = can(PERMISSIONS.WORKORDER_CLOSE)   && activeOt.status === 'Terminé';
+  // ── Workflow visibility ──
+  const isDraft       = activeOt.status === 'Brouillon';
+  const canSubmit     = (isManagerLevel || isAdmin) && isDraft;
+  const canAssignChef = (isManagerLevel || isAdmin) && (activeOt.status === 'En attente' || activeOt.status === 'Brouillon');
+  const canAssignTech = (isChefEquipe || isManagerLevel || isAdmin) && activeOt.status === 'Affecté Chef';
+  const canStart      = can(PERMISSIONS.WORKORDER_START)   && activeOt.status === 'Affecté';
+  const canSuspend    = can(PERMISSIONS.WORKORDER_SUSPEND) && activeOt.status === 'En cours';
+  const canResume     = can(PERMISSIONS.WORKORDER_START)   && activeOt.status === 'Suspendu';
+  const canFinish     = can(PERMISSIONS.WORKORDER_FINISH)  && activeOt.status === 'En cours';
+  const canClose      = can(PERMISSIONS.WORKORDER_CLOSE)   && activeOt.status === 'Terminé';
+  const canEditReport = (isTechnicien || isChefEquipe || isManagerLevel || isAdmin) &&
+    ['En cours', 'Suspendu', 'Terminé'].includes(activeOt.status);
+  const canAddParts   = canEditReport;
+
+  // ── Handlers ──
+  const handleSubmitDraft = () => {
+    updateWorkOrderStatus(activeOt.id, 'En attente');
+  };
+
+  const handleAssignChef = () => {
+    if (!assignTechId) return;
+    setAssigningWho(true);
+    updateWorkOrderStatus(activeOt.id, 'Affecté Chef', { chefEquipeId: assignTechId });
+    setAssigningWho(false);
+    setShowAssignModal(null);
+    setAssignTechId('');
+  };
+
+  const handleAssignTech = () => {
+    if (!assignTechId) return;
+    setAssigningWho(true);
+    updateWorkOrderStatus(activeOt.id, 'Affecté', { technicianId: assignTechId });
+    setAssigningWho(false);
+    setShowAssignModal(null);
+    setAssignTechId('');
+  };
+
+  const handleSaveReport = () => {
+    setSavingReport(true);
+    const updates: Partial<WorkOrder> = {};
+    if (diagnostic.trim()) updates.diagnostic = diagnostic.trim();
+    if (solution.trim()) updates.solution = solution.trim();
+    if (externalCost !== '') updates.externalCost = parseFloat(externalCost) || 0;
+    updateWorkOrderStatus(activeOt.id, activeOt.status, updates);
+    setEditingReport(false);
+    setSavingReport(false);
+  };
+
+  const handleAddPart = () => {
+    setPartError(null);
+    const part = parts.find(p => p.ref === newPartRef);
+    if (!part) { setPartError('Référence pièce introuvable.'); return; }
+    const qty = parseInt(newPartQty, 10);
+    if (!qty || qty < 1) { setPartError('Quantité invalide.'); return; }
+    if (part.stockCurrent < qty) { setPartError(`Stock insuffisant (dispo: ${part.stockCurrent}).`); return; }
+    const existing = (activeOt.partsUsed || []).find(p => p.partRef === newPartRef);
+    const newParts = existing
+      ? (activeOt.partsUsed || []).map(p => p.partRef === newPartRef ? { ...p, quantity: p.quantity + qty } : p)
+      : [...(activeOt.partsUsed || []), { partRef: newPartRef, quantity: qty }];
+    updateWorkOrderStatus(activeOt.id, activeOt.status, { partsUsed: newParts });
+    setShowAddPart(false);
+    setNewPartRef('');
+    setNewPartQty('1');
+  };
+
+  const handleRemovePart = (ref: string) => {
+    const newParts = (activeOt.partsUsed || []).filter(p => p.partRef !== ref);
+    updateWorkOrderStatus(activeOt.id, activeOt.status, { partsUsed: newParts });
+  };
+
+  const openEditReport = () => {
+    setDiagnostic(activeOt.diagnostic || '');
+    setSolution(activeOt.solution || '');
+    setExternalCost(activeOt.externalCost ? String(activeOt.externalCost) : '');
+    setEditingReport(true);
+  };
 
   // Documents attached to the OT's equipment (from existing Equipment.documents)
   const eqDocuments = activeOtEq?.documents || [];
@@ -146,6 +236,33 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
             {activeOt.id} · {activeOt.type}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            {/* Soumettre (Brouillon → En attente) */}
+            {canSubmit && (
+              <button
+                onClick={handleSubmitDraft}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-bold shadow-sm transition-colors"
+              >
+                <SendHorizontal className="w-3.5 h-3.5" /> Soumettre
+              </button>
+            )}
+            {/* Affecter Chef d'équipe */}
+            {canAssignChef && (
+              <button
+                onClick={() => { setAssignTechId(''); setShowAssignModal('chef'); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-bold shadow-sm transition-colors"
+              >
+                <UserPlus className="w-3.5 h-3.5" /> Affecter Chef
+              </button>
+            )}
+            {/* Affecter Technicien */}
+            {canAssignTech && (
+              <button
+                onClick={() => { setAssignTechId(''); setShowAssignModal('tech'); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold shadow-sm transition-colors"
+              >
+                <UserPlus className="w-3.5 h-3.5" /> Affecter Technicien
+              </button>
+            )}
             {canStart && (
               <button
                 onClick={() => updateWorkOrderStatus(activeOt.id, 'En cours')}
@@ -222,6 +339,21 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
         {/* ══ TAB: Vue générale ══ */}
         {activeTab === 'vue_generale' && (
           <div className="flex flex-col gap-4">
+
+            {/* Brouillon banner */}
+            {activeOt.status === 'Brouillon' && (
+              <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+                <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-800/50 flex items-center justify-center shrink-0">
+                  <FileCheck className="w-4 h-4 text-amber-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs font-bold text-amber-800 dark:text-amber-300 mb-0.5">OT en mode Brouillon</p>
+                  <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                    Cet OT n'a pas encore été soumis au workflow. Cliquez sur <strong>Soumettre</strong> pour le mettre en attente d'affectation.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Équipement concerné */}
             <div className="flex items-center gap-4 bg-white dark:bg-slate-850 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
@@ -341,46 +473,172 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
 
             {/* Rapport d'intervention */}
             <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
-              <h3 className="font-bold text-slate-800 dark:text-white mb-4 text-sm">Rapport d'intervention</h3>
-              <div className="flex flex-col gap-4">
-                <div>
-                  <span className="text-[11px] font-bold text-slate-500 block mb-1">Diagnostic / Cause panne</span>
-                  {activeOt.diagnostic ? (
-                    <p className="text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed">{activeOt.diagnostic}</p>
-                  ) : (
-                    <p className="text-[13px] text-slate-400 italic">Aucun diagnostic enregistré.</p>
-                  )}
-                </div>
-                <div>
-                  <span className="text-[11px] font-bold text-slate-500 block mb-1">Solution appliquée</span>
-                  {activeOt.solution ? (
-                    <p className="text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed">{activeOt.solution}</p>
-                  ) : (
-                    <p className="text-[13px] text-slate-400 italic">Aucune solution enregistrée.</p>
-                  )}
-                </div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-slate-800 dark:text-white text-sm">Rapport d'intervention</h3>
+                {canEditReport && !editingReport && (
+                  <button
+                    onClick={openEditReport}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-bold text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors"
+                  >
+                    <PenLine className="w-3 h-3" /> Saisir / Modifier
+                  </button>
+                )}
               </div>
+              {editingReport ? (
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-500 block mb-1">Diagnostic / Cause panne</label>
+                    <textarea
+                      rows={3}
+                      value={diagnostic}
+                      onChange={e => setDiagnostic(e.target.value)}
+                      placeholder="Décrivez la cause de la panne..."
+                      className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-xs text-slate-800 dark:text-slate-200 resize-none focus:border-primary outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-500 block mb-1">Solution appliquée</label>
+                    <textarea
+                      rows={3}
+                      value={solution}
+                      onChange={e => setSolution(e.target.value)}
+                      placeholder="Décrivez les actions correctives effectuées..."
+                      className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-xs text-slate-800 dark:text-slate-200 resize-none focus:border-primary outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-500 block mb-1">Coût prestataire externe (DT)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={externalCost}
+                      onChange={e => setExternalCost(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-xs text-slate-800 dark:text-slate-200 focus:border-primary outline-none"
+                    />
+                  </div>
+                  <div className="flex gap-2 justify-end pt-1">
+                    <button
+                      onClick={() => setEditingReport(false)}
+                      className="px-3 py-1.5 text-xs font-bold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      onClick={handleSaveReport}
+                      disabled={savingReport}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-primary hover:bg-primary/90 rounded-lg disabled:opacity-60"
+                    >
+                      {savingReport ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                      Enregistrer
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-500 block mb-1">Diagnostic / Cause panne</span>
+                    {activeOt.diagnostic ? (
+                      <p className="text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed">{activeOt.diagnostic}</p>
+                    ) : (
+                      <p className="text-[13px] text-slate-400 italic">Aucun diagnostic enregistré.</p>
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-500 block mb-1">Solution appliquée</span>
+                    {activeOt.solution ? (
+                      <p className="text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed">{activeOt.solution}</p>
+                    ) : (
+                      <p className="text-[13px] text-slate-400 italic">Aucune solution enregistrée.</p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Pièces consommées — always visible */}
+            {/* Pièces consommées */}
             <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
               <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between">
                 <h3 className="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-2">
-                  <Wrench className="w-4 h-4 text-slate-400" /> Pièces consommées ({partsUsed.length})
+                  <Package className="w-4 h-4 text-slate-400" /> Pièces consommées ({partsUsed.length})
                 </h3>
+                {canAddParts && (
+                  <button
+                    onClick={() => { setShowAddPart(v => !v); setPartError(null); }}
+                    className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg transition-colors"
+                  >
+                    <Plus className="w-3 h-3" /> Ajouter
+                  </button>
+                )}
               </div>
+              {/* Add part inline form */}
+              {showAddPart && (
+                <div className="px-4 py-3 bg-blue-50/50 dark:bg-blue-900/10 border-b border-slate-200 dark:border-slate-700 flex flex-col gap-2">
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <label className="text-[10px] font-bold text-slate-500 block mb-1">Pièce (référence)</label>
+                      <select
+                        value={newPartRef}
+                        onChange={e => setNewPartRef(e.target.value)}
+                        className="w-full p-2 border border-slate-200 dark:border-slate-700 rounded text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:border-primary outline-none"
+                      >
+                        <option value="">Choisir une pièce...</option>
+                        {parts.filter(p => p.stockCurrent > 0).map(p => (
+                          <option key={p.ref} value={p.ref}>
+                            {p.name} — {p.ref} (Stock: {p.stockCurrent})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="w-20">
+                      <label className="text-[10px] font-bold text-slate-500 block mb-1">Qté</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={newPartQty}
+                        onChange={e => setNewPartQty(e.target.value)}
+                        className="w-full p-2 border border-slate-200 dark:border-slate-700 rounded text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:border-primary outline-none"
+                      />
+                    </div>
+                    <button
+                      onClick={handleAddPart}
+                      className="flex items-center gap-1 px-3 py-2 text-xs font-bold text-white bg-primary hover:bg-primary/90 rounded transition-colors"
+                    >
+                      <Check className="w-3 h-3" /> OK
+                    </button>
+                    <button
+                      onClick={() => { setShowAddPart(false); setPartError(null); }}
+                      className="p-2 text-slate-400 hover:text-slate-600 rounded"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  {partError && (
+                    <p className="text-[10px] text-rose-600 font-semibold">{partError}</p>
+                  )}
+                </div>
+              )}
               {partsUsed.length === 0 ? (
                 <div className="px-4 py-5 text-center text-xs text-slate-400 italic">Aucune pièce enregistrée pour cet OT.</div>
               ) : (
                 <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800">
                   {partsUsed.map((pu, i) => (
-                    <div key={i} className="px-4 py-2.5 flex items-center justify-between text-xs">
+                    <div key={i} className="px-4 py-2.5 flex items-center justify-between text-xs group">
                       <span className="font-medium text-slate-700 dark:text-slate-300">{pu.name}</span>
                       <div className="flex items-center gap-4">
                         <span className="font-bold text-slate-600 dark:text-slate-400">Qté: {pu.quantity}</span>
                         <span className="font-bold text-slate-700 dark:text-slate-300">
                           {(pu.unitPrice * pu.quantity).toFixed(2)} DT
                         </span>
+                        {canAddParts && (
+                          <button
+                            onClick={() => handleRemovePart(pu.partRef)}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-rose-400 hover:text-rose-600"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -606,6 +864,57 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
         )}
 
       </div>
+
+      {/* ══ MODAL: Affectation Chef / Technicien ══ */}
+      {showAssignModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-slate-800 dark:text-white text-base flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-primary" />
+                {showAssignModal === 'chef' ? "Affecter un Chef d'équipe" : "Affecter un Technicien"}
+              </h3>
+              <button onClick={() => setShowAssignModal(null)} className="p-1 text-slate-400 hover:text-slate-600 rounded-full">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-slate-500 block mb-2 uppercase tracking-wider">
+                {showAssignModal === 'chef' ? "Chef d'équipe" : "Technicien"}
+              </label>
+              <select
+                value={assignTechId}
+                onChange={e => setAssignTechId(e.target.value)}
+                className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-200 focus:border-primary outline-none"
+              >
+                <option value="">— Choisir —</option>
+                {technicians.map(t => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} · {t.role} {t.status === 'Disponible' ? '✓' : `(${t.status})`}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setShowAssignModal(null)}
+                className="px-4 py-2 text-xs font-bold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={showAssignModal === 'chef' ? handleAssignChef : handleAssignTech}
+                disabled={!assignTechId || assigningWho}
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-primary hover:bg-primary/90 rounded-lg disabled:opacity-50"
+              >
+                {assigningWho ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                Confirmer l'affectation
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

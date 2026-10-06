@@ -206,12 +206,6 @@ export const InventoryList: React.FC<InventoryListProps> = ({
               <th className="px-2 py-3">Désignation</th>
               <th className="px-2 py-3">Famille</th>
               <th className="px-2 py-3 text-right whitespace-nowrap">Stock actuel</th>
-              <th className="px-2 py-3 text-right whitespace-nowrap">Stock min</th>
-              <th className="px-2 py-3 text-right whitespace-nowrap">Stock max</th>
-
-              <th className="px-2 py-3">Fournisseur</th>
-              <th className="px-2 py-3 text-right whitespace-nowrap">Prix unitaire</th>
-              <th className="px-2 py-3 text-right whitespace-nowrap">Valeur stock</th>
               <th className="px-2 py-3 text-center">Statut</th>
               <th className="px-2 py-3 text-center">Actions</th>
             </tr>
@@ -240,12 +234,6 @@ export const InventoryList: React.FC<InventoryListProps> = ({
                   </td>
                   <td className="px-2 py-3 text-xs text-slate-500 truncate max-w-[100px]">{part.category}</td>
                   <td className={`px-2 py-3 text-xs text-right font-bold ${getStockColor(part)}`}>{part.stockCurrent}</td>
-                  <td className="px-2 py-3 text-xs text-slate-500 text-right">{part.stockMin}</td>
-                  <td className="px-2 py-3 text-xs text-slate-500 text-right">{part.stockMax}</td>
-
-                  <td className="px-2 py-3 text-xs text-slate-500 truncate max-w-[100px]">{sup?.name || part.supplierId}</td>
-                  <td className="px-2 py-3 text-xs text-slate-500 text-right whitespace-nowrap">{part.unitPrice.toFixed(2)} DT</td>
-                  <td className="px-2 py-3 text-xs font-semibold text-slate-700 dark:text-slate-300 text-right whitespace-nowrap">{(part.stockCurrent * part.unitPrice).toFixed(2)} DT</td>
                   <td className="px-2 py-3 text-center">
                     {getStatusBadge(part)}
                   </td>

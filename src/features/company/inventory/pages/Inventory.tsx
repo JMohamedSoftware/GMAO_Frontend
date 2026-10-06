@@ -292,7 +292,7 @@ export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
         </div>
 
         {/* Column 2: Part detail (Offcanvas style side panel) */}
-        <div className={`absolute top-0 right-0 h-full w-[400px] bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-xl transition-transform duration-300 transform ${selectedPartRef ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className={`absolute z-50 top-0 right-0 h-full w-[400px] bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl transition-transform duration-300 transform ${selectedPartRef ? 'translate-x-0' : 'translate-x-full'}`}>
           <InventoryDetail
             activePart={activePart}
             suppliers={suppliers}
