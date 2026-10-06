@@ -1,6 +1,6 @@
 import { useAppSelector, useAppDispatch } from '@/app/hooks';
 import * as actions from '@/app/gmaoSlice';
-import { createIncidentAsync, updateIncidentStatusAsync, updateWorkOrderStatusAsync, fetchTenantsAsync, createTenantAsync, updateTenantAsync, createEquipmentAsync, updateEquipmentAsync, createPartAsync, updatePartAsync, createMovementAsync } from '@/app/gmaoSlice';
+import { createIncidentAsync, updateIncidentStatusAsync, updateWorkOrderStatusAsync, fetchTenantsAsync, createTenantAsync, updateTenantAsync, createEquipmentAsync, updateEquipmentAsync, createPartAsync, updatePartAsync, createMovementAsync, createEquipeAsync, updateEquipeAsync, deleteEquipeAsync } from '@/app/gmaoSlice';
 import { AppRole } from '@/shared/permissions';
 import { Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount, User, Tenant, Equipe } from '@/shared/types/gmao';
 import { useEffect } from 'react';
@@ -156,9 +156,9 @@ export const useGmao = () => {
     markNotificationAsRead: (id: string) => dispatch(actions.markNotificationAsRead(id)),
     markAllNotificationsAsRead: () => dispatch(actions.markAllNotificationsAsRead()),
     addUser: (user: UserAccount) => dispatch(actions.addUser(user)),
-    addEquipe: (eq: Omit<Equipe, 'id'>) => dispatch(actions.addEquipe(eq)),
-    updateEquipe: (eq: Equipe) => dispatch(actions.updateEquipe(eq)),
-    deleteEquipe: (id: string) => dispatch(actions.deleteEquipe(id)),
+    addEquipe: (eq: Omit<Equipe, 'id'>) => dispatch(createEquipeAsync(eq)),
+    updateEquipe: (eq: Equipe) => dispatch(updateEquipeAsync(eq)),
+    deleteEquipe: (id: string) => dispatch(deleteEquipeAsync(id)),
 
     // Missing actions from context but keeping API stable for migration:
     deleteEquipmentsByLocation: (...args: any[]) => {},

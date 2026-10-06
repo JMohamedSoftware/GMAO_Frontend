@@ -36,7 +36,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
   updateWorkOrderStatus
 }) => {
   const { can, isManagerLevel, isChefEquipe, isTechnicien, isAdmin } = usePermissions();
-  const { currentUser, incidents } = useGmao();
+  const { currentUser, incidents, users } = useGmao();
 
   const [activeTab, setActiveTab] = useState<Tab>('vue_generale');
 
@@ -888,11 +888,18 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
                 className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-200 focus:border-primary outline-none"
               >
                 <option value="">— Choisir —</option>
-                {technicians.map(t => (
-                  <option key={t.id} value={t.id}>
-                    {t.name} · {t.role} {t.status === 'Disponible' ? '✓' : `(${t.status})`}
-                  </option>
-                ))}
+                {showAssignModal === 'chef'
+                  ? users.filter(u => u.role?.toLowerCase().includes("chef")).map(u => (
+                      <option key={u.id} value={u.id}>
+                        {u.name} · {u.role}
+                      </option>
+                    ))
+                  : technicians.map(t => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} · {t.role} {t.status === 'Disponible' ? '✓' : `(${t.status})`}
+                      </option>
+                    ))
+                }
               </select>
             </div>
             <div className="flex gap-2 justify-end">

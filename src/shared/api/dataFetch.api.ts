@@ -822,3 +822,51 @@ export const unlinkPieceFromEquipmentApi = async (equipmentId: string, pieceId: 
         throw new Error(error.response?.data?.message || 'Failed to unlink piece');
     }
 };
+export const fetchEquipes = async (): Promise<any[]> => {
+    const response = await axios.get(`${API_URL}/Equipes`, getAuthHeaders());
+    return response.data.map((e: any) => ({
+        id: e.id?.toString(),
+        nom: e.nom,
+        description: e.description || "",
+        couleur: e.couleur || "bg-slate-500",
+        chefId: e.chefId?.toString(),
+        technicienIds: e.technicienIds?.map((id: number) => id.toString()) || []
+    }));
+};
+
+export const createEquipeApi = async (equipe: any): Promise<any> => {
+    const payload = {
+        nom: equipe.nom,
+        description: equipe.description,
+        couleur: equipe.couleur,
+        chefId: equipe.chefId ? parseInt(equipe.chefId) : null,
+        technicienIds: equipe.technicienIds ? equipe.technicienIds.map((id: string) => parseInt(id)) : [],
+        societeId: 1
+    };
+    const response = await axios.post(`${API_URL}/Equipes`, payload, getAuthHeaders());
+    const e = response.data;
+    return {
+        id: e.id?.toString(),
+        nom: e.nom,
+        description: e.description || "",
+        couleur: e.couleur || "bg-slate-500",
+        chefId: e.chefId?.toString(),
+        technicienIds: e.technicienIds?.map((id: number) => id.toString()) || []
+    };
+};
+
+export const updateEquipeApi = async (id: string, equipe: any): Promise<void> => {
+    const payload = {
+        nom: equipe.nom,
+        description: equipe.description,
+        couleur: equipe.couleur,
+        chefId: equipe.chefId ? parseInt(equipe.chefId) : null,
+        technicienIds: equipe.technicienIds ? equipe.technicienIds.map((id: string) => parseInt(id)) : [],
+        societeId: 1
+    };
+    await axios.put(`${API_URL}/Equipes/${id}`, payload, getAuthHeaders());
+};
+
+export const deleteEquipeApi = async (id: string): Promise<void> => {
+    await axios.delete(`${API_URL}/Equipes/${id}`, getAuthHeaders());
+};

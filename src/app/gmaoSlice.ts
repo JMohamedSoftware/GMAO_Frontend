@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { Tenant, User, Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount, Equipe } from '@/shared/types/gmao';
 import { AppRole } from '@/shared/permissions';
-import { fetchEquipments, fetchSuppliers, fetchParts, fetchIncidents, fetchWorkOrders, fetchCampaigns, fetchTechnicians, fetchUsers, fetchTenants, createTenantApi, updateTenantApi, createIncidentApi, patchIncidentStatusApi, CreateIncidentPayload, createWorkOrderApi, CreateWorkOrderPayload, patchWorkOrderStatusApi, updateEquipmentStatusApi, createEquipmentApi, updateEquipmentApi, createPartApi, updatePartApi, createMovementApi, fetchMovements } from '@/shared/api/dataFetch.api';
+import { fetchEquipments, fetchSuppliers, fetchParts, fetchIncidents, fetchWorkOrders, fetchCampaigns, fetchTechnicians, fetchUsers, fetchTenants, createTenantApi, updateTenantApi, createIncidentApi, patchIncidentStatusApi, CreateIncidentPayload, createWorkOrderApi, CreateWorkOrderPayload, patchWorkOrderStatusApi, updateEquipmentStatusApi, createEquipmentApi, updateEquipmentApi, createPartApi, updatePartApi, createMovementApi, fetchMovements, fetchEquipes, createEquipeApi, updateEquipeApi, deleteEquipeApi } from '@/shared/api/dataFetch.api';
 
 interface GmaoState {
   tenants: Tenant[];
@@ -108,7 +108,7 @@ export const updateTenantAsync = createAsyncThunk(
 export const fetchTenantDataAsync = createAsyncThunk(
   'gmao/fetchTenantData',
   async () => {
-    const [equipments, suppliers, parts, incidents, workOrders, campaigns, technicians, users, movements] = await Promise.all([
+    const [equipments, suppliers, parts, incidents, workOrders, campaigns, technicians, users, movements, equipes] = await Promise.all([
       fetchEquipments(),
       fetchSuppliers(),
       fetchParts(),
@@ -118,8 +118,9 @@ export const fetchTenantDataAsync = createAsyncThunk(
       fetchTechnicians(),
       fetchUsers(),
       fetchMovements(),
+      fetchEquipes(),
     ]);
-    return { equipments, suppliers, parts, incidents, workOrders, campaigns, technicians, users, movements };
+    return { equipments, suppliers, parts, incidents, workOrders, campaigns, technicians, users, movements, equipes };
   }
 );
 
@@ -552,7 +553,7 @@ export const gmaoSlice = createSlice({
         if (!tenant.campaigns?.length) tenant.campaigns = action.payload.campaigns;
         if (!tenant.technicians?.length) tenant.technicians = action.payload.technicians;
         if (!tenant.users?.length) tenant.users = action.payload.users;
-        if (!tenant.equipes) tenant.equipes = [];
+        if (!tenant.equipes?.length && action.payload.equipes) tenant.equipes = action.payload.equipes;
         if (!tenant.movementLogs?.length && action.payload.movements) tenant.movementLogs = action.payload.movements;
       }
     });
@@ -737,6 +738,30 @@ export const gmaoSlice = createSlice({
       }
     });
 
+    // ─── Equipes actions ──────────────────────────────────────────────────────
+    builder.addCase(createEquipeAsync.fulfilled, (state, action) => {
+      const tenant = state.tenants.find(t => t.id === state.currentTenantId);
+      if (tenant) {
+        if (!tenant.equipes) tenant.equipes = [];
+        tenant.equipes.push(action.payload);
+      }
+    });
+
+    builder.addCase(updateEquipeAsync.fulfilled, (state, action) => {
+      const tenant = state.tenants.find(t => t.id === state.currentTenantId);
+      if (tenant && tenant.equipes) {
+        const idx = tenant.equipes.findIndex(e => e.id === action.payload.id);
+        if (idx !== -1) tenant.equipes[idx] = action.payload;
+      }
+    });
+
+    builder.addCase(deleteEquipeAsync.fulfilled, (state, action) => {
+      const tenant = state.tenants.find(t => t.id === state.currentTenantId);
+      if (tenant && tenant.equipes) {
+        tenant.equipes = tenant.equipes.filter(e => e.id !== action.payload);
+      }
+    });
+
   }
 });
 
@@ -749,5 +774,28 @@ export const {
   addEquipe, updateEquipe, deleteEquipe,
   syncToLocalStorage, impersonateTenant, setTenantStatus
 } = gmaoSlice.actions;
+
+export const createEquipeAsync = createAsyncThunk(
+  'gmao/createEquipe',
+  async (payload: Omit<Equipe, 'id'>) => {
+    return await createEquipeApi(payload);
+  }
+);
+
+export const updateEquipeAsync = createAsyncThunk(
+  'gmao/updateEquipe',
+  async (payload: Equipe) => {
+    await updateEquipeApi(payload.id, payload);
+    return payload;
+  }
+);
+
+export const deleteEquipeAsync = createAsyncThunk(
+  'gmao/deleteEquipe',
+  async (id: string) => {
+    await deleteEquipeApi(id);
+    return id;
+  }
+);
 
 export default gmaoSlice.reducer;
