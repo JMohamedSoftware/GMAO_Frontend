@@ -111,9 +111,10 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
       // Chef d'équipe sees OTs assigned directly to them (as a routing step) OR assigned to their team members
       const myEquipe = equipes.find(eq => String(eq.chefId) === String(currentUser?.id));
       const myTeamTechIds = myEquipe ? myEquipe.technicienIds.map(String) : [];
-      const isAssignedToMe = String(ot.technicianId) === String(currentUser?.id);
+      const isAssignedToMeAsTech = String(ot.technicianId) === String(currentUser?.id);
+      const isAssignedToMeAsChef = String(ot.chefEquipeId) === String(currentUser?.id);
       const isAssignedToMyTeam = ot.technicianId && myTeamTechIds.includes(String(ot.technicianId));
-      if (!isAssignedToMe && !isAssignedToMyTeam) return false;
+      if (!isAssignedToMeAsTech && !isAssignedToMeAsChef && !isAssignedToMyTeam) return false;
     }
 
     const eq = equipments.find(e => e.id === ot.equipmentId);

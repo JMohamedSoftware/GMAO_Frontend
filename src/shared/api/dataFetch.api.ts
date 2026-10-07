@@ -421,21 +421,26 @@ export const patchWorkOrderStatusApi = async (
     
     let statutOt = 1; // Brouillon
     switch(merged.status) {
-        case 'En attente': statutOt = 2; break;
-        case 'Affecté Chef': statutOt = 2; break; 
-        case 'Affecté': statutOt = 2; break; // Map 'Affecté' and 'En attente' to 2 (EnAttente/Affecte)
-        case 'En cours': statutOt = 3; break;
-        case 'Suspendu': statutOt = 4; break;
-        case 'Terminé': statutOt = 5; break;
-        case 'Clôturé': statutOt = 6; break;
+        case 'En attente':    statutOt = 2; break;
+        case 'Affecté Chef':  statutOt = 7; break; // 7 = Affecté Chef (stocké dans Statut)
+        case 'Affecté':       statutOt = 2; break; // 2 = En attente/Affecté (technicien défini)
+        case 'En cours':      statutOt = 3; break;
+        case 'Suspendu':      statutOt = 4; break;
+        case 'Terminé':       statutOt = 5; break;
+        case 'Clôturé':       statutOt = 6; break;
     }
+
+    // For 'Affecté Chef': store the chef's userId in responsableId so it persists
+    const responsableId = merged.status === 'Affecté Chef' && merged.chefEquipeId
+        ? parseInt(merged.chefEquipeId, 10)
+        : (merged.assignedBy ? parseInt(merged.assignedBy, 10) : 1);
 
     const body = {
         id: parseInt(id, 10),
         numeroOT: merged.title || `OT-${id}`,
         demandeId: merged.incidentId ? parseInt(merged.incidentId, 10) : null,
         equipementId: parseInt(merged.equipmentId, 10),
-        responsableId: merged.assignedBy ? parseInt(merged.assignedBy, 10) : 1,
+        responsableId,
         technicienId: merged.technicianId ? parseInt(merged.technicianId, 10) : null,
         priorite: otPriorityToInt(merged.priority),
         typeMaintenance: typeToInt(merged.type),
@@ -464,6 +469,7 @@ export const fetchWorkOrders = async (): Promise<WorkOrder[]> => {
         else if (w.statut === 2) {
             mappedStatus = w.technicienId ? 'Affecté' : 'En attente';
         }
+        else if (w.statut === 7) mappedStatus = 'Affecté Chef'; // 7 = Affecté Chef
         else if (w.statut === 3) mappedStatus = 'En cours';
         else if (w.statut === 4) mappedStatus = 'Suspendu';
         else if (w.statut === 5) mappedStatus = 'Terminé';
@@ -482,7 +488,9 @@ export const fetchWorkOrders = async (): Promise<WorkOrder[]> => {
             startDate: w.dateDebutReelle || w.dateDebutPrevue || undefined,
             endDate: w.dateFinReelle || w.dateFinPrevue || undefined,
             technicianId: w.technicienId?.toString() || undefined,
-            assignedBy: w.responsableId?.toString() || '',
+            // When statut=7, responsableId holds the chef's userId; otherwise it's the regular assignedBy
+            assignedBy: w.statut !== 7 ? (w.responsableId?.toString() || '') : '',
+            chefEquipeId: w.statut === 7 ? (w.responsableId?.toString() || undefined) : undefined,
             durationMinutes: w.durationMinutes || 120,
             diagnostic: w.diagnostic || undefined,
             solution: w.solution || undefined,
