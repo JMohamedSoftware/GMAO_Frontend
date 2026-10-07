@@ -836,9 +836,9 @@ export const fetchEquipes = async (): Promise<any[]> => {
         id: e.id?.toString(),
         nom: e.nom,
         description: e.description || "",
-        couleur: e.couleur || "bg-slate-500",
-        chefId: e.chefId?.toString(),
-        technicienIds: e.technicienIds?.map((id: number) => id.toString()) || []
+        couleur: "bg-slate-500", // Not stored in backend
+        chefId: e.chefEquipeId?.toString(),
+        technicienIds: e.membres?.map((m: any) => m.id.toString()) || []
     }));
 };
 
@@ -846,9 +846,8 @@ export const createEquipeApi = async (equipe: any): Promise<any> => {
     const payload = {
         nom: equipe.nom,
         description: equipe.description,
-        couleur: equipe.couleur,
-        chefId: equipe.chefId ? parseInt(equipe.chefId) : null,
-        technicienIds: equipe.technicienIds ? equipe.technicienIds.map((id: string) => parseInt(id)) : [],
+        chefEquipeId: equipe.chefId ? parseInt(equipe.chefId) : null,
+        membreIds: equipe.technicienIds ? equipe.technicienIds.map((id: string) => parseInt(id)) : [],
         societeId: 1
     };
     const response = await axios.post(`${API_URL}/Equipes`, payload, getAuthHeaders());
@@ -857,9 +856,9 @@ export const createEquipeApi = async (equipe: any): Promise<any> => {
         id: e.id?.toString(),
         nom: e.nom,
         description: e.description || "",
-        couleur: e.couleur || "bg-slate-500",
-        chefId: e.chefId?.toString(),
-        technicienIds: e.technicienIds?.map((id: number) => id.toString()) || []
+        couleur: "bg-slate-500",
+        chefId: e.chefEquipeId?.toString(),
+        technicienIds: e.membres?.map((m: any) => m.id.toString()) || []
     };
 };
 
@@ -867,9 +866,8 @@ export const updateEquipeApi = async (id: string, equipe: any): Promise<void> =>
     const payload = {
         nom: equipe.nom,
         description: equipe.description,
-        couleur: equipe.couleur,
-        chefId: equipe.chefId ? parseInt(equipe.chefId) : null,
-        technicienIds: equipe.technicienIds ? equipe.technicienIds.map((id: string) => parseInt(id)) : [],
+        chefEquipeId: equipe.chefId ? parseInt(equipe.chefId) : null,
+        membreIds: equipe.technicienIds ? equipe.technicienIds.map((id: string) => parseInt(id)) : [],
         societeId: 1
     };
     await axios.put(`${API_URL}/Equipes/${id}`, payload, getAuthHeaders());
