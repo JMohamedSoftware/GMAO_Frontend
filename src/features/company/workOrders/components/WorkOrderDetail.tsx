@@ -36,7 +36,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
   updateWorkOrderStatus
 }) => {
   const { can, isManagerLevel, isChefEquipe, isTechnicien, isAdmin } = usePermissions();
-  const { currentUser, incidents, users } = useGmao();
+  const { currentUser, incidents, users, equipes } = useGmao();
 
   const [activeTab, setActiveTab] = useState<Tab>('vue_generale');
 
@@ -889,11 +889,14 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
               >
                 <option value="">— Choisir —</option>
                 {showAssignModal === 'chef'
-                  ? users.filter(u => u.role?.toLowerCase().includes("chef")).map(u => (
-                      <option key={u.id} value={u.id}>
-                        {u.name} · {u.role}
-                      </option>
-                    ))
+                  ? equipes.map(eq => {
+                      const chef = users.find(u => String(u.id) === String(eq.chefId));
+                      return (
+                        <option key={eq.id} value={eq.chefId}>
+                          {eq.nom} (Chef: {chef?.name || 'Inconnu'})
+                        </option>
+                      );
+                    })
                   : technicians.map(t => (
                       <option key={t.id} value={t.id}>
                         {t.name} · {t.role} {t.status === 'Disponible' ? '✓' : `(${t.status})`}
