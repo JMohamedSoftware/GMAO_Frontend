@@ -897,7 +897,14 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
                         </option>
                       );
                     })
-                  : technicians.map(t => (
+                  : technicians
+                      .filter(t => {
+                        if (!activeOt.chefEquipeId) return true;
+                        const assignedEquipe = equipes.find(eq => String(eq.chefId) === String(activeOt.chefEquipeId));
+                        if (!assignedEquipe) return true;
+                        return assignedEquipe.technicienIds.map(String).includes(String(t.id));
+                      })
+                      .map(t => (
                       <option key={t.id} value={t.id}>
                         {t.name} · {t.role} {t.status === 'Disponible' ? '✓' : `(${t.status})`}
                       </option>
