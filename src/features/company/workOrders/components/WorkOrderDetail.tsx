@@ -94,13 +94,17 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
 
   // ── Workflow visibility ──
   const isDraft       = activeOt.status === 'Brouillon';
+  const otOwnerIds    = [
+    activeOt.technicianId ? Number(activeOt.technicianId) : null,
+    activeOt.assignedBy   ? Number(activeOt.assignedBy)   : null,
+  ];
   const canSubmit     = (isManagerLevel || isAdmin) && isDraft;
   const canAssignChef = (isManagerLevel || isAdmin) && (activeOt.status === 'En attente' || activeOt.status === 'Brouillon');
   const canAssignTech = (isChefEquipe || isManagerLevel || isAdmin) && activeOt.status === 'Affecté Chef';
-  const canStart      = can(PERMISSIONS.WORKORDER_START)   && activeOt.status === 'Affecté';
-  const canSuspend    = can(PERMISSIONS.WORKORDER_SUSPEND) && activeOt.status === 'En cours';
-  const canResume     = can(PERMISSIONS.WORKORDER_START)   && activeOt.status === 'Suspendu';
-  const canFinish     = can(PERMISSIONS.WORKORDER_FINISH)  && activeOt.status === 'En cours';
+  const canStart      = can(PERMISSIONS.WORKORDER_START,   otOwnerIds) && activeOt.status === 'Affecté';
+  const canSuspend    = can(PERMISSIONS.WORKORDER_SUSPEND, otOwnerIds) && activeOt.status === 'En cours';
+  const canResume     = can(PERMISSIONS.WORKORDER_START,   otOwnerIds) && activeOt.status === 'Suspendu';
+  const canFinish     = can(PERMISSIONS.WORKORDER_FINISH,  otOwnerIds) && activeOt.status === 'En cours';
   const canClose      = can(PERMISSIONS.WORKORDER_CLOSE)   && activeOt.status === 'Terminé';
   const canEditReport = (isTechnicien || isChefEquipe || isManagerLevel || isAdmin) &&
     ['En cours', 'Suspendu', 'Terminé'].includes(activeOt.status);
