@@ -555,6 +555,24 @@ export const gmaoSlice = createSlice({
         if (!tenant.users?.length) tenant.users = action.payload.users;
         if (!tenant.equipes?.length && action.payload.equipes) tenant.equipes = action.payload.equipes;
         if (!tenant.movementLogs?.length && action.payload.movements) tenant.movementLogs = action.payload.movements;
+
+        // Compute partsUsed dynamically from movementLogs for each OT
+        tenant.workOrders.forEach(ot => {
+          if (!ot.partsUsed || ot.partsUsed.length === 0) {
+            const consumedParts = tenant!.movementLogs
+              .filter(m => m.otId === ot.id && m.type === 'out')
+              .reduce((acc, m) => {
+                const existing = acc.find(p => p.partRef === m.partRef);
+                if (existing) {
+                  existing.quantity += m.qty;
+                } else {
+                  acc.push({ partRef: m.partRef, quantity: m.qty });
+                }
+                return acc;
+              }, [] as { partRef: string, quantity: number }[]);
+            ot.partsUsed = consumedParts;
+          }
+        });
       }
     });
 

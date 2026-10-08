@@ -170,7 +170,8 @@ export const fetchMovements = async (): Promise<any[]> => {
         partRef: m.piece?.reference || m.pieceId?.toString(),
         qty: m.quantite,
         type: m.type === 1 ? 'in' : 'out',
-        reason: m.motif || (m.type === 1 ? 'Achat/Retour' : 'Maintenance/Sortie')
+        reason: m.motif || (m.type === 1 ? 'Achat/Retour' : 'Maintenance/Sortie'),
+        otId: m.oTId?.toString() || m.otId?.toString()
     }));
 };
 
