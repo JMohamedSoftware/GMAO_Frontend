@@ -2,6 +2,7 @@ import React from 'react';
 import { useGmao } from '@/shared/hooks/useGmao';
 import { usePermissions } from '@/shared/hooks/usePermissions';
 import { PERMISSIONS } from '@/shared/permissions';
+import { useAuth } from '@/features/auth';
 import logoIcon from '@/shared/assets/icons/images.jpeg';
 import { 
   LayoutDashboard, 
@@ -43,10 +44,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate }) =
     incidents,
     tenants,
     impersonatedTenantId,
-    impersonateTenant
+    impersonateTenant,
+    equipes
   } = useGmao();
 
-  const { can } = usePermissions();
+  const { can, isTechnicien, isChefEquipe } = usePermissions();
+  const auth = useAuth();
+  const myUserId = auth.currentUser?.id ?? currentUser?.id;
 
   const isSuperAdmin = currentUser?.role === 'SuperAdmin';
   const isImpersonating = isSuperAdmin && !!impersonatedTenantId;
@@ -83,7 +87,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate }) =
 
   // Calculate alerts to display
   const activeAlerts = incidents.filter(i => i.status !== 'Transformé en OT' && i.status !== 'Rejeté').length;
-  const pendingOts = workOrders.filter(ot => ot.status === 'En attente' || ot.status === 'En cours').length;
+  
+  // Base visibility filter based on user role (for OT badge)
+  const myOts = workOrders.filter(ot => {
+    if (isTechnicien) {
+      if (String(ot.technicianId) !== String(myUserId)) return false;
+    } else if (isChefEquipe) {
+      const myEquipe = equipes?.find(eq => String(eq.chefId) === String(myUserId));
+      const myTeamTechIds = myEquipe ? myEquipe.technicienIds.map(String) : [];
+      const isAssignedToMeAsTech = String(ot.technicianId) === String(myUserId);
+      const isAssignedToMeAsChef = String(ot.chefEquipeId) === String(myUserId);
+      const isAssignedToMyTeam = ot.technicianId && myTeamTechIds.includes(String(ot.technicianId));
+      if (!isAssignedToMeAsTech && !isAssignedToMeAsChef && !isAssignedToMyTeam) return false;
+    }
+    return true;
+  });
+
+  const pendingOts = myOts.filter(ot => ot.status === 'En attente' || ot.status === 'En cours').length;
 
   return (
     <aside className="fixed left-4 top-4 w-32 lg:w-40 h-[calc(100vh-2rem)] glass-panel rounded-custom-xl border border-white/40 dark:border-slate-800/40 p-3 flex flex-col justify-between shadow-lg select-none z-30 overflow-y-auto custom-scrollbar">
