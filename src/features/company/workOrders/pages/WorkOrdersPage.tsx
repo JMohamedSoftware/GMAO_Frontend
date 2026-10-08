@@ -107,8 +107,8 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
   const activeOtEq = activeOt ? equipments.find(e => e.id === activeOt.equipmentId) : null;
   const activeOtTech = activeOt ? technicians.find(t => t.id === activeOt.technicianId) : null;
 
-  // Filter orders
-  const filteredOts = workOrders.filter(ot => {
+  // 1. Base visibility filter based on user role (for KPIs & List)
+  const myOts = workOrders.filter(ot => {
     if (isTechnicien) {
       // Technicien sees only OTs assigned to them (use real auth ID)
       if (String(ot.technicianId) !== String(myUserId)) return false;
@@ -121,7 +121,11 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
       const isAssignedToMyTeam = ot.technicianId && myTeamTechIds.includes(String(ot.technicianId));
       if (!isAssignedToMeAsTech && !isAssignedToMeAsChef && !isAssignedToMyTeam) return false;
     }
+    return true;
+  });
 
+  // 2. Filter orders for the list view (applies UI filters)
+  const filteredOts = myOts.filter(ot => {
     const eq = equipments.find(e => e.id === ot.equipmentId);
     const matchesSearch = ot.id.toLowerCase().includes(search.toLowerCase()) ||
                           ot.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -180,10 +184,10 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
   // Computed KPI values from real data
   const today = new Date();
   const todayStr = today.toDateString();
-  const countToday = workOrders.filter(o =>
+  const countToday = myOts.filter(o =>
     o.createdDate && new Date(o.createdDate).toDateString() === todayStr
   ).length;
-  const countLate = workOrders.filter(o =>
+  const countLate = myOts.filter(o =>
     o.endDate && new Date(o.endDate) < today &&
     !['Terminé', 'Clôturé'].includes(o.status)
   ).length;
@@ -226,7 +230,7 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total OTs</span>
             <FileCheck className="w-4 h-4 text-slate-400" />
           </div>
-          <span className="text-xl font-black text-slate-700 dark:text-slate-200 z-10">{workOrders.length}</span>
+          <span className="text-xl font-black text-slate-700 dark:text-slate-200 z-10">{myOts.length}</span>
         </div>
         <div className="glass-panel p-4 rounded-custom-md border border-slate-200/50 dark:border-slate-800/40 shadow-sm flex flex-col gap-2 relative overflow-hidden">
           <div className="flex items-center justify-between z-10">
@@ -234,7 +238,7 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
             <User className="w-4 h-4 text-primary" />
           </div>
           <span className="text-xl font-black text-slate-700 dark:text-slate-200 z-10">
-            {workOrders.filter(o => o.status === 'Affecté' || o.status === 'Affecté Chef' || o.status === 'En attente').length}
+            {myOts.filter(o => o.status === 'Affecté' || o.status === 'Affecté Chef' || o.status === 'En attente').length}
           </span>
         </div>
         <div className="glass-panel p-4 rounded-custom-md border border-rose-500/20 bg-rose-500/5 shadow-sm flex flex-col gap-2 relative overflow-hidden">
@@ -243,7 +247,7 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
             <Clock className="w-4 h-4 text-rose-500" />
           </div>
           <span className="text-xl font-black text-rose-600 dark:text-rose-400 z-10">
-            {workOrders.filter(o => o.status === 'En cours').length}
+            {myOts.filter(o => o.status === 'En cours').length}
           </span>
         </div>
         <div className="glass-panel p-4 rounded-custom-md border border-slate-200/50 dark:border-slate-800/40 shadow-sm flex flex-col gap-2 relative overflow-hidden">
@@ -252,7 +256,7 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
             <CheckCircle className="w-4 h-4 text-emerald-500" />
           </div>
           <span className="text-xl font-black text-slate-700 dark:text-slate-200 z-10">
-            {workOrders.filter(o => o.status === 'Terminé' || o.status === 'Clôturé').length}
+            {myOts.filter(o => o.status === 'Terminé' || o.status === 'Clôturé').length}
           </span>
         </div>
         <div className="glass-panel p-4 rounded-custom-md border border-emerald-500/20 bg-emerald-500/5 shadow-sm flex flex-col gap-2 relative overflow-hidden">
