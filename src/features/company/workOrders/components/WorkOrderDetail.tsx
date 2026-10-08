@@ -11,6 +11,7 @@ import { WorkOrder, Equipment, Technician, SparePart } from '@/shared/types/gmao
 import { usePermissions } from '@/shared/hooks/usePermissions';
 import { useGmao } from '@/shared/hooks/useGmao';
 import { PERMISSIONS } from '@/shared/permissions';
+import { useAuth } from '@/features/auth';
 
 interface WorkOrderDetailProps {
   activeOt: WorkOrder | null | undefined;
@@ -37,6 +38,8 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
 }) => {
   const { can, isManagerLevel, isChefEquipe, isTechnicien, isAdmin } = usePermissions();
   const { currentUser, incidents, users, equipes } = useGmao();
+  const auth = useAuth();
+  const myUserId = auth.currentUser?.id ?? currentUser?.id;
 
   const [activeTab, setActiveTab] = useState<Tab>('vue_generale');
 
@@ -98,14 +101,17 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
     activeOt.technicianId ? Number(activeOt.technicianId) : null,
     activeOt.assignedBy   ? Number(activeOt.assignedBy)   : null,
   ];
+  
+  const isMyOtAsTech  = String(activeOt.technicianId) === String(myUserId);
+
   const canSubmit     = (isManagerLevel || isAdmin) && isDraft;
   const canAssignChef = (isManagerLevel || isAdmin) && (activeOt.status === 'En attente' || activeOt.status === 'Brouillon');
   const canAssignTech = (isChefEquipe || isManagerLevel || isAdmin) && activeOt.status === 'Affecté Chef';
-  const canStart      = can(PERMISSIONS.WORKORDER_START,   otOwnerIds) && activeOt.status === 'Affecté';
-  const canSuspend    = can(PERMISSIONS.WORKORDER_SUSPEND, otOwnerIds) && activeOt.status === 'En cours';
-  const canResume     = can(PERMISSIONS.WORKORDER_START,   otOwnerIds) && activeOt.status === 'Suspendu';
-  const canFinish     = can(PERMISSIONS.WORKORDER_FINISH,  otOwnerIds) && activeOt.status === 'En cours';
-  const canClose      = can(PERMISSIONS.WORKORDER_CLOSE)   && activeOt.status === 'Terminé';
+  const canStart      = (can(PERMISSIONS.WORKORDER_START,   otOwnerIds) || isMyOtAsTech) && activeOt.status === 'Affecté';
+  const canSuspend    = (can(PERMISSIONS.WORKORDER_SUSPEND, otOwnerIds) || isMyOtAsTech) && activeOt.status === 'En cours';
+  const canResume     = (can(PERMISSIONS.WORKORDER_START,   otOwnerIds) || isMyOtAsTech) && activeOt.status === 'Suspendu';
+  const canFinish     = (can(PERMISSIONS.WORKORDER_FINISH,  otOwnerIds) || isMyOtAsTech) && activeOt.status === 'En cours';
+  const canClose      = (can(PERMISSIONS.WORKORDER_CLOSE) || isMyOtAsTech) && activeOt.status === 'Terminé';
   const canEditReport = (isTechnicien || isChefEquipe || isManagerLevel || isAdmin) &&
     ['En cours', 'Suspendu', 'Terminé'].includes(activeOt.status);
   const canAddParts   = canEditReport;
