@@ -40,11 +40,11 @@ export function usePermissions() {
   /**
    * Role checkers — convenience shortcuts
    */
-  const isAdmin = role === ROLES.ADMINISTRATEUR || role === ROLES.SUPER_ADMIN;
-  const isResponsable = role === ROLES.RESPONSABLE;
-  const isChefEquipe = role === ROLES.CHEF_EQUIPE;
-  const isTechnicien = role === ROLES.TECHNICIEN;
-  const isProduction = role === ROLES.PRODUCTION;
+  const isAdmin = role?.toLowerCase().trim() === ROLES.ADMINISTRATEUR.toLowerCase() || role?.toLowerCase().trim() === ROLES.SUPER_ADMIN.toLowerCase();
+  const isResponsable = role?.toLowerCase().trim() === ROLES.RESPONSABLE.toLowerCase();
+  const isChefEquipe = role?.toLowerCase().trim() === ROLES.CHEF_EQUIPE.toLowerCase();
+  const isTechnicien = role?.toLowerCase().trim() === ROLES.TECHNICIEN.toLowerCase();
+  const isProduction = role?.toLowerCase().trim() === ROLES.PRODUCTION.toLowerCase();
   
   /** Admins + Responsable only */
   const isManagerLevel = isAdmin || isResponsable;
