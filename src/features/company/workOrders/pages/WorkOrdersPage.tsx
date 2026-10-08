@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useGmao } from '@/shared/hooks/useGmao';
+import { useAuth } from '@/features/auth';
 import { useAppDispatch } from '@/app/hooks';
 import { createWorkOrderAsync } from '@/app/gmaoSlice';
 import { WorkOrder, Incident } from '@/shared/types/gmao';
@@ -47,6 +48,10 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
   } = useGmao();
 
   const dispatch = useAppDispatch();
+  const { currentUser: authUser } = useAuth();
+
+  // Use the real authenticated user ID (from JWT) for reliable filtering
+  const myUserId = authUser?.id ?? currentUser?.id;
 
   const { can, isTechnicien, isChefEquipe } = usePermissions();
 
@@ -105,14 +110,14 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
   // Filter orders
   const filteredOts = workOrders.filter(ot => {
     if (isTechnicien) {
-      // Technicien sees only OTs assigned to them
-      if (String(ot.technicianId) !== String(currentUser?.id)) return false;
+      // Technicien sees only OTs assigned to them (use real auth ID)
+      if (String(ot.technicianId) !== String(myUserId)) return false;
     } else if (isChefEquipe) {
-      // Chef d'équipe sees OTs assigned directly to them (as a routing step) OR assigned to their team members
-      const myEquipe = equipes.find(eq => String(eq.chefId) === String(currentUser?.id));
+      // Chef d'équipe sees OTs assigned to them or their team
+      const myEquipe = equipes.find(eq => String(eq.chefId) === String(myUserId));
       const myTeamTechIds = myEquipe ? myEquipe.technicienIds.map(String) : [];
-      const isAssignedToMeAsTech = String(ot.technicianId) === String(currentUser?.id);
-      const isAssignedToMeAsChef = String(ot.chefEquipeId) === String(currentUser?.id);
+      const isAssignedToMeAsTech = String(ot.technicianId) === String(myUserId);
+      const isAssignedToMeAsChef = String(ot.chefEquipeId) === String(myUserId);
       const isAssignedToMyTeam = ot.technicianId && myTeamTechIds.includes(String(ot.technicianId));
       if (!isAssignedToMeAsTech && !isAssignedToMeAsChef && !isAssignedToMyTeam) return false;
     }
