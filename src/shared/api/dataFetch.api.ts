@@ -165,13 +165,13 @@ export const createMovementApi = async (movement: { pieceId: string, qty: number
 export const fetchMovements = async (): Promise<any[]> => {
     const response = await axios.get(`${API_URL}/MouvementsStock`, getAuthHeaders());
     return response.data.map((m: any) => ({
-        id: `MVT-${new Date(m.date).getFullYear()}-${m.id.toString().padStart(3, '0')}`,
+        id: `MVT-${new Date(m.date || Date.now()).getFullYear()}-${(m.id || 0).toString().padStart(3, '0')}`,
         date: m.date,
         partRef: m.piece?.reference || m.pieceId?.toString(),
         qty: m.quantite,
         type: m.type === 1 ? 'in' : 'out',
         reason: m.motif || (m.type === 1 ? 'Achat/Retour' : 'Maintenance/Sortie'),
-        otId: m.oTId?.toString() || m.otId?.toString()
+        otId: (m.oTId || m.otId || m.otid || m.oTid || m.oTId)?.toString()
     }));
 };
 
