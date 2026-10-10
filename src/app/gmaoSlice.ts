@@ -582,15 +582,15 @@ export const gmaoSlice = createSlice({
         tenant.workOrders.forEach(ot => {
           const consumedParts = tenant!.movementLogs
             .filter(m => m.otId === ot.id && m.type === 'out')
-            .reduce((acc, m) => {
-              const existing = acc.find(p => p.partRef === m.partRef);
+            .reduce<{ partRef: string, quantity: number }[]>((acc, m) => {
+              const existing = acc.find((p: { partRef: string, quantity: number }) => p.partRef === m.partRef);
               if (existing) {
                 existing.quantity += m.qty;
               } else {
                 acc.push({ partRef: m.partRef, quantity: m.qty });
               }
               return acc;
-            }, [] as { partRef: string, quantity: number }[]);
+            }, []);
           ot.partsUsed = consumedParts;
         });
       }
