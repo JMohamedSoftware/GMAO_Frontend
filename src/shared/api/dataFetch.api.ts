@@ -148,19 +148,34 @@ export const updatePartApi = async (id: string, part: SparePart): Promise<any> =
 };
 
 export const createMovementApi = async (movement: { pieceId: string, qty: number, type: 'in' | 'out', otId?: string, reason?: string, userId: string }): Promise<any> => {
+    const pieceId = parseInt(movement.pieceId);
+    const userId = parseInt(movement.userId);
+    const otId = movement.otId ? parseInt(movement.otId) : null;
+
+    console.log('[createMovementApi] Input:', movement);
+    console.log('[createMovementApi] Parsed:', { pieceId, userId, otId });
+
+    if (isNaN(pieceId) || isNaN(userId)) {
+        console.error('[createMovementApi] INVALID IDs — pieceId or userId is NaN. Cannot POST movement.', { pieceIdRaw: movement.pieceId, userIdRaw: movement.userId });
+        throw new Error(`Invalid IDs: pieceId=${movement.pieceId}, userId=${movement.userId}`);
+    }
+
     const payload = {
-        pieceId: parseInt(movement.pieceId),
-        oTId: movement.otId ? parseInt(movement.otId) : null,
-        userId: parseInt(movement.userId),
+        pieceId,
+        oTId: isNaN(otId as any) ? null : otId,
+        userId,
         type: movement.type === 'in' ? 1 : 2, // 1 = Entree, 2 = Sortie
         quantite: movement.qty,
         prixUnitaire: 0,
         prixTotal: 0,
         motif: movement.reason || (movement.type === 'in' ? 'Achat/Retour' : 'Maintenance/Sortie')
     };
+    console.log('[createMovementApi] Sending POST payload:', payload);
     const response = await axios.post(`${API_URL}/MouvementsStock`, payload, getAuthHeaders());
+    console.log('[createMovementApi] Response:', response.status, response.data);
     return response.data;
 };
+
 
 export const fetchMovements = async (): Promise<any[]> => {
     const response = await axios.get(`${API_URL}/MouvementsStock`, getAuthHeaders());
