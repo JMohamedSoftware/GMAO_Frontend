@@ -447,11 +447,31 @@ export const gmaoSlice = createSlice({
             type: action.payload.type,
             reason: action.payload.otId ? `Consommation OT: ${action.payload.otId}` : (action.payload.type === 'in' ? 'Approvisionnement manuel' : 'Sortie manuelle'),
             date: new Date().toISOString(),
-            category: action.payload.otId ? 'Maintenance' : 'Manuel'
+            category: action.payload.otId ? 'Maintenance' : 'Manuel',
+            otId: action.payload.otId
           });
+
+          // Also update partsUsed on the OT directly for immediate UI feedback
+          if (action.payload.otId) {
+            const ot = tenant.workOrders.find(o => o.id === action.payload.otId);
+            if (ot) {
+              const current = ot.partsUsed || [];
+              if (action.payload.type === 'out') {
+                const existing = current.find(p => p.partRef === action.payload.ref);
+                if (existing) {
+                  existing.quantity += action.payload.qty;
+                } else {
+                  ot.partsUsed = [...current, { partRef: action.payload.ref, quantity: action.payload.qty }];
+                }
+              } else {
+                ot.partsUsed = current.filter(p => p.partRef !== action.payload.ref);
+              }
+            }
+          }
         }
       }
     },
+
     updatePart: (state, action: PayloadAction<SparePart>) => {
       const tenant = state.tenants.find(t => t.id === state.currentTenantId);
       if (tenant) {
@@ -547,31 +567,31 @@ export const gmaoSlice = createSlice({
       if (tenant) {
         if (!tenant.equipments?.length) tenant.equipments = action.payload.equipments;
         if (!tenant.suppliers?.length) tenant.suppliers = action.payload.suppliers;
-        if (!tenant.parts?.length) tenant.parts = action.payload.parts;
+        // Always refresh parts (stock may have changed after consuming parts)
+        tenant.parts = action.payload.parts;
         if (!tenant.incidents?.length) tenant.incidents = action.payload.incidents;
         if (!tenant.workOrders?.length) tenant.workOrders = action.payload.workOrders;
         if (!tenant.campaigns?.length) tenant.campaigns = action.payload.campaigns;
         if (!tenant.technicians?.length) tenant.technicians = action.payload.technicians;
         if (!tenant.users?.length) tenant.users = action.payload.users;
         if (!tenant.equipes?.length && action.payload.equipes) tenant.equipes = action.payload.equipes;
-        if (!tenant.movementLogs?.length && action.payload.movements) tenant.movementLogs = action.payload.movements;
+        // Always sync movementLogs from backend so new movements are reflected after refresh
+        if (action.payload.movements) tenant.movementLogs = action.payload.movements;
 
-        // Compute partsUsed dynamically from movementLogs for each OT
+        // Always recompute partsUsed from movementLogs for each OT
         tenant.workOrders.forEach(ot => {
-          if (!ot.partsUsed || ot.partsUsed.length === 0) {
-            const consumedParts = tenant!.movementLogs
-              .filter(m => m.otId === ot.id && m.type === 'out')
-              .reduce((acc, m) => {
-                const existing = acc.find(p => p.partRef === m.partRef);
-                if (existing) {
-                  existing.quantity += m.qty;
-                } else {
-                  acc.push({ partRef: m.partRef, quantity: m.qty });
-                }
-                return acc;
-              }, [] as { partRef: string, quantity: number }[]);
-            ot.partsUsed = consumedParts;
-          }
+          const consumedParts = tenant!.movementLogs
+            .filter(m => m.otId === ot.id && m.type === 'out')
+            .reduce((acc, m) => {
+              const existing = acc.find(p => p.partRef === m.partRef);
+              if (existing) {
+                existing.quantity += m.qty;
+              } else {
+                acc.push({ partRef: m.partRef, quantity: m.qty });
+              }
+              return acc;
+            }, [] as { partRef: string, quantity: number }[]);
+          ot.partsUsed = consumedParts;
         });
       }
     });

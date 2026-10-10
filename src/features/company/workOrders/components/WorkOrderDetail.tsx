@@ -158,20 +158,13 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
     if (!qty || qty < 1) { setPartError('Quantité invalide.'); return; }
     if (part.stockCurrent < qty) { setPartError(`Stock insuffisant (dispo: ${part.stockCurrent}).`); return; }
     
-    // Call the backend via addPartMovement
+    // addPartMovement handles: backend call + local movementLogs + partsUsed update on OT
     const success = await addPartMovement(newPartRef, qty, 'out', activeOt.id);
     if (!success) {
       setPartError('Erreur lors de l\'ajout de la pièce. Veuillez réessayer.');
       return;
     }
 
-    const existing = (activeOt.partsUsed || []).find(p => p.partRef === newPartRef);
-    const newParts = existing
-      ? (activeOt.partsUsed || []).map(p => p.partRef === newPartRef ? { ...p, quantity: p.quantity + qty } : p)
-      : [...(activeOt.partsUsed || []), { partRef: newPartRef, quantity: qty }];
-    
-    // Update the OT parts locally in UI
-    updateWorkOrderStatus(activeOt.id, activeOt.status, { partsUsed: newParts });
     setShowAddPart(false);
     setNewPartRef('');
     setNewPartQty('1');
@@ -181,15 +174,11 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
     const existingPart = (activeOt.partsUsed || []).find(p => p.partRef === ref);
     if (!existingPart) return;
 
-    // Return the consumed parts back to stock
+    // addPartMovement handles: backend call + local movementLogs + partsUsed update on OT
     const success = await addPartMovement(ref, existingPart.quantity, 'in', activeOt.id);
     if (!success) {
       console.error('Failed to return part to stock');
-      return;
     }
-
-    const newParts = (activeOt.partsUsed || []).filter(p => p.partRef !== ref);
-    updateWorkOrderStatus(activeOt.id, activeOt.status, { partsUsed: newParts });
   };
 
   const openEditReport = () => {
