@@ -5,10 +5,12 @@ import { AppRole } from '@/shared/permissions';
 import { Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount, User, Tenant, Equipe } from '@/shared/types/gmao';
 import { useEffect } from 'react';
 import { fetchTenantDataAsync } from '@/app/gmaoSlice';
+import { useAuth } from '@/features/auth';
 
 export const useGmao = () => {
   const dispatch = useAppDispatch();
   const state = useAppSelector(s => s.gmao);
+  const { currentUser: authUser } = useAuth();
 
   useEffect(() => {
     if (state.currentUser) {
@@ -124,21 +126,31 @@ export const useGmao = () => {
         return false;
       }
 
+      // Resolve user ID from Redux state OR from auth session (JWT)
+      const userId = state.currentUser?.id || authUser?.id;
+
       // First, update local state for the movement log
       dispatch(actions.addPartMovement({ref, qty, type, otId}));
       
-      // Send the movement to the backend
-      if (part.id && state.currentUser) {
-        await dispatch(createMovementAsync({
+      // Send the movement to the backend — requires both part.id and a resolved userId
+      if (part.id && userId) {
+        const result = await dispatch(createMovementAsync({
           pieceId: part.id,
           qty,
           type,
           otId,
-          userId: state.currentUser.id
+          userId
         }));
+        if (createMovementAsync.rejected.match(result)) {
+          console.error('[addPartMovement] Backend call failed:', result.error);
+          // Return false so WorkOrderDetail can show an error message
+          return false;
+        }
+      } else {
+        console.warn('[addPartMovement] Skipping backend call — missing part.id or userId', { partId: part.id, userId });
       }
 
-      // Then, update the backend stock
+      // Update backend stock
       const newStock = type === 'in' ? part.stockCurrent + qty : part.stockCurrent - qty;
       await dispatch(updatePartAsync({ ...part, stockCurrent: newStock }));
       
