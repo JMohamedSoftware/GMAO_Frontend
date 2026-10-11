@@ -1,8 +1,9 @@
 import axios from 'axios';
-import { Equipment, Supplier, SparePart, Incident, WorkOrder, Campaign, Technician, PlanPreventif, TachePreventive, UserAccount, Tenant } from '../types/gmao';
+import { Equipment, Supplier, SparePart, Incident, WorkOrder, Campaign, Technician, PlanPreventif, TachePreventive, UserAccount, Tenant, DocumentInfo } from '../types/gmao';
 
 const rawUrl = import.meta.env.VITE_API_URL || 'https://gmao-backend-a6r2.onrender.com';
 const API_URL = rawUrl.replace(/\/api\/?$/, '') + '/api';
+export const BASE_URL = rawUrl.replace(/\/api\/?$/, '');
 
 const getAuthHeaders = () => {
     const token = localStorage.getItem('gmao_access_token');
@@ -36,7 +37,14 @@ export const fetchEquipments = async (): Promise<Equipment[]> => {
         nextMaintenance: new Date().toISOString(),
         hoursCount: 0,
         cycleCount: 0,
-        documents: [],
+        documents: e.documents?.map((d: any) => ({
+            id: d.id,
+            name: d.name || d.nom,
+            type: d.type || 'autre',
+            size: d.size || '0 KB',
+            url: d.url?.startsWith('http') ? d.url : `${BASE_URL}${d.url}`,
+            uploadedAt: d.createdAt
+        })) || [],
         photos: e.photoUrl ? [e.photoUrl] : [],
         sensors: [],
         spareParts: e.piecesIds?.map((id: number) => id.toString()) || [],
@@ -892,3 +900,39 @@ export const updateEquipeApi = async (id: string, equipe: any): Promise<void> =>
 export const deleteEquipeApi = async (id: string): Promise<void> => {
     await axios.delete(`${API_URL}/Equipes/${id}`, getAuthHeaders());
 };
+
+export const uploadDocumentApi = async (formData: FormData): Promise<DocumentInfo> => {
+    const token = localStorage.getItem('gmao_access_token');
+    const response = await axios.post(`${API_URL}/Document/upload`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${token}`
+        }
+    });
+    const d = response.data;
+    return {
+        id: d.id,
+        name: d.name,
+        type: d.type,
+        size: d.size,
+        url: d.url?.startsWith('http') ? d.url : `${BASE_URL}${d.url}`,
+        uploadedAt: d.createdAt
+    };
+};
+
+export const deleteDocumentApi = async (documentId: number): Promise<void> => {
+    await axios.delete(`${API_URL}/Document/${documentId}`, getAuthHeaders());
+};
+
+export const fetchEquipmentDocumentsApi = async (equipmentId: number): Promise<DocumentInfo[]> => {
+    const response = await axios.get(`${API_URL}/Document/equipement/${equipmentId}`, getAuthHeaders());
+    return response.data.map((d: any) => ({
+        id: d.id,
+        name: d.name,
+        type: d.type,
+        size: d.size,
+        url: d.url?.startsWith('http') ? d.url : `${BASE_URL}${d.url}`,
+        uploadedAt: d.createdAt
+    }));
+};
+

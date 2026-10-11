@@ -2,10 +2,12 @@ import { AppRole } from '@/shared/permissions';
 
 
 export interface DocumentInfo {
+  id?: number;
   name: string;
-  type: 'notice' | 'electrical' | 'mechanical' | 'hydraulic' | 'pneumatic';
+  type: 'notice' | 'electrical' | 'mechanical' | 'hydraulic' | 'pneumatic' | 'schema' | 'manuel' | 'rapport' | 'contrat' | 'certificat' | 'autre' | string;
   size: string;
   url: string;
+  uploadedAt?: string;
 }
 
 export interface SensorInfo {

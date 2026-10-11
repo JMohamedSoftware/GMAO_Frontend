@@ -565,7 +565,7 @@ export const gmaoSlice = createSlice({
         state.tenants.push(tenant);
       }
       if (tenant) {
-        if (!tenant.equipments?.length) tenant.equipments = action.payload.equipments;
+        if (action.payload.equipments?.length) tenant.equipments = action.payload.equipments;
         if (!tenant.suppliers?.length) tenant.suppliers = action.payload.suppliers;
         // Always refresh parts (stock may have changed after consuming parts)
         tenant.parts = action.payload.parts;

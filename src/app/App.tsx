@@ -58,6 +58,7 @@ function AppContent() {
   const [selectedOtFromUrl, setSelectedOtFromUrl] = useState<string | null>(null);
   const [prefilledIncident, setPrefilledIncident] = useState<IncType | null>(null);
   const [newWorkOrderEqId, setNewWorkOrderEqId] = useState<string | null>(null);
+  const [newPreventivePlanEqId, setNewPreventivePlanEqId] = useState<string | null>(null);
 
   // Custom Router navigation resolver
   const handleNavigate = (target: string) => {
@@ -76,6 +77,10 @@ function AppContent() {
       const eqId = target.split(':')[1];
       setNewWorkOrderEqId(eqId);
       setCurrentScreen('workorders');
+    } else if (target.startsWith('preventive-new:')) {
+      const eqId = target.split(':')[1];
+      setNewPreventivePlanEqId(eqId);
+      setCurrentScreen('preventive');
     } else {
       setCurrentScreen(target);
     }
@@ -112,7 +117,11 @@ function AppContent() {
 
       {currentScreen === 'preventive' && (
         <AccessGuard permission={PERMISSIONS.PREVENTIVE_VIEW}>
-          <Preventive onNavigate={handleNavigate} />
+          <Preventive 
+            onNavigate={handleNavigate}
+            newPlanEquipmentId={newPreventivePlanEqId}
+            onClearNewPlanEquipmentId={() => setNewPreventivePlanEqId(null)}
+          />
         </AccessGuard>
       )}
 

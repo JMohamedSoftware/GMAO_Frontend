@@ -8,6 +8,7 @@ import type { PlanPreventif, TachePreventive, CreatePlanDto } from '../types/pre
 interface PreventiveModalProps {
   editingPlan: PlanPreventif | null;
   equipments: any[];
+  defaultEquipementId?: number;
   onSave: (payload: CreatePlanDto) => Promise<void>;
   onClose: () => void;
 }
@@ -32,7 +33,7 @@ const TACHE_TEMPLATES: Record<string, string[]> = {
 };
 
 export const PreventiveModal: React.FC<PreventiveModalProps> = ({
-  editingPlan, equipments, onSave, onClose
+  editingPlan, equipments, defaultEquipementId, onSave, onClose
 }) => {
   const isEdit = Boolean(editingPlan);
   const todayStr = new Date().toISOString().split('T')[0];
@@ -40,7 +41,7 @@ export const PreventiveModal: React.FC<PreventiveModalProps> = ({
   // Form state
   const [titre,             setTitre]           = useState('');
   const [description,       setDescription]     = useState('');
-  const [equipementId,      setEquipementId]     = useState<number | ''>('');
+  const [equipementId,      setEquipementId]     = useState<number | ''>(defaultEquipementId || '');
   const [typeDeclenchement, setTypeDeclenchement] = useState<1 | 2 | 3>(1);
   const [frequence,         setFrequence]        = useState<number>(30);
   const [uniteMesure,       setUniteMesure]      = useState('jours');
@@ -69,8 +70,10 @@ export const PreventiveModal: React.FC<PreventiveModalProps> = ({
         ? editingPlan.taches.map(t => ({ description: t.description, dureeEstimeeMinutes: t.dureeEstimeeMinutes, estObligatoire: t.estObligatoire }))
         : [{ description: '', dureeEstimeeMinutes: undefined, estObligatoire: true }]
       );
+    } else if (defaultEquipementId) {
+      setEquipementId(defaultEquipementId);
     }
-  }, [editingPlan]);
+  }, [editingPlan, defaultEquipementId]);
 
   // Auto-reset unit when type changes
   useEffect(() => {

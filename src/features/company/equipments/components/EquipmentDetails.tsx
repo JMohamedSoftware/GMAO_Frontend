@@ -1,13 +1,14 @@
 import React from 'react';
-import { Settings2, Wrench, Save, Edit, Plus, Info, History, Calendar, Link as LinkIcon, FileText, ClipboardList, ShieldCheck, Building2, Tag, Layers, MapPin, AlertTriangle } from 'lucide-react';
+import { Settings2, Wrench, Save, Edit, Plus, Info, History, Calendar, Link as LinkIcon, FileText, ClipboardList, ShieldCheck, Building2, Tag, Layers, MapPin, AlertTriangle, Upload, Download, Trash2, Eye, Loader2, X } from 'lucide-react';
 import { usePermissions } from '@/shared/hooks/usePermissions';
 import { PERMISSIONS } from '@/shared/permissions';
 import { Equipment as EquipmentType, Localisation, WorkOrder, Incident } from '@/shared/types/gmao';
 import { useLocalisations } from '@/shared/hooks/useLocalisations';
 import { useGmao } from '@/shared/hooks/useGmao';
-import { linkPieceToEquipmentApi, unlinkPieceFromEquipmentApi } from '@/shared/api/dataFetch.api';
+import { linkPieceToEquipmentApi, unlinkPieceFromEquipmentApi, uploadDocumentApi, deleteDocumentApi } from '@/shared/api/dataFetch.api';
 import { fetchTenantDataAsync } from '@/app/gmaoSlice';
 import { useAppDispatch } from '@/app/hooks';
+import { usePreventive } from '@/features/company/preventive/hooks/usePreventive';
 
 interface EquipmentDetailsProps {
   activeEquipment: EquipmentType | undefined;
@@ -60,20 +61,110 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
   const [selectedPieceId, setSelectedPieceId] = React.useState<string>('');
   const [isLinking, setIsLinking] = React.useState(false);
 
-  // MOCK PREVENTIFS STATE
-  const [isAddingPreventif, setIsAddingPreventif] = React.useState(false);
-  const [mockPreventifs, setMockPreventifs] = React.useState<any[]>([
-    { id: 1, title: 'Graissage des roulements', frequency: 'Mensuel', nextDate: '2026-10-15', status: 'Actif' }
-  ]);
-  const [preventifForm, setPreventifForm] = React.useState({ title: '', frequency: 'Mensuel', nextDate: '' });
+  // DOCUMENTS STATE & HANDLERS
+  const [isUploadingDoc, setIsUploadingDoc] = React.useState(false);
+  const [uploadFile, setUploadFile] = React.useState<File | null>(null);
+  const [docType, setDocType] = React.useState<string>('notice');
+  const [docName, setDocName] = React.useState<string>('');
+  const [isSubmittingDoc, setIsSubmittingDoc] = React.useState(false);
+  const [deletingDocId, setDeletingDocId] = React.useState<number | null>(null);
+  const [docError, setDocError] = React.useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
-  const handleAddPreventif = () => {
-    if (preventifForm.title && preventifForm.nextDate) {
-      setMockPreventifs([...mockPreventifs, { ...preventifForm, id: Date.now(), status: 'Actif' }]);
-      setIsAddingPreventif(false);
-      setPreventifForm({ title: '', frequency: 'Mensuel', nextDate: '' });
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setUploadFile(file);
+      if (!docName) {
+        setDocName(file.name.replace(/\.[^/.]+$/, ""));
+      }
+      setDocError(null);
     }
   };
+
+  const handleUploadDocument = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeEquipment?.id) {
+      setDocError("Veuillez d'abord enregistrer l'équipement.");
+      return;
+    }
+    if (!uploadFile) {
+      setDocError("Veuillez sélectionner un fichier.");
+      return;
+    }
+
+    setIsSubmittingDoc(true);
+    setDocError(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', uploadFile);
+      formData.append('type', docType);
+      formData.append('nom', docName || uploadFile.name);
+      formData.append('equipementId', activeEquipment.id);
+
+      await uploadDocumentApi(formData);
+      await dispatch(fetchTenantDataAsync());
+      setIsUploadingDoc(false);
+      setUploadFile(null);
+      setDocName('');
+      setDocType('notice');
+    } catch (err: any) {
+      console.error('Error uploading document:', err);
+      setDocError(err.response?.data?.message || err.response?.data || "Erreur lors de l'envoi du document.");
+    } finally {
+      setIsSubmittingDoc(false);
+    }
+  };
+
+  const handleDeleteDocument = async (docId?: number) => {
+    if (!docId) return;
+    if (!window.confirm("Voulez-vous vraiment supprimer ce document ?")) return;
+    setDeletingDocId(docId);
+    try {
+      await deleteDocumentApi(docId);
+      await dispatch(fetchTenantDataAsync());
+    } catch (err: any) {
+      console.error('Error deleting document:', err);
+      alert("Erreur lors de la suppression du document.");
+    } finally {
+      setDeletingDocId(null);
+    }
+  };
+
+  const getDocBadge = (type: string) => {
+    const t = (type || '').toLowerCase();
+    if (t.includes('notice') || t.includes('manuel')) {
+      return { label: 'Notice / Manuel', color: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800' };
+    }
+    if (t.includes('schema') || t.includes('electrical') || t.includes('électrique')) {
+      return { label: 'Schéma électrique', color: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800' };
+    }
+    if (t.includes('plan') || t.includes('mechanical') || t.includes('mécanique')) {
+      return { label: 'Plan mécanique', color: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800' };
+    }
+    if (t.includes('photo') || t.includes('image')) {
+      return { label: 'Photo / Visuel', color: 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800' };
+    }
+    if (t.includes('rapport')) {
+      return { label: 'Rapport technique', color: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800' };
+    }
+    if (t.includes('certificat')) {
+      return { label: 'Certificat', color: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800' };
+    }
+    return { label: 'Document technique', color: 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700' };
+  };
+
+  // PREVENTIVE PLANS (Real backend integration)
+  const { plans, loadPlans } = usePreventive();
+
+  React.useEffect(() => {
+    loadPlans();
+  }, [loadPlans]);
+
+  const activeEquipmentPlans = React.useMemo(() => {
+    if (!activeEquipment?.id) return [];
+    return plans.filter(p => p.equipementId?.toString() === activeEquipment.id.toString());
+  }, [plans, activeEquipment?.id]);
 
   const handleLinkPiece = async () => {
     if (!activeEquipment?.id || !selectedPieceId) return;
@@ -401,13 +492,13 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
               <History className="w-4 h-4" /> Historique
             </button>
             <button onClick={() => onSetActiveTab('preventifs')} className={`flex items-center gap-2 px-3 py-2 text-xs font-bold whitespace-nowrap border-b-2 transition-colors ${activeTab === 'preventifs' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}>
-              <Calendar className="w-4 h-4" /> Préventifs
+              <Calendar className="w-4 h-4" /> Préventifs{activeEquipmentPlans.length ? ` (${activeEquipmentPlans.length})` : ''}
             </button>
             <button onClick={() => onSetActiveTab('pieces')} className={`flex items-center gap-2 px-3 py-2 text-xs font-bold whitespace-nowrap border-b-2 transition-colors ${activeTab === 'pieces' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}>
               <LinkIcon className="w-4 h-4" /> Pièces
             </button>
             <button onClick={() => onSetActiveTab('documents')} className={`flex items-center gap-2 px-3 py-2 text-xs font-bold whitespace-nowrap border-b-2 transition-colors ${activeTab === 'documents' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}>
-              <FileText className="w-4 h-4" /> Documents
+              <FileText className="w-4 h-4" /> Documents{activeEquipment?.documents?.length ? ` (${activeEquipment.documents.length})` : ''}
             </button>
             <button onClick={() => onSetActiveTab('ot')} className={`flex items-center gap-2 px-3 py-2 text-xs font-bold whitespace-nowrap border-b-2 transition-colors ${activeTab === 'ot' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}>
               <ClipboardList className="w-4 h-4" /> OT
@@ -537,67 +628,108 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
 
             {activeTab === 'preventifs' && (
               <div className="flex flex-col gap-4">
-                {isAddingPreventif ? (
-                  <div className="bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm">
-                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-4">Nouveau Plan Préventif (Simulation)</h4>
-                    <div className="flex flex-col gap-3 text-[13px]">
-                      <div>
-                        <label className="text-[10px] text-slate-500 font-bold block mb-1">Titre de l'intervention *</label>
-                        <input type="text" value={preventifForm.title} onChange={e => setPreventifForm({...preventifForm, title: e.target.value})} className="w-full p-2 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 rounded outline-none focus:border-primary" placeholder="Ex: Inspection générale" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-[10px] text-slate-500 font-bold block mb-1">Fréquence</label>
-                          <select value={preventifForm.frequency} onChange={e => setPreventifForm({...preventifForm, frequency: e.target.value})} className="w-full p-2 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 rounded outline-none">
-                            <option value="Hebdomadaire">Hebdomadaire</option>
-                            <option value="Mensuel">Mensuel</option>
-                            <option value="Trimestriel">Trimestriel</option>
-                            <option value="Semestriel">Semestriel</option>
-                            <option value="Annuel">Annuel</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-[10px] text-slate-500 font-bold block mb-1">Prochaine intervention *</label>
-                          <input type="date" value={preventifForm.nextDate} onChange={e => setPreventifForm({...preventifForm, nextDate: e.target.value})} className="w-full p-2 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 rounded outline-none" />
-                        </div>
-                      </div>
-                      <div className="flex justify-end gap-2 mt-2">
-                        <button onClick={() => setIsAddingPreventif(false)} className="px-3 py-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded font-bold">Annuler</button>
-                        <button onClick={handleAddPreventif} disabled={!preventifForm.title || !preventifForm.nextDate} className="px-3 py-1.5 bg-blue-600 text-white rounded font-bold shadow-sm disabled:opacity-50 flex items-center gap-1"><Save className="w-3.5 h-3.5" /> Enregistrer</button>
-                      </div>
-                    </div>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white dark:bg-slate-850 p-4 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-primary" />
+                      Plans préventifs associés
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                        {activeEquipmentPlans.length}
+                      </span>
+                    </h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Interventions périodiques et gammes de maintenance programmées pour cet équipement.
+                    </p>
                   </div>
-                ) : (
-                  <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
-                    <span className="text-[13px] font-bold text-slate-700 dark:text-slate-300">Plans préventifs associés ({mockPreventifs.length})</span>
-                    <button onClick={() => setIsAddingPreventif(true)} className="px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-lg flex items-center gap-1 shadow-sm hover:bg-primary/90 transition-colors">
-                      <Plus className="w-3.5 h-3.5" /> Créer un plan
+                  {can(PERMISSIONS.PREVENTIVE_CREATE) && (
+                    <button
+                      onClick={() => {
+                        if (activeEquipment?.id) {
+                          onNavigate(`preventive-new:${activeEquipment.id}`);
+                        } else {
+                          onNavigate('preventive');
+                        }
+                      }}
+                      className="px-3.5 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all shrink-0 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Créer un plan
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
 
-                {mockPreventifs.length > 0 ? (
-                  <div className="flex flex-col gap-3">
-                    {mockPreventifs.map(prev => (
-                      <div key={prev.id} className="p-4 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm flex flex-col gap-2 relative group">
+                {activeEquipmentPlans.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {activeEquipmentPlans.map(prev => (
+                      <div
+                        key={prev.id}
+                        className="p-4 bg-white dark:bg-slate-850 border border-slate-100 dark:border-slate-800 hover:border-primary/40 rounded-xl shadow-sm flex flex-col justify-between gap-3 group transition-all"
+                      >
                         <div className="flex justify-between items-start gap-2">
-                          <p className="font-bold text-slate-800 dark:text-white text-sm">{prev.title}</p>
-                          <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">{prev.status}</span>
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase">
+                              PRV-{prev.id.toString().padStart(3, '0')}
+                            </span>
+                            <p className="font-bold text-slate-800 dark:text-white text-sm leading-snug">
+                              {prev.titre}
+                            </p>
+                            {prev.description && (
+                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+                                {prev.description}
+                              </p>
+                            )}
+                          </div>
+                          <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            prev.actif !== false ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {prev.actif !== false ? 'Actif' : 'Inactif'}
+                          </span>
                         </div>
-                        <div className="flex gap-4 text-[11px] text-slate-500 font-semibold border-t border-slate-100 dark:border-slate-800 pt-2 mt-1">
-                          <span>🔄 {prev.frequency}</span>
-                          <span>📅 Prochaine: {new Date(prev.nextDate).toLocaleDateString('fr-FR')}</span>
+
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-800 pt-2.5 text-[11px] text-slate-500">
+                          <span className="font-semibold text-slate-700 dark:text-slate-300">
+                            🔄 Tous les {prev.frequence} {prev.uniteMesure || 'jours'}
+                          </span>
+                          {prev.prochaineDate && (
+                            <span>
+                              📅 Prochaine: <strong className="text-primary">{new Date(prev.prochaineDate).toLocaleDateString('fr-FR')}</strong>
+                            </span>
+                          )}
+                          <button
+                            onClick={() => onNavigate('preventive')}
+                            className="text-xs font-bold text-primary hover:underline ml-auto cursor-pointer"
+                          >
+                            Voir dans Préventif →
+                          </button>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  !isAddingPreventif && (
-                    <div className="flex flex-col items-center justify-center p-8 opacity-50 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl">
-                      <Calendar className="w-12 h-12 text-slate-400 mb-3" />
-                      <p className="text-sm font-bold text-slate-600 dark:text-slate-400">Aucun plan préventif associé</p>
+                  <div className="flex flex-col items-center justify-center p-10 bg-white dark:bg-slate-850 rounded-xl border border-slate-100 dark:border-slate-800 text-center shadow-sm">
+                    <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-3">
+                      <Calendar className="w-7 h-7 text-primary" />
                     </div>
-                  )
+                    <p className="text-sm font-bold text-slate-800 dark:text-white">Aucun plan préventif associé</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm">
+                      Vous n'avez pas encore configuré de gammes de maintenance préventive pour cet équipement.
+                    </p>
+                    {can(PERMISSIONS.PREVENTIVE_CREATE) && (
+                      <button
+                        onClick={() => {
+                          if (activeEquipment?.id) {
+                            onNavigate(`preventive-new:${activeEquipment.id}`);
+                          } else {
+                            onNavigate('preventive');
+                          }
+                        }}
+                        className="mt-4 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Créer un plan préventif
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             )}
@@ -615,11 +747,14 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                         className="w-full text-xs p-1.5 rounded border bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 outline-none"
                       >
                         <option value="">-- Sélectionnez une pièce --</option>
-                        {parts.map(p => (
-                          <option key={p.ref} value={p.ref} disabled={activeEquipment?.spareParts?.includes(p.ref)}>
-                            {p.ref} - {p.name} {activeEquipment?.spareParts?.includes(p.ref) ? '(Déjà associée)' : ''}
-                          </option>
-                        ))}
+                        {parts.map(p => {
+                          const isAlreadyLinked = activeEquipment?.spareParts?.some(sp => sp === p.id || sp === p.ref);
+                          return (
+                            <option key={p.id || p.ref} value={p.id || p.ref} disabled={isAlreadyLinked}>
+                              {p.ref} - {p.name} {isAlreadyLinked ? '(Déjà associée)' : ''}
+                            </option>
+                          );
+                        })}
                       </select>
                     </div>
                     <button 
@@ -637,7 +772,7 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
                   {activeEquipment?.spareParts && activeEquipment.spareParts.length > 0 ? (
                     activeEquipment.spareParts.map(pieceId => {
-                      const pieceDetails = parts.find(p => p.ref === pieceId);
+                      const pieceDetails = parts.find(p => p.id === pieceId || p.ref === pieceId);
                       return (
                         <div key={pieceId} className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded shadow-sm">
                           <div className="flex items-center gap-3">
@@ -645,8 +780,12 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                               <LinkIcon className="w-4 h-4" />
                             </div>
                             <div>
-                              <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{pieceDetails ? pieceDetails.name : `Pièce inconnue (ID: ${pieceId})`}</p>
-                              <p className="text-[10px] text-slate-500">Réf: {pieceId}</p>
+                              <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                                {pieceDetails ? pieceDetails.name : `Pièce (${pieceId})`}
+                              </p>
+                              <p className="text-[10px] text-slate-500">
+                                Réf: {pieceDetails ? pieceDetails.ref : pieceId}
+                              </p>
                             </div>
                           </div>
                           {!isAdding && can(PERMISSIONS.EQUIPMENT_UPDATE) && (
@@ -672,10 +811,254 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
             )}
 
             {activeTab === 'documents' && (
-              <div className="flex flex-col items-center justify-center p-8 opacity-50">
-                <FileText className="w-12 h-12 text-slate-400 mb-3" />
-                <p className="text-sm font-bold text-slate-600">Aucun document technique</p>
-                <p className="text-xs text-slate-500 mt-1">Notice constructeur, schémas électriques, plans...</p>
+              <div className="flex flex-col gap-4">
+                {/* Header with Title and Add Button */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white dark:bg-slate-850 p-4 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-primary" />
+                      Documents & Notices techniques
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                        {activeEquipment?.documents?.length || 0}
+                      </span>
+                    </h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Notices constructeur, schémas électriques, plans et certificats associés à cet équipement.
+                    </p>
+                  </div>
+                  {can(PERMISSIONS.EQUIPMENT_UPDATE) && (
+                    <button
+                      onClick={() => {
+                        setIsUploadingDoc(!isUploadingDoc);
+                        setDocError(null);
+                      }}
+                      className="px-3.5 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-xs font-bold flex items-center gap-2 transition-all shadow-sm shrink-0"
+                    >
+                      {isUploadingDoc ? <X className="w-3.5 h-3.5" /> : <Upload className="w-3.5 h-3.5" />}
+                      {isUploadingDoc ? 'Fermer' : 'Ajouter un document'}
+                    </button>
+                  )}
+                </div>
+
+                {/* Upload Form Box */}
+                {isUploadingDoc && (
+                  <form
+                    onSubmit={handleUploadDocument}
+                    className="p-5 bg-white dark:bg-slate-850 rounded-xl border border-primary/30 dark:border-primary/30 shadow-md flex flex-col gap-4"
+                  >
+                    <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-800">
+                      <span className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-2">
+                        <Upload className="w-4 h-4" /> Importer un document technique
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setIsUploadingDoc(false)}
+                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {docError && (
+                      <div className="p-3 bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 rounded-lg text-xs flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 shrink-0" />
+                        <span>{docError}</span>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* File Picker */}
+                      <div className="flex flex-col gap-1.5 md:col-span-2">
+                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                          Fichier (PDF, Image, Schéma, DWG, Docx - Max 30 Mo) *
+                        </label>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          onChange={handleFileSelect}
+                          className="hidden"
+                          accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.xls,.xlsx,.dwg,.txt,.zip"
+                        />
+                        <div
+                          onClick={() => fileInputRef.current?.click()}
+                          className={`p-6 border-2 border-dashed rounded-xl cursor-pointer flex flex-col items-center justify-center transition-all ${
+                            uploadFile
+                              ? 'border-primary bg-primary/5 dark:bg-primary/10'
+                              : 'border-slate-200 dark:border-slate-700 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                          }`}
+                        >
+                          <Upload className={`w-8 h-8 mb-2 ${uploadFile ? 'text-primary' : 'text-slate-400'}`} />
+                          {uploadFile ? (
+                            <div className="text-center">
+                              <p className="text-xs font-bold text-primary">{uploadFile.name}</p>
+                              <p className="text-[10px] text-slate-400 mt-0.5">
+                                {(uploadFile.size / (1024 * 1024)).toFixed(2)} Mo · Cliquez pour changer de fichier
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="text-center">
+                              <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                Cliquez pour choisir un fichier depuis votre appareil
+                              </p>
+                              <p className="text-[10px] text-slate-400 mt-1">
+                                Notice constructeur, schéma électrique ou plan technique
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Document Name */}
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                          Nom du document (Titre d'affichage)
+                        </label>
+                        <input
+                          type="text"
+                          value={docName}
+                          onChange={(e) => setDocName(e.target.value)}
+                          placeholder="Ex: Notice Constructeur Moteur 5.5kW"
+                          className="px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:outline-none focus:border-primary"
+                        />
+                      </div>
+
+                      {/* Document Type */}
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                          Type de document
+                        </label>
+                        <select
+                          value={docType}
+                          onChange={(e) => setDocType(e.target.value)}
+                          className="px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:outline-none focus:border-primary"
+                        >
+                          <option value="notice">📘 Notice / Manuel constructeur</option>
+                          <option value="schema">⚡ Schéma électrique</option>
+                          <option value="plan">📐 Plan mécanique / P&ID</option>
+                          <option value="photo">🖼️ Photo / Visuel technique</option>
+                          <option value="rapport">📑 Rapport de maintenance</option>
+                          <option value="certificat">📜 Certificat de conformité</option>
+                          <option value="autre">📄 Autre document</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => setIsUploadingDoc(false)}
+                        className="px-3.5 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                      >
+                        Annuler
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={!uploadFile || isSubmittingDoc}
+                        className="px-4 py-1.5 bg-primary hover:bg-primary/90 disabled:opacity-50 text-white rounded-lg text-xs font-bold flex items-center gap-2 transition-all shadow-sm"
+                      >
+                        {isSubmittingDoc ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                        {isSubmittingDoc ? 'Envoi en cours...' : 'Enregistrer le document'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* Documents List */}
+                {(!activeEquipment?.documents || activeEquipment.documents.length === 0) ? (
+                  <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-slate-850 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm text-center">
+                    <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-3">
+                      <FileText className="w-7 h-7 text-primary" />
+                    </div>
+                    <p className="text-sm font-bold text-slate-800 dark:text-white">Aucun document technique</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm">
+                      Notice constructeur, schémas électriques, plans de maintenance...
+                    </p>
+                    {can(PERMISSIONS.EQUIPMENT_UPDATE) && (
+                      <button
+                        onClick={() => setIsUploadingDoc(true)}
+                        className="mt-4 px-3.5 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Importer un premier document
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {activeEquipment.documents.map((doc, idx) => {
+                      const badge = getDocBadge(doc.type);
+                      return (
+                        <div
+                          key={doc.id || idx}
+                          className="p-4 bg-white dark:bg-slate-850 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-primary/40 dark:hover:border-primary/40 shadow-sm transition-all flex flex-col justify-between gap-3 group"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 text-slate-600 dark:text-slate-300 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                                <FileText className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <h5 className="font-bold text-slate-900 dark:text-white text-xs leading-snug line-clamp-1" title={doc.name}>
+                                  {doc.name}
+                                </h5>
+                                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${badge.color}`}>
+                                    {badge.label}
+                                  </span>
+                                  <span className="text-[10px] text-slate-400 font-medium">
+                                    {doc.size}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {can(PERMISSIONS.EQUIPMENT_UPDATE) && doc.id && (
+                              <button
+                                onClick={() => handleDeleteDocument(doc.id)}
+                                disabled={deletingDocId === doc.id}
+                                title="Supprimer ce document"
+                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"
+                              >
+                                {deletingDocId === doc.id ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-500" />
+                                ) : (
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px]">
+                            <span className="text-[10px] text-slate-400">
+                              {doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : ''}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <a
+                                href={doc.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg font-bold text-[11px] flex items-center gap-1.5 transition-colors"
+                              >
+                                <Eye className="w-3 h-3" />
+                                Ouvrir
+                              </a>
+                              <a
+                                href={doc.url}
+                                download={doc.name}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-white bg-slate-100 dark:bg-slate-800 rounded-lg transition-colors"
+                                title="Télécharger"
+                              >
+                                <Download className="w-3 h-3" />
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 

@@ -14,9 +14,15 @@ import { PreventiveModal } from '../components/PreventiveModal';
 
 interface PreventiveProps {
   onNavigate: (screen: string) => void;
+  newPlanEquipmentId?: string | null;
+  onClearNewPlanEquipmentId?: () => void;
 }
 
-export const Preventive: React.FC<PreventiveProps> = () => {
+export const Preventive: React.FC<PreventiveProps> = ({
+  onNavigate,
+  newPlanEquipmentId,
+  onClearNewPlanEquipmentId,
+}) => {
   const { equipments, technicians } = useGmao();
   const { can } = usePermissions();
 
@@ -38,6 +44,13 @@ export const Preventive: React.FC<PreventiveProps> = () => {
   const [showModal,       setShowModal]       = useState(false);
   const [editingPlan,     setEditingPlan]     = useState<PlanPreventif | null>(null);
   const [confirmRescheduleData, setConfirmRescheduleData] = useState<{ planId: number; dateStr: string } | null>(null);
+
+  useEffect(() => {
+    if (newPlanEquipmentId) {
+      setShowModal(true);
+      setEditingPlan(null);
+    }
+  }, [newPlanEquipmentId]);
 
   // Calendar filters
   const [filterEq,   setFilterEq]   = useState('');
@@ -260,8 +273,13 @@ export const Preventive: React.FC<PreventiveProps> = () => {
         <PreventiveModal
           editingPlan={editingPlan}
           equipments={equipments}
+          defaultEquipementId={newPlanEquipmentId ? parseInt(newPlanEquipmentId) || undefined : undefined}
           onSave={handleSavePlan}
-          onClose={() => { setShowModal(false); setEditingPlan(null); }}
+          onClose={() => {
+            setShowModal(false);
+            setEditingPlan(null);
+            if (onClearNewPlanEquipmentId) onClearNewPlanEquipmentId();
+          }}
         />
       )}
 
