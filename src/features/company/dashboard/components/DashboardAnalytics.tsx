@@ -28,38 +28,80 @@ export const DashboardAnalytics: React.FC<DashboardAnalyticsProps> = ({
   const [timeRange, setTimeRange] = useState<'30j' | '7j' | '3m'>('30j');
 
   // Status breakdown for Donut Chart
-  const total = equipments.length || 124;
-  const enService = equipments.filter(e => e.status === 'En service').length || 106;
-  const enMaint = equipments.filter(e => e.status === 'En maintenance').length || 12;
-  const enPanne = equipments.filter(e => e.status === 'En panne').length || 6;
-  const aLarret = 0;
+  const total = equipments.length;
+  const enService = equipments.filter(e => e.status === 'En service').length;
+  const enMaint = equipments.filter(e => e.status === 'En maintenance').length;
+  const enPanne = equipments.filter(e => e.status === 'En panne').length;
+  const aLarret = equipments.filter(e => e.status === 'Hors service').length;
 
-  const donutData = [
+  const donutData = total > 0 ? [
     { name: 'En service', value: enService, color: '#10B981' },
     { name: 'En maintenance', value: enMaint, color: '#F59E0B' },
     { name: 'En panne', value: enPanne, color: '#EF4444' },
-    { name: "À l'arrêt", value: aLarret || 0.1, color: '#94A3B8' }
+    { name: "À l'arrêt", value: aLarret, color: '#94A3B8' }
+  ].filter(d => d.value > 0) : [
+    { name: 'Aucun équipement', value: 1, color: '#CBD5E1' }
   ];
 
-  // Interventions bar chart data (30 days sampled)
-  const otChartData = [
-    { day: '1 Sep', preventive: 4, corrective: 2 },
-    { day: '5 Sep', preventive: 7, corrective: 4 },
-    { day: '10 Sep', preventive: 6, corrective: 1 },
-    { day: '15 Sep', preventive: 10, corrective: 5 },
-    { day: '20 Sep', preventive: 5, corrective: 2 },
-    { day: '25 Sep', preventive: 8, corrective: 4 },
-    { day: '30 Sep', preventive: 9, corrective: 2 }
-  ];
+  // Interventions bar chart data (dynamically aggregated from real workOrders)
+  const otChartData = React.useMemo(() => {
+    const now = new Date();
+    const daysCount = timeRange === '7j' ? 7 : timeRange === '30j' ? 30 : 90;
+    const intervals = 6;
+    const stepDays = Math.ceil(daysCount / intervals);
+    const buckets: { day: string; preventive: number; corrective: number }[] = [];
 
-  // Top 5 solicited equipment
-  const topMachines = [
-    { rank: 1, name: 'Pompe P-102', count: 32, max: 35, color: 'bg-rose-500' },
-    { rank: 2, name: 'Convoyeur C-04', count: 21, max: 35, color: 'bg-blue-500' },
-    { rank: 3, name: 'Broyeur PM-01', count: 16, max: 35, color: 'bg-sky-400' },
-    { rank: 4, name: 'Pasteurisateur PS-01', count: 9, max: 35, color: 'bg-cyan-400' },
-    { rank: 5, name: 'Remplisseuse RM-01', count: 7, max: 35, color: 'bg-teal-400' }
-  ];
+    for (let i = intervals - 1; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * stepDays * 24 * 60 * 60 * 1000);
+      const label = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+      buckets.push({ day: label, preventive: 0, corrective: 0 });
+    }
+
+    workOrders.forEach(w => {
+      const wDate = new Date(w.createdDate || (w as any).date || now);
+      const diffDays = Math.floor((now.getTime() - wDate.getTime()) / (24 * 60 * 60 * 1000));
+      if (diffDays >= 0 && diffDays < daysCount) {
+        const bucketIndex = Math.min(intervals - 1, Math.floor((daysCount - 1 - diffDays) / stepDays));
+        if (bucketIndex >= 0 && bucketIndex < buckets.length) {
+          if (w.type === 'Préventif') {
+            buckets[bucketIndex].preventive += 1;
+          } else {
+            buckets[bucketIndex].corrective += 1;
+          }
+        }
+      }
+    });
+
+    return buckets;
+  }, [workOrders, timeRange]);
+
+  // Top 5 solicited equipment calculated from real workOrders
+  const topMachines = React.useMemo(() => {
+    const counts: Record<string, number> = {};
+    workOrders.forEach(w => {
+      if (w.equipmentId) {
+        counts[w.equipmentId] = (counts[w.equipmentId] || 0) + 1;
+      }
+    });
+
+    const sortedEqs = [...equipments].sort((a, b) => {
+      const countA = counts[a.id] || 0;
+      const countB = counts[b.id] || 0;
+      return countB - countA;
+    }).slice(0, 5);
+
+    const maxCount = Math.max(...sortedEqs.map(e => counts[e.id] || 0), 1);
+    const colors = ['bg-rose-500', 'bg-blue-500', 'bg-sky-400', 'bg-cyan-400', 'bg-teal-400'];
+
+    return sortedEqs.map((eq, idx) => ({
+      rank: idx + 1,
+      id: eq.id,
+      name: eq.name,
+      count: counts[eq.id] || 0,
+      max: maxCount,
+      color: colors[idx % colors.length]
+    }));
+  }, [equipments, workOrders]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
@@ -111,7 +153,7 @@ export const DashboardAnalytics: React.FC<DashboardAnalyticsProps> = ({
                 En service
               </span>
               <span className="font-black text-slate-800 dark:text-white">
-                {enService} <span className="text-slate-400 font-normal">({Math.round((enService / total) * 100)}%)</span>
+                {enService} <span className="text-slate-400 font-normal">({total > 0 ? Math.round((enService / total) * 100) : 0}%)</span>
               </span>
             </div>
 
@@ -121,7 +163,7 @@ export const DashboardAnalytics: React.FC<DashboardAnalyticsProps> = ({
                 En maintenance
               </span>
               <span className="font-black text-slate-800 dark:text-white">
-                {enMaint} <span className="text-slate-400 font-normal">({Math.round((enMaint / total) * 100)}%)</span>
+                {enMaint} <span className="text-slate-400 font-normal">({total > 0 ? Math.round((enMaint / total) * 100) : 0}%)</span>
               </span>
             </div>
 
@@ -131,7 +173,7 @@ export const DashboardAnalytics: React.FC<DashboardAnalyticsProps> = ({
                 En panne
               </span>
               <span className="font-black text-slate-800 dark:text-white">
-                {enPanne} <span className="text-slate-400 font-normal">({Math.round((enPanne / total) * 100)}%)</span>
+                {enPanne} <span className="text-slate-400 font-normal">({total > 0 ? Math.round((enPanne / total) * 100) : 0}%)</span>
               </span>
             </div>
 
@@ -141,7 +183,7 @@ export const DashboardAnalytics: React.FC<DashboardAnalyticsProps> = ({
                 À l'arrêt
               </span>
               <span className="font-black text-slate-800 dark:text-white">
-                0 <span className="text-slate-400 font-normal">(0%)</span>
+                {aLarret} <span className="text-slate-400 font-normal">({total > 0 ? Math.round((aLarret / total) * 100) : 0}%)</span>
               </span>
             </div>
           </div>
@@ -209,28 +251,34 @@ export const DashboardAnalytics: React.FC<DashboardAnalyticsProps> = ({
         </div>
 
         <div className="space-y-2.5">
-          {topMachines.map(m => {
-            const percentWidth = Math.min(100, Math.round((m.count / m.max) * 100));
-            return (
-              <div key={m.rank} className="flex items-center gap-3 text-xs">
-                <span className="w-4 text-center font-bold text-slate-400 text-[11px]">
-                  {m.rank}
-                </span>
-                <span className="w-36 font-bold text-slate-700 dark:text-slate-200 truncate">
-                  {m.name}
-                </span>
-                <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <div
-                    style={{ width: `${percentWidth}%` }}
-                    className={`h-full rounded-full ${m.color}`}
-                  />
+          {topMachines.length === 0 ? (
+            <div className="py-6 text-center text-xs text-slate-400">
+              <p className="font-semibold">Aucun équipement enregistré</p>
+            </div>
+          ) : (
+            topMachines.map(m => {
+              const percentWidth = Math.min(100, Math.round((m.count / m.max) * 100));
+              return (
+                <div key={m.rank} className="flex items-center gap-3 text-xs">
+                  <span className="w-4 text-center font-bold text-slate-400 text-[11px]">
+                    {m.rank}
+                  </span>
+                  <span className="w-36 font-bold text-slate-700 dark:text-slate-200 truncate">
+                    {m.name}
+                  </span>
+                  <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      style={{ width: `${percentWidth}%` }}
+                      className={`h-full rounded-full ${m.color}`}
+                    />
+                  </div>
+                  <span className="font-extrabold text-slate-800 dark:text-white text-[11px] shrink-0">
+                    {m.count} OT
+                  </span>
                 </div>
-                <span className="font-extrabold text-slate-800 dark:text-white text-[11px] shrink-0">
-                  {m.count} OT
-                </span>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </div>
 

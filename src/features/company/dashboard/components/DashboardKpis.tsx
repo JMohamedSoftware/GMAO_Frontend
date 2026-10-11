@@ -9,10 +9,12 @@ import {
   ShieldCheck, 
   Coins 
 } from 'lucide-react';
-import { Equipment } from '@/shared/types/gmao';
+import { Equipment, WorkOrder, Incident } from '@/shared/types/gmao';
 
 interface DashboardKpisProps {
   equipments: Equipment[];
+  workOrders?: WorkOrder[];
+  incidents?: Incident[];
   totalLaborCost?: number;
   totalPartsCost?: number;
   totalMaintCost?: number;
@@ -20,16 +22,31 @@ interface DashboardKpisProps {
 
 export const DashboardKpis: React.FC<DashboardKpisProps> = ({
   equipments,
-  totalMaintCost = 18450
+  workOrders = [],
+  incidents = [],
+  totalMaintCost = 0
 }) => {
-  const total = equipments.length || 124;
-  const enService = equipments.filter(e => e.status === 'En service').length || 106;
-  const enMaint = equipments.filter(e => e.status === 'En maintenance').length || 12;
-  const enPanne = equipments.filter(e => e.status === 'En panne').length || 6;
+  const total = equipments.length;
+  const enService = equipments.filter(e => e.status === 'En service').length;
+  const enMaint = equipments.filter(e => e.status === 'En maintenance').length;
+  const enPanne = equipments.filter(e => e.status === 'En panne' || e.status === 'Hors service').length;
 
-  const percentService = Math.round((enService / total) * 100) || 85;
-  const percentMaint = Math.round((enMaint / total) * 100) || 10;
-  const percentPanne = Math.round((enPanne / total) * 100) || 5;
+  const percentService = total > 0 ? Math.round((enService / total) * 100) : 0;
+  const percentMaint = total > 0 ? Math.round((enMaint / total) * 100) : 0;
+  const percentPanne = total > 0 ? Math.round((enPanne / total) * 100) : 0;
+
+  // Dynamic Industrial Norms (Cahier des Charges)
+  const dispoRate = total > 0 ? Math.round(((total - enPanne) / total) * 1000) / 10 : 100;
+
+  // MTBF: Total operating hours / Total failures
+  const totalOperatingHours = equipments.reduce((sum, e) => sum + (e.hoursCount || 0), 0) || (total * 160);
+  const failureCount = incidents.length + workOrders.filter(w => w.type === 'Correctif').length;
+  const mtbf = failureCount > 0 ? Math.round(totalOperatingHours / failureCount) : (totalOperatingHours > 0 ? totalOperatingHours : 160);
+
+  // MTTR: Average repair duration in hours for completed work orders
+  const completedOts = workOrders.filter(w => (w.status === 'Terminé' || w.status === 'Clôturé'));
+  const totalRepairHours = completedOts.reduce((sum, w) => sum + (w.durationMinutes ? w.durationMinutes / 60 : 2), 0);
+  const mttr = completedOts.length > 0 ? (totalRepairHours / completedOts.length).toFixed(1) : (enPanne > 0 ? '2.0' : '0.0');
 
   return (
     <div className="flex flex-col gap-4">
@@ -49,12 +66,12 @@ export const DashboardKpis: React.FC<DashboardKpisProps> = ({
                 <h3 className="text-2xl font-black text-slate-800 dark:text-white leading-none">
                   {total}
                 </h3>
-                <span className="text-[10px] font-extrabold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded">
-                  +3
+                <span className="text-[10px] font-extrabold text-blue-600 bg-blue-50 dark:bg-blue-950/30 px-1.5 py-0.5 rounded">
+                  Total
                 </span>
               </div>
               <span className="text-[10px] text-slate-400 font-medium block mt-0.5">
-                vs mois dernier
+                au parc d'usine
               </span>
             </div>
           </div>
@@ -177,9 +194,11 @@ export const DashboardKpis: React.FC<DashboardKpisProps> = ({
             </span>
             <div className="flex items-baseline gap-1.5">
               <span className="text-lg font-black text-slate-800 dark:text-white leading-tight">
-                92.8%
+                {dispoRate}%
               </span>
-              <span className="text-[10px] font-bold text-emerald-600">+2.4%</span>
+              <span className="text-[10px] font-bold text-emerald-600">
+                {enPanne === 0 ? 'Optimal' : `${total - enPanne}/${total}`}
+              </span>
             </div>
             <span className="text-[9px] text-slate-400 block truncate">
               Temps fct / Temps total
@@ -198,9 +217,11 @@ export const DashboardKpis: React.FC<DashboardKpisProps> = ({
             </span>
             <div className="flex items-baseline gap-1.5">
               <span className="text-lg font-black text-slate-800 dark:text-white leading-tight">
-                148 h
+                {mtbf} h
               </span>
-              <span className="text-[10px] font-bold text-emerald-600">Bon</span>
+              <span className={`text-[10px] font-bold ${mtbf >= 100 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                {mtbf >= 100 ? 'Bon' : 'À suivre'}
+              </span>
             </div>
             <span className="text-[9px] text-slate-400 block truncate">
               Moyenne entre deux pannes
@@ -219,9 +240,11 @@ export const DashboardKpis: React.FC<DashboardKpisProps> = ({
             </span>
             <div className="flex items-baseline gap-1.5">
               <span className="text-lg font-black text-slate-800 dark:text-white leading-tight">
-                2.1 h
+                {mttr} h
               </span>
-              <span className="text-[10px] font-bold text-emerald-600">-15 min</span>
+              <span className="text-[10px] font-bold text-emerald-600">
+                {completedOts.length > 0 ? `${completedOts.length} OTs` : 'Cible < 2h'}
+              </span>
             </div>
             <span className="text-[9px] text-slate-400 block truncate">
               Temps moyen de remise en route

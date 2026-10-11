@@ -1,5 +1,6 @@
 import React from 'react';
 import { Home, Calendar, MapPin, LayoutDashboard, Factory } from 'lucide-react';
+import { useGmao } from '@/shared/hooks/useGmao';
 
 interface DashboardHeaderProps {
   activeView: 'supervision' | 'map';
@@ -10,6 +11,10 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   activeView,
   setActiveView,
 }) => {
+  const { selectedCampaign, tenants, currentTenantId } = useGmao();
+  const currentTenant = tenants.find(t => t.id === currentTenantId);
+  const badgeLabel = currentTenant?.name || (selectedCampaign ? `Campagne ${selectedCampaign}` : 'Site Industriel');
+
   const todayFormatted = new Intl.DateTimeFormat('fr-FR', {
     day: 'numeric',
     month: 'long',
@@ -28,8 +33,8 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             <h1 className="text-xl md:text-2xl font-black text-slate-800 dark:text-white tracking-tight">
               Tableau de bord
             </h1>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-red-50 text-red-600 border border-red-100 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/40">
-              Usine Tomate
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-50 text-blue-600 border border-blue-100 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900/40">
+              {badgeLabel}
             </span>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">

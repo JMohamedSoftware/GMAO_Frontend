@@ -50,11 +50,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
     return acc;
   }, 0);
 
-  const totalMaintCost = Math.round(totalLaborCost + totalPartsCost) || 18450;
+  const totalMaintCost = Math.round(totalLaborCost + totalPartsCost);
 
   return (
     <div className="flex flex-col gap-6 animate-[fadeIn_0.3s_ease-out]">
-      {/* 1. Header with Title & Date & Campagne Tomate */}
+      {/* 1. Header with Title & Date & Campagne */}
       <DashboardHeader
         activeView={activeView}
         setActiveView={setActiveView}
@@ -69,6 +69,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
       {/* 3. Core KPI Cards: Status counters + Industrial Norms (MTBF, MTTR, Disponibilité, Coût) */}
       <DashboardKpis
         equipments={equipments}
+        workOrders={workOrders}
+        incidents={incidents}
         totalLaborCost={totalLaborCost}
         totalPartsCost={totalPartsCost}
         totalMaintCost={totalMaintCost}

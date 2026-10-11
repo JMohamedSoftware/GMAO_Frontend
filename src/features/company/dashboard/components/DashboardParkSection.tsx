@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   FolderTree, 
   Search, 
@@ -15,9 +15,17 @@ import {
   ClipboardList,
   ShieldCheck,
   TrendingUp,
-  AlertTriangle
+  AlertTriangle,
+  Folder,
+  FolderOpen,
+  Factory,
+  Layers,
+  Wrench,
+  Loader2,
+  ChevronsUpDown
 } from 'lucide-react';
-import { Equipment, Incident, WorkOrder } from '@/shared/types/gmao';
+import { Equipment, Incident, WorkOrder, Localisation } from '@/shared/types/gmao';
+import { useLocalisations } from '@/shared/hooks/useLocalisations';
 import machineDefaultImg from '@/shared/assets/images/machine_default.jpg';
 
 interface DashboardParkSectionProps {
@@ -31,6 +39,189 @@ interface DashboardParkSectionProps {
   onOpenDeclareIncident: () => void;
 }
 
+interface TreeNodeData {
+  id: string;
+  name: string;
+  type: 'root' | 'localisation' | 'category' | 'unassigned';
+  level: number;
+  equipments: Equipment[];
+  subNodes: TreeNodeData[];
+}
+
+const countNodeEquipments = (node: TreeNodeData): number => {
+  return node.equipments.length + node.subNodes.reduce((sum, child) => sum + countNodeEquipments(child), 0);
+};
+
+const filterTreeNode = (node: TreeNodeData, query: string): { matches: boolean; filteredNode: TreeNodeData | null } => {
+  if (!query) return { matches: true, filteredNode: node };
+
+  const q = query.toLowerCase();
+  const nameMatches = node.name.toLowerCase().includes(q);
+
+  const matchedEquipments = node.equipments.filter(e => 
+    e.name.toLowerCase().includes(q) || 
+    e.id.toLowerCase().includes(q) ||
+    (e.serialNumber && e.serialNumber.toLowerCase().includes(q)) ||
+    (e.category && e.category.toLowerCase().includes(q))
+  );
+
+  const filteredSubNodes: TreeNodeData[] = [];
+  for (const child of node.subNodes) {
+    const res = filterTreeNode(child, query);
+    if (res.matches && res.filteredNode) {
+      filteredSubNodes.push(res.filteredNode);
+    }
+  }
+
+  const hasMatches = nameMatches || matchedEquipments.length > 0 || filteredSubNodes.length > 0;
+
+  if (!hasMatches) {
+    return { matches: false, filteredNode: null };
+  }
+
+  return {
+    matches: true,
+    filteredNode: {
+      ...node,
+      equipments: nameMatches ? node.equipments : matchedEquipments,
+      subNodes: filteredSubNodes
+    }
+  };
+};
+
+const getAllNodeIds = (nodes: TreeNodeData[]): string[] => {
+  let ids: string[] = [];
+  for (const n of nodes) {
+    ids.push(n.id);
+    if (n.subNodes && n.subNodes.length > 0) {
+      ids.push(...getAllNodeIds(n.subNodes));
+    }
+  }
+  return ids;
+};
+
+// Recursive Tree Node Item component
+const DynamicTreeNodeItem: React.FC<{
+  node: TreeNodeData;
+  level: number;
+  expandedNodes: Set<string>;
+  onToggle: (id: string) => void;
+  selectedEqId: string | undefined;
+  onSelectEquipment: (eq: Equipment) => void;
+  treeSearch: string;
+  getStatusBadge: (status: Equipment['status']) => React.ReactNode;
+}> = ({
+  node,
+  level,
+  expandedNodes,
+  onToggle,
+  selectedEqId,
+  onSelectEquipment,
+  treeSearch,
+  getStatusBadge
+}) => {
+  const isSearchActive = treeSearch.trim().length > 0;
+  const isExpanded = isSearchActive || expandedNodes.has(node.id);
+  const totalEquipments = countNodeEquipments(node);
+  const hasChildren = node.subNodes.length > 0 || node.equipments.length > 0;
+  const isRoot = node.type === 'root' || level === 0;
+
+  return (
+    <div className="space-y-1 select-none">
+      {/* Node Header Row */}
+      <div
+        onClick={() => hasChildren && onToggle(node.id)}
+        className={`w-full flex items-center justify-between py-1 px-1.5 rounded-lg text-left text-xs font-bold transition-all cursor-pointer ${
+          isRoot
+            ? 'text-slate-800 dark:text-slate-200 bg-slate-50/70 dark:bg-slate-900/40 hover:bg-slate-100 dark:hover:bg-slate-800'
+            : 'text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-800/40'
+        }`}
+      >
+        <span className="flex items-center gap-1.5 truncate pr-2">
+          {hasChildren ? (
+            <span className="p-0.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors shrink-0">
+              {isExpanded ? (
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              ) : (
+                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+              )}
+            </span>
+          ) : (
+            <span className="w-4 h-4 shrink-0" />
+          )}
+
+          {isRoot ? (
+            <Factory className="w-4 h-4 text-blue-600 shrink-0" />
+          ) : node.type === 'unassigned' ? (
+            <Layers className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          ) : isExpanded ? (
+            <FolderOpen className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+          ) : (
+            <Folder className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+          )}
+
+          <span className="truncate">{node.name}</span>
+        </span>
+
+        <span className="text-[10px] text-slate-400 font-semibold px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800 shrink-0">
+          {totalEquipments}
+        </span>
+      </div>
+
+      {/* Children: Sub-localisations & Direct Equipments */}
+      {isExpanded && hasChildren && (
+        <div className="pl-3 space-y-1 border-l border-slate-200 dark:border-slate-800 ml-3">
+          {/* Sub Nodes */}
+          {node.subNodes.map(subNode => (
+            <DynamicTreeNodeItem
+              key={subNode.id}
+              node={subNode}
+              level={level + 1}
+              expandedNodes={expandedNodes}
+              onToggle={onToggle}
+              selectedEqId={selectedEqId}
+              onSelectEquipment={onSelectEquipment}
+              treeSearch={treeSearch}
+              getStatusBadge={getStatusBadge}
+            />
+          ))}
+
+          {/* Direct Equipments */}
+          {node.equipments.map(eq => {
+            const isSelected = selectedEqId === eq.id;
+            return (
+              <div
+                key={eq.id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelectEquipment(eq);
+                }}
+                className={`group flex items-center justify-between p-1.5 rounded-lg text-xs cursor-pointer transition-all ${
+                  isSelected
+                    ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-bold border border-blue-200 dark:border-blue-800 shadow-xs'
+                    : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'
+                }`}
+              >
+                <div className="flex items-center gap-2 truncate pr-2">
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full shrink-0 transition-transform ${
+                      isSelected ? 'bg-blue-600 scale-125' : 'bg-slate-300 dark:bg-slate-600 group-hover:bg-blue-400'
+                    }`}
+                  />
+                  <span className="truncate">{eq.name}</span>
+                </div>
+                <div className="shrink-0">
+                  {getStatusBadge(eq.status)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
   equipments,
   incidents,
@@ -43,55 +234,22 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
 }) => {
   const [treeSearch, setTreeSearch] = useState('');
   const [col3Tab, setCol3Tab] = useState<'di' | 'ot'>('di');
-  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({
-    'reception': true,
-    'lavage': true,
-    'concentration': true,
-    'conditionnement': true
-  });
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
-  const toggleFolder = (folder: string) => {
-    setOpenFolders(prev => ({ ...prev, [folder]: !prev[folder] }));
-  };
+  // Dynamic tree from real localisations API
+  const { tree: geoTree, loading: locsLoading } = useLocalisations();
 
-  // Group equipments by zone/category according to Cahier des Charges (Section 4 & 5)
-  const treeZones = useMemo(() => {
-    const zones: Record<string, Equipment[]> = {
-      'Réception & Lavage': [],
-      'Broyage & Concentration': [],
-      'Conditionnement': [],
-      'Utilités & Stockage': []
-    };
-
-    equipments.forEach(eq => {
-      const cat = eq.category?.toLowerCase() || '';
-      const name = eq.name?.toLowerCase() || '';
-      if (cat.includes('réception') || name.includes('réception') || name.includes('trieuse') || cat.includes('lavage') || name.includes('laveuse')) {
-        zones['Réception & Lavage'].push(eq);
-      } else if (cat.includes('broyage') || cat.includes('concentration') || name.includes('broyeur') || name.includes('évaporateur') || name.includes('cuve')) {
-        zones['Broyage & Concentration'].push(eq);
-      } else if (cat.includes('conditionnement') || name.includes('remplisseuse') || name.includes('sertisseuse') || name.includes('étiqueteuse')) {
-        zones['Conditionnement'].push(eq);
+  const toggleNode = (nodeId: string) => {
+    setExpandedNodes(prev => {
+      const next = new Set(prev);
+      if (next.has(nodeId)) {
+        next.delete(nodeId);
       } else {
-        zones['Utilités & Stockage'].push(eq);
+        next.add(nodeId);
       }
+      return next;
     });
-
-    if (zones['Réception & Lavage'].length === 0 && equipments.length > 0) {
-      zones['Réception & Lavage'] = equipments.slice(0, 3);
-    }
-    if (zones['Broyage & Concentration'].length === 0 && equipments.length > 3) {
-      zones['Broyage & Concentration'] = equipments.slice(3, 6);
-    }
-    if (zones['Conditionnement'].length === 0 && equipments.length > 6) {
-      zones['Conditionnement'] = equipments.slice(6, 9);
-    }
-    if (zones['Utilités & Stockage'].length === 0 && equipments.length > 9) {
-      zones['Utilités & Stockage'] = equipments.slice(9);
-    }
-
-    return zones;
-  }, [equipments]);
+  };
 
   // Fallback equipment conforming fully to Equipment interface
   const defaultFallback: Equipment = {
@@ -118,6 +276,145 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
 
   // Active machine to show in preview card
   const activeMachine: Equipment = selectedEq || equipments[0] || defaultFallback;
+
+  // Build hierarchical dynamic tree
+  const dynamicTreeNodes = useMemo<TreeNodeData[]>(() => {
+    if (geoTree && geoTree.length > 0) {
+      const assignedEqIds = new Set<string>();
+
+      const buildLocNode = (loc: Localisation, lvl: number): TreeNodeData => {
+        // Direct equipments for this localisation
+        const directEqs = equipments.filter(e => {
+          if (assignedEqIds.has(e.id)) return false;
+          // Match by localisationId
+          if (e.localisationId && Number(e.localisationId) === Number(loc.id)) {
+            assignedEqIds.add(e.id);
+            return true;
+          }
+          if (e.localisation && Number(e.localisation.id) === Number(loc.id)) {
+            assignedEqIds.add(e.id);
+            return true;
+          }
+          // Intelligent match by name/category if localisationId is missing and not root Usine
+          if (!e.localisationId && loc.nom.toLowerCase() !== 'usine') {
+            const locName = loc.nom.toLowerCase();
+            const eqName = (e.name || '').toLowerCase();
+            const eqCat = (e.category || '').toLowerCase();
+            if (eqCat.includes(locName) || eqName.includes(locName)) {
+              assignedEqIds.add(e.id);
+              return true;
+            }
+          }
+          return false;
+        });
+
+        // Sub localisations
+        const subNodes = (loc.sousLocalisations || []).map(child => buildLocNode(child, lvl + 1));
+
+        return {
+          id: `loc-${loc.id}`,
+          name: loc.nom,
+          type: lvl === 0 ? 'root' : 'localisation',
+          level: lvl,
+          equipments: directEqs,
+          subNodes
+        };
+      };
+
+      const roots = geoTree.map(rootLoc => buildLocNode(rootLoc, 0));
+
+      // Append unassigned equipments
+      const unassignedEqs = equipments.filter(e => !assignedEqIds.has(e.id));
+      if (unassignedEqs.length > 0) {
+        roots.push({
+          id: 'unassigned-root',
+          name: 'Autres / Non assignés',
+          type: 'unassigned',
+          level: 0,
+          equipments: unassignedEqs,
+          subNodes: []
+        });
+      }
+
+      return roots;
+    }
+
+    // Dynamic grouping by equipment category if no localisations in DB
+    const catMap = new Map<string, Equipment[]>();
+    equipments.forEach(eq => {
+      const cat = eq.category?.trim() || eq.subFamily?.trim() || 'Équipements généraux';
+      if (!catMap.has(cat)) catMap.set(cat, []);
+      catMap.get(cat)!.push(eq);
+    });
+
+    if (catMap.size > 0) {
+      const catNodes: TreeNodeData[] = Array.from(catMap.entries()).map(([catName, eqs], idx) => ({
+        id: `cat-${idx}-${catName}`,
+        name: catName,
+        type: 'category',
+        level: 1,
+        equipments: eqs,
+        subNodes: []
+      }));
+
+      return [{
+        id: 'virtual-root',
+        name: 'Usine Tomate / Parc Global',
+        type: 'root',
+        level: 0,
+        equipments: [],
+        subNodes: catNodes
+      }];
+    }
+
+    // Default fallback node if no equipments yet
+    return [{
+      id: 'default-root',
+      name: 'Usine Tomate / Ligne Principale',
+      type: 'root',
+      level: 0,
+      equipments: [defaultFallback],
+      subNodes: []
+    }];
+  }, [geoTree, equipments]);
+
+  // Expand all level 0 and level 1 nodes by default
+  useEffect(() => {
+    if (dynamicTreeNodes.length > 0) {
+      const initialExpanded = new Set<string>();
+      dynamicTreeNodes.forEach(root => {
+        initialExpanded.add(root.id);
+        root.subNodes.forEach(sub => {
+          initialExpanded.add(sub.id);
+        });
+      });
+      setExpandedNodes(initialExpanded);
+    }
+  }, [dynamicTreeNodes]);
+
+  // Filtered tree nodes based on search query
+  const filteredTreeNodes = useMemo(() => {
+    if (!treeSearch.trim()) return dynamicTreeNodes;
+    const results: TreeNodeData[] = [];
+    for (const root of dynamicTreeNodes) {
+      const res = filterTreeNode(root, treeSearch);
+      if (res.matches && res.filteredNode) {
+        results.push(res.filteredNode);
+      }
+    }
+    return results;
+  }, [dynamicTreeNodes, treeSearch]);
+
+  const allNodeIds = useMemo(() => getAllNodeIds(dynamicTreeNodes), [dynamicTreeNodes]);
+  const isAllExpanded = allNodeIds.length > 0 && allNodeIds.every(id => expandedNodes.has(id));
+
+  const toggleExpandAll = () => {
+    if (isAllExpanded) {
+      setExpandedNodes(new Set());
+    } else {
+      setExpandedNodes(new Set(allNodeIds));
+    }
+  };
 
   const getStatusBadge = (status: Equipment['status']) => {
     switch (status) {
@@ -151,33 +448,53 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
     }
   };
 
+  // Dynamic stats for active machine
+  const machineWorkOrders = useMemo(() => {
+    return workOrders.filter(w => w.equipmentId === activeMachine.id);
+  }, [workOrders, activeMachine.id]);
+
+  const machineIncidents = useMemo(() => {
+    return incidents.filter(i => i.equipmentId === activeMachine.id);
+  }, [incidents, activeMachine.id]);
+
+  const machineCompletedOts = useMemo(() => {
+    return machineWorkOrders.filter(w => w.status === 'Terminé' || w.status === 'Clôturé');
+  }, [machineWorkOrders]);
+
+  const machineDispo = activeMachine.status === 'En panne' ? 0 : (activeMachine.healthIndex || 98);
+
+  const machineMtbf = useMemo(() => {
+    const failures = machineIncidents.length + machineWorkOrders.filter(w => w.type === 'Correctif').length;
+    const hours = activeMachine.hoursCount || 1000;
+    return failures > 0 ? Math.round(hours / failures) : hours;
+  }, [machineIncidents, machineWorkOrders, activeMachine.hoursCount]);
+
+  const machineMttr = useMemo(() => {
+    if (machineCompletedOts.length > 0) {
+      const totalMinutes = machineCompletedOts.reduce((sum, o) => sum + (o.durationMinutes || 90), 0);
+      return (totalMinutes / (machineCompletedOts.length * 60)).toFixed(1);
+    }
+    return activeMachine.status === 'En panne' ? '2.0' : '0.0';
+  }, [machineCompletedOts, activeMachine.status]);
+
   // Demandes d'intervention calculations (Section 6)
-  const diATraiter = incidents.filter(i => i.status === 'Nouveau').length || 5;
-  const diEnCours = incidents.filter(i => i.status === 'Validé').length || 5;
-  const diRealise = incidents.filter(i => i.status === 'Transformé en OT' || i.status === 'Rejeté').length || 9;
-  const diAnnule = 2;
+  const diATraiter = incidents.filter(i => i.status === 'Nouveau').length;
+  const diEnCours = incidents.filter(i => i.status === 'Validé').length;
+  const diRealise = incidents.filter(i => i.status === 'Transformé en OT' || i.status === 'Clos').length;
+  const diAnnule = incidents.filter(i => i.status === 'Rejeté').length;
 
   // Ordres de travail calculations (Section 7)
-  const otAFaire = workOrders.filter(o => o.status === 'En attente' || o.status === 'Affecté').length || 8;
-  const otEnCours = workOrders.filter(o => o.status === 'En cours').length || 6;
-  const otTermine = workOrders.filter(o => o.status === 'Terminé' || o.status === 'Clôturé').length || 24;
-  const otEnRetard = 2;
+  const otAFaire = workOrders.filter(o => o.status === 'En attente' || o.status === 'Affecté').length;
+  const otEnCours = workOrders.filter(o => o.status === 'En cours').length;
+  const otTermine = workOrders.filter(o => o.status === 'Terminé' || o.status === 'Clôturé').length;
+  const otEnRetard = workOrders.filter(o => {
+    if (o.status === 'Terminé' || o.status === 'Clôturé') return false;
+    const limit = (o as any).dateLimite || (o as any).date;
+    return limit && new Date(limit) < new Date();
+  }).length;
 
-  const recentDis = incidents.length > 0 ? incidents.slice(0, 5) : [
-    { id: '#DI-001', date: '29/09/2026', title: 'Pompe P-102 ne démarre pas', urgency: 'Urgent' },
-    { id: '#DI-002', date: '28/09/2026', title: 'Bruit anormal Broyeur PM-01', urgency: 'Moyenne' },
-    { id: '#DI-003', date: '27/09/2026', title: 'Fuite huile hydraulique', urgency: 'Moyenne' },
-    { id: '#DI-004', date: '26/09/2026', title: 'Température élevée pasteurisateur', urgency: 'Faible' },
-    { id: '#DI-005', date: '25/09/2026', title: 'Contrôle niveau lubrifiant', urgency: 'Basse' },
-  ];
-
-  const recentOts = workOrders.length > 0 ? workOrders.slice(0, 5) : [
-    { id: 'OT-2026-089', title: 'Remplacement garniture mécanique Pompe P-102', priority: 'Haute', status: 'En cours', date: '29/09/2026' },
-    { id: 'OT-2026-088', title: 'Graissage paliers convoyeur alimentation', priority: 'Moyenne', status: 'En attente', date: '28/09/2026' },
-    { id: 'OT-2026-087', title: 'Contrôle pression chaudière vapeur', priority: 'Critique', status: 'En cours', date: '27/09/2026' },
-    { id: 'OT-2026-086', title: 'Nettoyage buses laveuse rotative', priority: 'Basse', status: 'Terminé', date: '26/09/2026' },
-    { id: 'OT-2026-085', title: 'Révision semestrielle sertisseuse', priority: 'Haute', status: 'Affecté', date: '25/09/2026' },
-  ];
+  const recentDis = incidents.slice(0, 5);
+  const recentOts = workOrders.slice(0, 5);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
@@ -190,12 +507,22 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
               <FolderTree className="w-4 h-4 text-blue-600" />
               Arborescence technique du parc
             </h3>
-            <button
-              onClick={() => onNavigate('equipment')}
-              className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5 cursor-pointer"
-            >
-              Voir tout <ArrowRight className="w-3 h-3" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleExpandAll}
+                className="text-[10px] font-bold text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center gap-0.5 cursor-pointer"
+                title={isAllExpanded ? "Tout replier" : "Tout déplier"}
+              >
+                <ChevronsUpDown className="w-3 h-3" />
+                {isAllExpanded ? 'Replier' : 'Déplier'}
+              </button>
+              <button
+                onClick={() => onNavigate('equipment')}
+                className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5 cursor-pointer"
+              >
+                Voir tout <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
           </div>
 
           {/* Search box */}
@@ -205,76 +532,51 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
               type="text"
               value={treeSearch}
               onChange={(e) => setTreeSearch(e.target.value)}
-              placeholder="Rechercher un équipement..."
+              placeholder="Rechercher par nom, code ou zone..."
               className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs outline-none focus:border-blue-500 font-medium"
             />
           </div>
 
           {/* Tree Structure */}
           <div className="space-y-1 overflow-y-auto max-h-[380px] pr-1">
-            <div className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 py-1">
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-              🏭 Usine Tomate / Parc Global
-            </div>
-
-            <div className="pl-3 space-y-2 border-l border-slate-200 dark:border-slate-800 ml-2">
-              {Object.entries(treeZones).map(([zoneName, zoneEqs]) => {
-                const folderKey = zoneName.toLowerCase();
-                const isOpen = openFolders[folderKey] ?? true;
-                const filteredEqs = zoneEqs.filter(e => 
-                  !treeSearch || 
-                  e.name.toLowerCase().includes(treeSearch.toLowerCase()) || 
-                  e.id.toLowerCase().includes(treeSearch.toLowerCase())
-                );
-
-                if (treeSearch && filteredEqs.length === 0) return null;
-
-                return (
-                  <div key={zoneName} className="space-y-1">
-                    <button
-                      onClick={() => toggleFolder(folderKey)}
-                      className="w-full flex items-center justify-between py-1 text-left text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-blue-600 cursor-pointer"
-                    >
-                      <span className="flex items-center gap-1.5">
-                        {isOpen ? <ChevronDown className="w-3 h-3 text-slate-400" /> : <ChevronRight className="w-3 h-3 text-slate-400" />}
-                        📁 {zoneName}
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-normal">
-                        ({filteredEqs.length})
-                      </span>
-                    </button>
-
-                    {isOpen && (
-                      <div className="pl-4 space-y-1.5">
-                        {filteredEqs.map(eq => {
-                          const isSelected = activeMachine.id === eq.id;
-                          return (
-                            <div
-                              key={eq.id}
-                              onClick={() => setSelectedEq(eq)}
-                              className={`flex items-center justify-between p-1.5 rounded-lg text-xs cursor-pointer transition-colors ${
-                                isSelected
-                                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-bold border border-blue-200 dark:border-blue-800'
-                                  : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2 truncate pr-2">
-                                <span className="w-1.5 h-1.5 rounded-full bg-slate-350 shrink-0" />
-                                <span className="truncate">{eq.name}</span>
-                              </div>
-                              <div className="shrink-0">
-                                {getStatusBadge(eq.status)}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            {locsLoading && dynamicTreeNodes.length === 0 ? (
+              <div className="py-8 flex flex-col items-center justify-center text-xs text-slate-400 gap-2">
+                <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                <span>Chargement de l'arborescence...</span>
+              </div>
+            ) : filteredTreeNodes.length === 0 ? (
+              <div className="py-8 text-center text-xs text-slate-400">
+                <Search className="w-6 h-6 mx-auto mb-2 text-slate-300 opacity-60" />
+                <p className="font-semibold">Aucun équipement trouvé</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">pour "{treeSearch}"</p>
+              </div>
+            ) : (
+              filteredTreeNodes.map(node => (
+                <DynamicTreeNodeItem
+                  key={node.id}
+                  node={node}
+                  level={0}
+                  expandedNodes={expandedNodes}
+                  onToggle={toggleNode}
+                  selectedEqId={activeMachine.id}
+                  onSelectEquipment={(eq) => setSelectedEq(eq)}
+                  treeSearch={treeSearch}
+                  getStatusBadge={getStatusBadge}
+                />
+              ))
+            )}
           </div>
+        </div>
+
+        {/* Tree Footer stats */}
+        <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 font-medium">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+            {equipments.length} équipements gérés
+          </span>
+          <span className="text-[10px] text-slate-400 font-semibold">
+            {locsLoading ? 'Synchronisation...' : `${dynamicTreeNodes.length} branche${dynamicTreeNodes.length > 1 ? 's' : ''}`}
+          </span>
         </div>
       </div>
 
@@ -358,26 +660,32 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
           <div className="grid grid-cols-2 gap-2 text-xs mb-1">
             <div className="p-2 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
               <span className="text-[9px] uppercase font-bold text-slate-400 block">Criticité</span>
-              <span className="font-bold text-rose-600 dark:text-rose-400 text-xs">
-                {activeMachine.status === 'En panne' ? 'Critique' : 'Moyenne'}
+              <span className={`font-bold text-xs ${
+                activeMachine.criticality === 'Critique' || activeMachine.criticality === 'Haute'
+                  ? 'text-rose-600 dark:text-rose-400'
+                  : activeMachine.criticality === 'Moyenne'
+                  ? 'text-amber-600 dark:text-amber-400'
+                  : 'text-emerald-600 dark:text-emerald-400'
+              }`}>
+                {activeMachine.criticality || 'Moyenne'}
               </span>
             </div>
             <div className="p-2 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
               <span className="text-[9px] uppercase font-bold text-slate-400 block">Disponibilité</span>
               <span className="font-bold text-emerald-600 dark:text-emerald-400 text-xs">
-                95.4%
+                {machineDispo}%
               </span>
             </div>
             <div className="p-2 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
               <span className="text-[9px] uppercase font-bold text-slate-400 block">MTBF machine</span>
               <span className="font-bold text-indigo-600 dark:text-indigo-400 text-xs">
-                180 h
+                {machineMtbf} h
               </span>
             </div>
             <div className="p-2 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
               <span className="text-[9px] uppercase font-bold text-slate-400 block">MTTR moyen</span>
               <span className="font-bold text-cyan-600 dark:text-cyan-400 text-xs">
-                1.8 h
+                {machineMttr} h
               </span>
             </div>
           </div>
@@ -475,44 +783,52 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
 
               {/* List of active DIs */}
               <div className="space-y-2 overflow-y-auto max-h-[300px] pr-1">
-                {recentDis.map((di, idx) => {
-                  const urgencyLabel = (di as any).urgency || 'Moyenne';
-                  const urgencyColor = 
-                    urgencyLabel === 'Urgent' || urgencyLabel === 'Critique'
-                      ? 'bg-rose-50 text-rose-600 border-rose-100'
-                      : urgencyLabel === 'Moyenne' || urgencyLabel === 'Haute'
-                      ? 'bg-amber-50 text-amber-600 border-amber-100'
-                      : 'bg-blue-50 text-blue-600 border-blue-100';
+                {recentDis.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-slate-400">
+                    <ClipboardList className="w-6 h-6 mx-auto mb-1.5 text-slate-300 opacity-60" />
+                    <p className="font-semibold">Aucune demande d'intervention</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Toutes les demandes ont été traitées</p>
+                  </div>
+                ) : (
+                  recentDis.map((di, idx) => {
+                    const urgencyLabel = (di as any).urgency || (di as any).priorite || 'Moyenne';
+                    const urgencyColor = 
+                      urgencyLabel === 'Urgent' || urgencyLabel === 'Critique' || urgencyLabel === 'Haute'
+                        ? 'bg-rose-50 text-rose-600 border-rose-100'
+                        : urgencyLabel === 'Moyenne'
+                        ? 'bg-amber-50 text-amber-600 border-amber-100'
+                        : 'bg-blue-50 text-blue-600 border-blue-100';
 
-                  return (
-                    <div
-                      key={idx}
-                      onClick={() => onNavigate('corrective')}
-                      className="p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-blue-400/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-all flex items-center justify-between cursor-pointer group"
-                    >
-                      <div className="overflow-hidden pr-2">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span className="font-mono text-[9px] font-bold text-slate-400">
-                            {(di as any).id || `#DI-00${idx + 1}`}
-                          </span>
-                          <span className="text-[9px] text-slate-400">
-                            {(di as any).date || '29/09/2026'}
-                          </span>
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => onNavigate('corrective')}
+                        className="p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-blue-400/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-all flex items-center justify-between cursor-pointer group"
+                      >
+                        <div className="overflow-hidden pr-2">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="font-mono text-[9px] font-bold text-slate-400">
+                              {di.id}
+                            </span>
+                            <span className="text-[9px] text-slate-400">
+                              {new Date((di as any).createdAt || (di as any).date || Date.now()).toLocaleDateString('fr-FR')}
+                            </span>
+                          </div>
+                          <h5 className="font-bold text-xs text-slate-800 dark:text-white truncate">
+                            {di.description || (di as any).title || 'Intervention requise'}
+                          </h5>
                         </div>
-                        <h5 className="font-bold text-xs text-slate-800 dark:text-white truncate">
-                          {(di as any).title || (di as any).description || 'Intervention requise'}
-                        </h5>
-                      </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className={`px-2 py-0.5 rounded text-[9px] font-bold border ${urgencyColor}`}>
-                          {urgencyLabel}
-                        </span>
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500 transition-colors" />
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-bold border ${urgencyColor}`}>
+                            {urgencyLabel}
+                          </span>
+                          <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500 transition-colors" />
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
             </>
           ) : (
@@ -558,34 +874,42 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
 
               {/* List of active OTs */}
               <div className="space-y-2 overflow-y-auto max-h-[300px] pr-1">
-                {recentOts.map((ot, idx) => (
-                  <div
-                    key={idx}
-                    onClick={() => onNavigate('workorders')}
-                    className="p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-blue-400/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-all flex items-center justify-between cursor-pointer group"
-                  >
-                    <div className="overflow-hidden pr-2">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="font-mono text-[9px] font-bold text-slate-400">
-                          {ot.id}
-                        </span>
-                        <span className="text-[9px] text-slate-400">
-                          {(ot as any).date || (ot as any).createdAt || '29/09/2026'}
-                        </span>
-                      </div>
-                      <h5 className="font-bold text-xs text-slate-800 dark:text-white truncate">
-                        {ot.title}
-                      </h5>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-blue-50 text-blue-600 border border-blue-100">
-                        {ot.status}
-                      </span>
-                      <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500 transition-colors" />
-                    </div>
+                {recentOts.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-slate-400">
+                    <CheckCircle2 className="w-6 h-6 mx-auto mb-1.5 text-slate-300 opacity-60" />
+                    <p className="font-semibold">Aucun ordre de travail actif</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Tous les ordres de travail sont à jour</p>
                   </div>
-                ))}
+                ) : (
+                  recentOts.map((ot, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => onNavigate('workorders')}
+                      className="p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-blue-400/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-all flex items-center justify-between cursor-pointer group"
+                    >
+                      <div className="overflow-hidden pr-2">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="font-mono text-[9px] font-bold text-slate-400">
+                            {ot.id}
+                          </span>
+                          <span className="text-[9px] text-slate-400">
+                            {new Date((ot as any).createdAt || (ot as any).date || Date.now()).toLocaleDateString('fr-FR')}
+                          </span>
+                        </div>
+                        <h5 className="font-bold text-xs text-slate-800 dark:text-white truncate">
+                          {ot.title}
+                        </h5>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-blue-50 text-blue-600 border border-blue-100">
+                          {ot.status}
+                        </span>
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500 transition-colors" />
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </>
           )}

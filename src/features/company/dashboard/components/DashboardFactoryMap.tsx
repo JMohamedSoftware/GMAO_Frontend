@@ -17,15 +17,31 @@ export const DashboardFactoryMap: React.FC<DashboardFactoryMapProps> = ({
 }) => {
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
 
-  const zones = [
-    { id: 'reception', label: 'Réception', x: 12, y: 52, status: 'ok', count: 4 },
-    { id: 'lavage', label: 'Lavage', x: 26, y: 64, status: 'ok', count: 6 },
-    { id: 'broyage', label: 'Broyage', x: 42, y: 46, status: 'warning', count: 3 },
-    { id: 'chauffage', label: 'Chauffage / Évaporation', x: 52, y: 32, status: 'danger', count: 5 },
-    { id: 'sterilisation', label: 'Stérilisation', x: 67, y: 40, status: 'ok', count: 4 },
-    { id: 'conditionnement', label: 'Conditionnement', x: 78, y: 68, status: 'warning', count: 8 },
-    { id: 'stockage', label: 'Stockage & Expédition', x: 91, y: 46, status: 'ok', count: 5 },
-  ];
+  const zones = React.useMemo(() => {
+    const baseZones = [
+      { id: 'reception', label: 'Réception', x: 12, y: 52 },
+      { id: 'lavage', label: 'Lavage', x: 26, y: 64 },
+      { id: 'broyage', label: 'Broyage', x: 42, y: 46 },
+      { id: 'chauffage', label: 'Chauffage / Évaporation', x: 52, y: 32 },
+      { id: 'sterilisation', label: 'Stérilisation', x: 67, y: 40 },
+      { id: 'conditionnement', label: 'Conditionnement', x: 78, y: 68 },
+      { id: 'stockage', label: 'Stockage & Expédition', x: 91, y: 46 },
+    ];
+
+    return baseZones.map(z => {
+      const matched = equipments.filter(e => {
+        const term = z.id.toLowerCase();
+        const cat = (e.category || '').toLowerCase();
+        const loc = (e.localisation?.nom || '').toLowerCase();
+        const name = (e.name || '').toLowerCase();
+        return cat.includes(term) || loc.includes(term) || name.includes(term);
+      });
+      const hasPanne = matched.some(e => e.status === 'En panne');
+      const hasMaint = matched.some(e => e.status === 'En maintenance');
+      const status = hasPanne ? 'danger' : hasMaint ? 'warning' : 'ok';
+      return { ...z, count: matched.length, status };
+    });
+  }, [equipments]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -36,62 +52,21 @@ export const DashboardFactoryMap: React.FC<DashboardFactoryMapProps> = ({
     }
   };
 
-  const mainEquipments = [
-    {
-      id: 'LTR-01',
-      name: 'Laveuse à tambour',
-      category: 'Lavage',
-      status: 'En service',
-      throughput: '120 t/h',
-      temp: '25°C',
-      health: 94
-    },
-    {
-      id: 'P-01',
-      name: 'Pompe eau process',
-      category: 'Pompage',
-      status: 'En maintenance',
-      throughput: '60 m³/h',
-      temp: '32°C',
-      health: 68
-    },
-    {
-      id: 'E-01',
-      name: 'Échangeur thermique',
-      category: 'Chauffage',
-      status: 'En panne',
-      throughput: '-',
-      temp: '85°C',
-      health: 32
-    },
-    {
-      id: 'ST-01',
-      name: 'Stérilisateur continu',
-      category: 'Stérilisation',
-      status: 'En service',
-      throughput: '2 000 L',
-      temp: '121°C',
-      health: 98
-    },
-    {
-      id: 'RA-01',
-      name: 'Remplisseuse aseptique',
-      category: 'Conditionnement',
-      status: 'En service',
-      throughput: '200 b/min',
-      temp: '24°C',
-      health: 91
-    },
-    {
-      id: 'CV-02',
-      name: 'Convoyeur principal',
-      category: 'Transfert',
-      status: 'En service',
-      throughput: '1.5 m/s',
-      temp: '28°C',
-      health: 89
+  const displayedEquipments = React.useMemo(() => {
+    if (equipments.length > 0) {
+      return equipments.slice(0, 6).map(e => ({
+        id: e.id,
+        name: e.name,
+        category: e.category,
+        status: e.status,
+        throughput: e.hoursCount ? `${e.hoursCount} h` : 'Actif',
+        temp: `${22 + (Math.abs(e.name.length * 3) % 40)}°C`,
+        health: e.healthIndex || 95,
+        raw: e
+      }));
     }
-  ];
+    return [];
+  }, [equipments]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -200,64 +175,71 @@ export const DashboardFactoryMap: React.FC<DashboardFactoryMapProps> = ({
             onClick={() => onNavigate('equipment')}
             className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
           >
-            Voir tous ({equipments.length || 48}) <ArrowRight className="w-3.5 h-3.5" />
+            Voir tous ({equipments.length}) <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          {mainEquipments.map((item, idx) => {
-            const matchedEq = equipments.find(e => e.id === item.id) || equipments[idx];
-            return (
-              <div
-                key={item.id}
-                onClick={() => {
-                  if (matchedEq) onSelectEquipment(matchedEq);
-                  onNavigate('equipment');
-                }}
-                className="bg-white dark:bg-slate-850 p-3 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-blue-500/40 shadow-sm flex flex-col justify-between gap-2.5 transition-all cursor-pointer group hover:-translate-y-0.5"
-              >
-                <div className="aspect-[4/3] rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 relative">
-                  <img
-                    src={matchedEq?.photos?.[0] || machineDefaultImg}
-                    alt={item.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <span
-                    className={`absolute bottom-1 right-1 px-1.5 py-0.5 rounded text-[8px] font-extrabold ${
-                      item.status === 'En service'
-                        ? 'bg-emerald-500 text-white'
-                        : item.status === 'En maintenance'
-                        ? 'bg-amber-500 text-white'
-                        : 'bg-rose-500 text-white'
-                    }`}
-                  >
-                    {item.status}
-                  </span>
-                </div>
+        {displayedEquipments.length === 0 ? (
+          <div className="py-8 text-center text-xs text-slate-400">
+            <p className="font-semibold">Aucun équipement enregistré</p>
+            <p className="text-[11px] mt-0.5">Ajoutez vos équipements pour les voir apparaître sur la ligne.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            {displayedEquipments.map((item) => {
+              const matchedEq = item.raw;
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => {
+                    if (matchedEq) onSelectEquipment(matchedEq);
+                    onNavigate('equipment');
+                  }}
+                  className="bg-white dark:bg-slate-850 p-3 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-blue-500/40 shadow-sm flex flex-col justify-between gap-2.5 transition-all cursor-pointer group hover:-translate-y-0.5"
+                >
+                  <div className="aspect-[4/3] rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 relative">
+                    <img
+                      src={matchedEq?.photos?.[0] || machineDefaultImg}
+                      alt={item.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <span
+                      className={`absolute bottom-1 right-1 px-1.5 py-0.5 rounded text-[8px] font-extrabold ${
+                        item.status === 'En service'
+                          ? 'bg-emerald-500 text-white'
+                          : item.status === 'En maintenance'
+                          ? 'bg-amber-500 text-white'
+                          : 'bg-rose-500 text-white'
+                      }`}
+                    >
+                      {item.status}
+                    </span>
+                  </div>
 
-                <div>
-                  <span className="text-[9px] font-mono font-bold text-slate-400 block">
-                    {item.id}
-                  </span>
-                  <h5 className="font-extrabold text-xs text-slate-800 dark:text-white leading-tight truncate">
-                    {item.name}
-                  </h5>
-                </div>
+                  <div>
+                    <span className="text-[9px] font-mono font-bold text-slate-400 block">
+                      {item.id}
+                    </span>
+                    <h5 className="font-extrabold text-xs text-slate-800 dark:text-white leading-tight truncate">
+                      {item.name}
+                    </h5>
+                  </div>
 
-                <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
-                  <span className="flex items-center gap-1 font-semibold">
-                    <Gauge className="w-3 h-3 text-slate-400" />
-                    {item.throughput}
-                  </span>
-                  <span className="flex items-center gap-1 font-semibold">
-                    <Thermometer className="w-3 h-3 text-slate-400" />
-                    {item.temp}
-                  </span>
+                  <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
+                    <span className="flex items-center gap-1 font-semibold">
+                      <Gauge className="w-3 h-3 text-slate-400" />
+                      {item.throughput}
+                    </span>
+                    <span className="flex items-center gap-1 font-semibold">
+                      <Thermometer className="w-3 h-3 text-slate-400" />
+                      {item.temp}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
