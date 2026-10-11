@@ -49,7 +49,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({
     // Status dropdown filter
     if (filterStatus === 'normal' && p.stockCurrent <= p.stockMin) return false;
     if (filterStatus === 'low' && !(p.stockCurrent > 0 && p.stockCurrent <= p.stockMin)) return false;
-    if (filterStatus === 'critical' && p.stockCurrent > 0) return false;
+    if (filterStatus === 'empty' && p.stockCurrent > 0) return false;
     
     // Tab filter
     if (activeTab === 'critical') return p.stockCurrent > 0 && p.stockCurrent <= p.stockMin;
@@ -63,7 +63,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({
     if (part.stockCurrent <= 0) {
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-50 text-red-600 border border-red-100">
-          <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div> Critique
+          <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div> Rupture
         </span>
       );
     }
@@ -163,7 +163,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({
           <option value="">Tous les statuts</option>
           <option value="normal">Normal</option>
           <option value="low">Stock bas</option>
-          <option value="critical">Critique / Rupture</option>
+          <option value="empty">Rupture</option>
         </select>
 
         {(search || filterCategory || filterSupplier || filterStatus) && (
