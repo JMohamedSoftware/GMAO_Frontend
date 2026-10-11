@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Filter, Eye, Edit2, MoreVertical, AlertCircle, AlertTriangle, CheckCircle2, ChevronRight, ChevronLeft, Package } from 'lucide-react';
+import { Search, Eye, Edit2, MoreVertical, AlertCircle, AlertTriangle, CheckCircle2, ChevronRight, ChevronLeft, Package } from 'lucide-react';
 import { SparePart, Supplier } from '@/shared/types/gmao';
 
 interface InventoryListProps {
@@ -29,6 +29,8 @@ export const InventoryList: React.FC<InventoryListProps> = ({
   const [activeTab, setActiveTab] = useState<'all' | 'critical' | 'empty' | 'order' | 'movements'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
   
   // Calculate counts for tabs
   const criticalCount = parts.filter(p => p.stockCurrent > 0 && p.stockCurrent <= p.stockMin).length;
@@ -41,6 +43,13 @@ export const InventoryList: React.FC<InventoryListProps> = ({
     if (search && !p.ref.toLowerCase().includes(search.toLowerCase()) && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
     // Supplier filter
     if (filterSupplier && p.supplierId !== filterSupplier) return false;
+    // Category filter
+    if (filterCategory && p.category !== filterCategory) return false;
+    
+    // Status dropdown filter
+    if (filterStatus === 'normal' && p.stockCurrent <= p.stockMin) return false;
+    if (filterStatus === 'low' && !(p.stockCurrent > 0 && p.stockCurrent <= p.stockMin)) return false;
+    if (filterStatus === 'critical' && p.stockCurrent > 0) return false;
     
     // Tab filter
     if (activeTab === 'critical') return p.stockCurrent > 0 && p.stockCurrent <= p.stockMin;
@@ -84,31 +93,31 @@ export const InventoryList: React.FC<InventoryListProps> = ({
       {/* Tabs */}
       <div className="flex border-b border-slate-200 dark:border-slate-800 px-2 overflow-x-auto">
         <button 
-          onClick={() => setActiveTab('all')}
+          onClick={() => { setActiveTab('all'); setCurrentPage(1); }}
           className={`px-4 py-3 text-xs font-bold whitespace-nowrap border-b-2 transition-colors ${activeTab === 'all' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
         >
           Toutes les pièces ({parts.length})
         </button>
         <button 
-          onClick={() => setActiveTab('critical')}
+          onClick={() => { setActiveTab('critical'); setCurrentPage(1); }}
           className={`px-4 py-3 text-xs font-bold whitespace-nowrap border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'critical' ? 'border-amber-500 text-amber-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
         >
           <AlertTriangle className="w-3.5 h-3.5" /> Stock critique ({criticalCount})
         </button>
         <button 
-          onClick={() => setActiveTab('empty')}
+          onClick={() => { setActiveTab('empty'); setCurrentPage(1); }}
           className={`px-4 py-3 text-xs font-bold whitespace-nowrap border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'empty' ? 'border-red-500 text-red-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
         >
           <AlertCircle className="w-3.5 h-3.5" /> Ruptures ({emptyCount})
         </button>
         <button 
-          onClick={() => setActiveTab('order')}
+          onClick={() => { setActiveTab('order'); setCurrentPage(1); }}
           className={`px-4 py-3 text-xs font-bold whitespace-nowrap border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'order' ? 'border-purple-500 text-purple-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
         >
           À commander ({orderCount})
         </button>
         <button 
-          onClick={() => setActiveTab('movements')}
+          onClick={() => { setActiveTab('movements'); setCurrentPage(1); }}
           className={`px-4 py-3 text-xs font-bold whitespace-nowrap border-b-2 transition-colors ${activeTab === 'movements' ? 'border-slate-800 text-slate-800' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
         >
           Mouvements récents
@@ -128,7 +137,11 @@ export const InventoryList: React.FC<InventoryListProps> = ({
           />
         </div>
         
-        <select className="text-xs p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-medium text-slate-600 min-w-[150px]">
+        <select 
+          value={filterCategory}
+          onChange={e => { setFilterCategory(e.target.value); setCurrentPage(1); }}
+          className="text-xs p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-medium text-slate-600 min-w-[150px]"
+        >
           <option value="">Toutes les familles</option>
           {categories.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
@@ -141,16 +154,32 @@ export const InventoryList: React.FC<InventoryListProps> = ({
           <option value="">Tous les fournisseurs</option>
           {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
-
-
         
-        <select className="text-xs p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-medium text-slate-600 min-w-[150px]">
+        <select 
+          value={filterStatus}
+          onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
+          className="text-xs p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none font-medium text-slate-600 min-w-[150px]"
+        >
           <option value="">Tous les statuts</option>
+          <option value="normal">Normal</option>
+          <option value="low">Stock bas</option>
+          <option value="critical">Critique / Rupture</option>
         </select>
 
-        <button className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg border border-blue-100 font-bold text-xs ml-auto">
-          <Filter className="w-3.5 h-3.5" /> Filtres
-        </button>
+        {(search || filterCategory || filterSupplier || filterStatus) && (
+          <button 
+            onClick={() => {
+              setSearch('');
+              setFilterCategory('');
+              setFilterSupplier('');
+              setFilterStatus('');
+              setCurrentPage(1);
+            }}
+            className="text-xs text-rose-500 hover:text-rose-700 font-semibold px-2 py-1 rounded hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors ml-auto cursor-pointer"
+          >
+            Réinitialiser les filtres
+          </button>
+        )}
       </div>
 
       {/* Table */}
