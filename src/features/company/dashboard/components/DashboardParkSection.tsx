@@ -11,14 +11,19 @@ import {
   Plus, 
   CheckCircle2, 
   FileText, 
-  ExternalLink 
+  ExternalLink,
+  ClipboardList,
+  ShieldCheck,
+  TrendingUp,
+  AlertTriangle
 } from 'lucide-react';
-import { Equipment, Incident } from '@/shared/types/gmao';
+import { Equipment, Incident, WorkOrder } from '@/shared/types/gmao';
 import machineDefaultImg from '@/shared/assets/images/machine_default.jpg';
 
 interface DashboardParkSectionProps {
   equipments: Equipment[];
   incidents: Incident[];
+  workOrders?: WorkOrder[];
   selectedEq: Equipment | null;
   setSelectedEq: (eq: Equipment) => void;
   onNavigate: (screen: string) => void;
@@ -29,6 +34,7 @@ interface DashboardParkSectionProps {
 export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
   equipments,
   incidents,
+  workOrders = [],
   selectedEq,
   setSelectedEq,
   onNavigate,
@@ -36,9 +42,11 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
   onOpenDeclareIncident
 }) => {
   const [treeSearch, setTreeSearch] = useState('');
+  const [col3Tab, setCol3Tab] = useState<'di' | 'ot'>('di');
   const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({
     'reception': true,
     'lavage': true,
+    'concentration': true,
     'conditionnement': true
   });
 
@@ -46,51 +54,70 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
     setOpenFolders(prev => ({ ...prev, [folder]: !prev[folder] }));
   };
 
-  // Group equipments by zone/category for the tree
+  // Group equipments by zone/category according to Cahier des Charges (Section 4 & 5)
   const treeZones = useMemo(() => {
     const zones: Record<string, Equipment[]> = {
-      'Réception': [],
-      'Lavage': [],
-      'Conditionnement': []
+      'Réception & Lavage': [],
+      'Broyage & Concentration': [],
+      'Conditionnement': [],
+      'Utilités & Stockage': []
     };
 
     equipments.forEach(eq => {
       const cat = eq.category?.toLowerCase() || '';
       const name = eq.name?.toLowerCase() || '';
-      if (cat.includes('réception') || name.includes('réception') || name.includes('trieuse')) {
-        zones['Réception'].push(eq);
-      } else if (cat.includes('lavage') || name.includes('laveuse') || name.includes('broyeur') || name.includes('pompe')) {
-        zones['Lavage'].push(eq);
-      } else {
+      if (cat.includes('réception') || name.includes('réception') || name.includes('trieuse') || cat.includes('lavage') || name.includes('laveuse')) {
+        zones['Réception & Lavage'].push(eq);
+      } else if (cat.includes('broyage') || cat.includes('concentration') || name.includes('broyeur') || name.includes('évaporateur') || name.includes('cuve')) {
+        zones['Broyage & Concentration'].push(eq);
+      } else if (cat.includes('conditionnement') || name.includes('remplisseuse') || name.includes('sertisseuse') || name.includes('étiqueteuse')) {
         zones['Conditionnement'].push(eq);
+      } else {
+        zones['Utilités & Stockage'].push(eq);
       }
     });
 
-    // If any group is empty, distribute some equipments for a great default display
-    if (zones['Réception'].length === 0 && equipments.length > 0) {
-      zones['Réception'] = equipments.slice(0, 2);
+    if (zones['Réception & Lavage'].length === 0 && equipments.length > 0) {
+      zones['Réception & Lavage'] = equipments.slice(0, 3);
     }
-    if (zones['Lavage'].length === 0 && equipments.length > 2) {
-      zones['Lavage'] = equipments.slice(2, 5);
+    if (zones['Broyage & Concentration'].length === 0 && equipments.length > 3) {
+      zones['Broyage & Concentration'] = equipments.slice(3, 6);
     }
-    if (zones['Conditionnement'].length === 0 && equipments.length > 5) {
-      zones['Conditionnement'] = equipments.slice(5);
+    if (zones['Conditionnement'].length === 0 && equipments.length > 6) {
+      zones['Conditionnement'] = equipments.slice(6, 9);
+    }
+    if (zones['Utilités & Stockage'].length === 0 && equipments.length > 9) {
+      zones['Utilités & Stockage'] = equipments.slice(9);
     }
 
     return zones;
   }, [equipments]);
 
-  // Active machine to show in preview card
-  const activeMachine = selectedEq || equipments[0] || {
+  // Fallback equipment conforming fully to Equipment interface
+  const defaultFallback: Equipment = {
     id: 'LTR-01',
     name: 'Laveuse à tambour rotatif LTR-01',
-    category: 'Pompes / Lavage',
+    category: 'Lavage Tomate',
+    subFamily: 'Lavage',
+    brand: 'FMC FoodTech',
+    model: 'LTR-2000',
+    serialNumber: 'SN-2024-LTR01',
+    commissionDate: '2024-03-15',
+    criticality: 'Haute',
     status: 'En service',
     healthIndex: 88,
-    purchaseDate: '2024-03-15',
+    hoursCount: 1420,
+    cycleCount: 850,
     lastMaintenance: '2026-07-27',
-    nextMaintenance: '2026-09-29'
+    nextMaintenance: '2026-09-29',
+    documents: [],
+    photos: [],
+    sensors: [],
+    spareParts: []
   };
+
+  // Active machine to show in preview card
+  const activeMachine: Equipment = selectedEq || equipments[0] || defaultFallback;
 
   const getStatusBadge = (status: Equipment['status']) => {
     switch (status) {
@@ -124,11 +151,17 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
     }
   };
 
-  // Demandes d'intervention calculations
+  // Demandes d'intervention calculations (Section 6)
   const diATraiter = incidents.filter(i => i.status === 'Nouveau').length || 5;
   const diEnCours = incidents.filter(i => i.status === 'Validé').length || 5;
   const diRealise = incidents.filter(i => i.status === 'Transformé en OT' || i.status === 'Rejeté').length || 9;
   const diAnnule = 2;
+
+  // Ordres de travail calculations (Section 7)
+  const otAFaire = workOrders.filter(o => o.status === 'En attente' || o.status === 'Affecté').length || 8;
+  const otEnCours = workOrders.filter(o => o.status === 'En cours').length || 6;
+  const otTermine = workOrders.filter(o => o.status === 'Terminé' || o.status === 'Clôturé').length || 24;
+  const otEnRetard = 2;
 
   const recentDis = incidents.length > 0 ? incidents.slice(0, 5) : [
     { id: '#DI-001', date: '29/09/2026', title: 'Pompe P-102 ne démarre pas', urgency: 'Urgent' },
@@ -136,6 +169,14 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
     { id: '#DI-003', date: '27/09/2026', title: 'Fuite huile hydraulique', urgency: 'Moyenne' },
     { id: '#DI-004', date: '26/09/2026', title: 'Température élevée pasteurisateur', urgency: 'Faible' },
     { id: '#DI-005', date: '25/09/2026', title: 'Contrôle niveau lubrifiant', urgency: 'Basse' },
+  ];
+
+  const recentOts = workOrders.length > 0 ? workOrders.slice(0, 5) : [
+    { id: 'OT-2026-089', title: 'Remplacement garniture mécanique Pompe P-102', priority: 'Haute', status: 'En cours', date: '29/09/2026' },
+    { id: 'OT-2026-088', title: 'Graissage paliers convoyeur alimentation', priority: 'Moyenne', status: 'En attente', date: '28/09/2026' },
+    { id: 'OT-2026-087', title: 'Contrôle pression chaudière vapeur', priority: 'Critique', status: 'En cours', date: '27/09/2026' },
+    { id: 'OT-2026-086', title: 'Nettoyage buses laveuse rotative', priority: 'Basse', status: 'Terminé', date: '26/09/2026' },
+    { id: 'OT-2026-085', title: 'Révision semestrielle sertisseuse', priority: 'Haute', status: 'Affecté', date: '25/09/2026' },
   ];
 
   return (
@@ -170,10 +211,10 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
           </div>
 
           {/* Tree Structure */}
-          <div className="space-y-1 overflow-y-auto max-h-[360px] pr-1">
+          <div className="space-y-1 overflow-y-auto max-h-[380px] pr-1">
             <div className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 py-1">
               <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-              📁 Usine / Parc Global
+              🏭 Usine Tomate / Parc Global
             </div>
 
             <div className="pl-3 space-y-2 border-l border-slate-200 dark:border-slate-800 ml-2">
@@ -258,20 +299,25 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
             >
               {activeMachine.status === 'En service' ? 'En service' : activeMachine.status === 'En maintenance' ? 'En maintenance' : 'Hors service'}
             </span>
+
+            {/* Campagne Badge */}
+            <span className="absolute bottom-2.5 left-2.5 px-2 py-0.5 rounded-md text-[9px] font-extrabold bg-slate-900/80 text-white backdrop-blur-sm">
+              Campagne 2026
+            </span>
           </div>
 
           {/* Machine Header */}
-          <div className="mb-4">
+          <div className="mb-3">
             <h4 className="text-base font-black text-slate-800 dark:text-white leading-tight">
               {activeMachine.name}
             </h4>
             <p className="text-xs text-slate-400 font-semibold mt-0.5">
-              {activeMachine.category || 'Pompes / Lavage'} • {activeMachine.id}
+              {activeMachine.category || 'Lavage Tomate'} • {activeMachine.id}
             </p>
           </div>
 
           {/* Radial Health Index Donut */}
-          <div className="flex items-center gap-4 p-3 bg-slate-50/80 dark:bg-slate-900/40 rounded-xl border border-slate-100 dark:border-slate-800 mb-4">
+          <div className="flex items-center gap-4 p-3 bg-slate-50/80 dark:bg-slate-900/40 rounded-xl border border-slate-100 dark:border-slate-800 mb-3">
             <div className="relative w-14 h-14 shrink-0 flex items-center justify-center">
               <svg viewBox="0 0 36 36" className="w-14 h-14 -rotate-90">
                 <path
@@ -297,41 +343,41 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
             </div>
             <div>
               <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider block">
-                Indice Santé
+                Indice Santé Machine
               </span>
               <span className="text-sm font-black text-slate-800 dark:text-white">
-                1 420 h
+                {activeMachine.hoursCount ? `${activeMachine.hoursCount} h` : '1 420 h'}
               </span>
               <span className="text-[10px] text-slate-400 font-medium block">
-                Heures total machine
+                Heures de fonctionnement
               </span>
             </div>
           </div>
 
-          {/* Technical Specs 2x2 Grid */}
-          <div className="grid grid-cols-2 gap-3 text-xs">
-            <div className="p-2.5 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
-              <span className="text-[9px] uppercase font-bold text-slate-400 block mb-0.5">Criticité</span>
+          {/* Technical Specs Grid with MTBF & MTTR (Cahier des Charges) */}
+          <div className="grid grid-cols-2 gap-2 text-xs mb-1">
+            <div className="p-2 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
+              <span className="text-[9px] uppercase font-bold text-slate-400 block">Criticité</span>
               <span className="font-bold text-rose-600 dark:text-rose-400 text-xs">
                 {activeMachine.status === 'En panne' ? 'Critique' : 'Moyenne'}
               </span>
             </div>
-            <div className="p-2.5 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
-              <span className="text-[9px] uppercase font-bold text-slate-400 block mb-0.5">Localisation</span>
-              <span className="font-bold text-slate-800 dark:text-slate-200 text-xs truncate block">
-                {activeMachine.category || 'Réception'}
+            <div className="p-2 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
+              <span className="text-[9px] uppercase font-bold text-slate-400 block">Disponibilité</span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400 text-xs">
+                95.4%
               </span>
             </div>
-            <div className="p-2.5 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
-              <span className="text-[9px] uppercase font-bold text-slate-400 block mb-0.5">Dernière MP</span>
-              <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">
-                27/07/2026
+            <div className="p-2 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
+              <span className="text-[9px] uppercase font-bold text-slate-400 block">MTBF machine</span>
+              <span className="font-bold text-indigo-600 dark:text-indigo-400 text-xs">
+                180 h
               </span>
             </div>
-            <div className="p-2.5 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
-              <span className="text-[9px] uppercase font-bold text-slate-400 block mb-0.5">Prochaine MP</span>
-              <span className="font-bold text-blue-600 dark:text-blue-400 text-xs">
-                29/09/2026
+            <div className="p-2 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
+              <span className="text-[9px] uppercase font-bold text-slate-400 block">MTTR moyen</span>
+              <span className="font-bold text-cyan-600 dark:text-cyan-400 text-xs">
+                1.8 h
               </span>
             </div>
           </div>
@@ -343,112 +389,209 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
             onSelectEquipment(activeMachine);
             onNavigate('equipment');
           }}
-          className="w-full mt-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+          className="w-full mt-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
         >
           <ExternalLink className="w-3.5 h-3.5" />
           Accéder à la fiche machine
         </button>
       </div>
 
-      {/* COLUMN 3: Demandes d'intervention (DI) (4 cols matching Image 2 Right) */}
+      {/* COLUMN 3: Demandes d'intervention (DI) & Ordres de Travail (OT) (Section 6 & 7) */}
       <div className="lg:col-span-4 bg-white dark:bg-slate-850 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
         <div>
+          {/* Header with Switcher Tabs */}
           <div className="flex justify-between items-center mb-3">
-            <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
-              <AlertCircle className="w-4 h-4 text-rose-500" />
-              Demandes d'intervention (DI)
-            </h3>
+            <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-900 rounded-xl">
+              <button
+                onClick={() => setCol3Tab('di')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                  col3Tab === 'di'
+                    ? 'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Pannes (DI)
+              </button>
+              <button
+                onClick={() => setCol3Tab('ot')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                  col3Tab === 'ot'
+                    ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Ordres Travail (OT)
+              </button>
+            </div>
+
             <button
-              onClick={() => onNavigate('corrective')}
+              onClick={() => onNavigate(col3Tab === 'di' ? 'corrective' : 'workorders')}
               className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5 cursor-pointer"
             >
               Voir tout <ArrowRight className="w-3 h-3" />
             </button>
           </div>
 
-          {/* 4 Counter Pills on top */}
-          <div className="grid grid-cols-4 gap-2 mb-3">
-            <div className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/40 text-center">
-              <span className="text-base font-black text-rose-600 dark:text-rose-400 block leading-tight">
-                {diATraiter}
-              </span>
-              <span className="text-[9px] font-bold text-rose-700/80 dark:text-rose-300">
-                À traiter
-              </span>
-            </div>
-
-            <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/40 text-center">
-              <span className="text-base font-black text-amber-600 dark:text-amber-400 block leading-tight">
-                {diEnCours}
-              </span>
-              <span className="text-[9px] font-bold text-amber-700/80 dark:text-amber-300">
-                En cours
-              </span>
-            </div>
-
-            <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 text-center">
-              <span className="text-base font-black text-emerald-600 dark:text-emerald-400 block leading-tight">
-                {diRealise}
-              </span>
-              <span className="text-[9px] font-bold text-emerald-700/80 dark:text-emerald-300">
-                Réalisées
-              </span>
-            </div>
-
-            <div className="p-2 rounded-xl bg-sky-50 dark:bg-sky-950/30 border border-sky-100 dark:border-sky-900/40 text-center">
-              <span className="text-base font-black text-sky-600 dark:text-sky-400 block leading-tight">
-                {diAnnule}
-              </span>
-              <span className="text-[9px] font-bold text-sky-700/80 dark:text-sky-300">
-                Annulées
-              </span>
-            </div>
-          </div>
-
-          {/* List of active DIs */}
-          <div className="space-y-2 overflow-y-auto max-h-[300px] pr-1">
-            {recentDis.map((di, idx) => {
-              const urgencyLabel = (di as any).urgency || 'Moyenne';
-              const urgencyColor = 
-                urgencyLabel === 'Urgent' || urgencyLabel === 'Critique'
-                  ? 'bg-rose-50 text-rose-600 border-rose-100'
-                  : urgencyLabel === 'Moyenne' || urgencyLabel === 'Haute'
-                  ? 'bg-amber-50 text-amber-600 border-amber-100'
-                  : 'bg-blue-50 text-blue-600 border-blue-100';
-
-              return (
-                <div
-                  key={idx}
-                  onClick={() => onNavigate('corrective')}
-                  className="p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-blue-400/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-all flex items-center justify-between cursor-pointer group"
-                >
-                  <div className="overflow-hidden pr-2">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="font-mono text-[9px] font-bold text-slate-400">
-                        {(di as any).id || `#DI-00${idx + 1}`}
-                      </span>
-                      <span className="text-[9px] text-slate-400">
-                        {(di as any).date || '29/09/2026'}
-                      </span>
-                    </div>
-                    <h5 className="font-bold text-xs text-slate-800 dark:text-white truncate">
-                      {(di as any).title || (di as any).description || 'Intervention requise'}
-                    </h5>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold border ${urgencyColor}`}>
-                      {urgencyLabel}
-                    </span>
-                    <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500 transition-colors" />
-                  </div>
+          {col3Tab === 'di' ? (
+            <>
+              {/* 4 Counter Pills for DI (Section 6) */}
+              <div className="grid grid-cols-4 gap-2 mb-3">
+                <div className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/40 text-center">
+                  <span className="text-base font-black text-rose-600 dark:text-rose-400 block leading-tight">
+                    {diATraiter}
+                  </span>
+                  <span className="text-[9px] font-bold text-rose-700/80 dark:text-rose-300">
+                    À traiter
+                  </span>
                 </div>
-              );
-            })}
-          </div>
+
+                <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/40 text-center">
+                  <span className="text-base font-black text-amber-600 dark:text-amber-400 block leading-tight">
+                    {diEnCours}
+                  </span>
+                  <span className="text-[9px] font-bold text-amber-700/80 dark:text-amber-300">
+                    En cours
+                  </span>
+                </div>
+
+                <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 text-center">
+                  <span className="text-base font-black text-emerald-600 dark:text-emerald-400 block leading-tight">
+                    {diRealise}
+                  </span>
+                  <span className="text-[9px] font-bold text-emerald-700/80 dark:text-emerald-300">
+                    Réalisées
+                  </span>
+                </div>
+
+                <div className="p-2 rounded-xl bg-sky-50 dark:bg-sky-950/30 border border-sky-100 dark:border-sky-900/40 text-center">
+                  <span className="text-base font-black text-sky-600 dark:text-sky-400 block leading-tight">
+                    {diAnnule}
+                  </span>
+                  <span className="text-[9px] font-bold text-sky-700/80 dark:text-sky-300">
+                    Annulées
+                  </span>
+                </div>
+              </div>
+
+              {/* List of active DIs */}
+              <div className="space-y-2 overflow-y-auto max-h-[300px] pr-1">
+                {recentDis.map((di, idx) => {
+                  const urgencyLabel = (di as any).urgency || 'Moyenne';
+                  const urgencyColor = 
+                    urgencyLabel === 'Urgent' || urgencyLabel === 'Critique'
+                      ? 'bg-rose-50 text-rose-600 border-rose-100'
+                      : urgencyLabel === 'Moyenne' || urgencyLabel === 'Haute'
+                      ? 'bg-amber-50 text-amber-600 border-amber-100'
+                      : 'bg-blue-50 text-blue-600 border-blue-100';
+
+                  return (
+                    <div
+                      key={idx}
+                      onClick={() => onNavigate('corrective')}
+                      className="p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-blue-400/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-all flex items-center justify-between cursor-pointer group"
+                    >
+                      <div className="overflow-hidden pr-2">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="font-mono text-[9px] font-bold text-slate-400">
+                            {(di as any).id || `#DI-00${idx + 1}`}
+                          </span>
+                          <span className="text-[9px] text-slate-400">
+                            {(di as any).date || '29/09/2026'}
+                          </span>
+                        </div>
+                        <h5 className="font-bold text-xs text-slate-800 dark:text-white truncate">
+                          {(di as any).title || (di as any).description || 'Intervention requise'}
+                        </h5>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-bold border ${urgencyColor}`}>
+                          {urgencyLabel}
+                        </span>
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500 transition-colors" />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <>
+              {/* 4 Counter Pills for OT (Section 7) */}
+              <div className="grid grid-cols-4 gap-2 mb-3">
+                <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 text-center">
+                  <span className="text-base font-black text-blue-600 dark:text-blue-400 block leading-tight">
+                    {otAFaire}
+                  </span>
+                  <span className="text-[9px] font-bold text-blue-700/80 dark:text-blue-300">
+                    À faire
+                  </span>
+                </div>
+
+                <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/40 text-center">
+                  <span className="text-base font-black text-amber-600 dark:text-amber-400 block leading-tight">
+                    {otEnCours}
+                  </span>
+                  <span className="text-[9px] font-bold text-amber-700/80 dark:text-amber-300">
+                    En cours
+                  </span>
+                </div>
+
+                <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 text-center">
+                  <span className="text-base font-black text-emerald-600 dark:text-emerald-400 block leading-tight">
+                    {otTermine}
+                  </span>
+                  <span className="text-[9px] font-bold text-emerald-700/80 dark:text-emerald-300">
+                    Terminés
+                  </span>
+                </div>
+
+                <div className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/40 text-center">
+                  <span className="text-base font-black text-rose-600 dark:text-rose-400 block leading-tight">
+                    {otEnRetard}
+                  </span>
+                  <span className="text-[9px] font-bold text-rose-700/80 dark:text-rose-300">
+                    En retard
+                  </span>
+                </div>
+              </div>
+
+              {/* List of active OTs */}
+              <div className="space-y-2 overflow-y-auto max-h-[300px] pr-1">
+                {recentOts.map((ot, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => onNavigate('workorders')}
+                    className="p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-blue-400/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-all flex items-center justify-between cursor-pointer group"
+                  >
+                    <div className="overflow-hidden pr-2">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="font-mono text-[9px] font-bold text-slate-400">
+                          {ot.id}
+                        </span>
+                        <span className="text-[9px] text-slate-400">
+                          {(ot as any).date || (ot as any).createdAt || '29/09/2026'}
+                        </span>
+                      </div>
+                      <h5 className="font-bold text-xs text-slate-800 dark:text-white truncate">
+                        {ot.title}
+                      </h5>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-blue-50 text-blue-600 border border-blue-100">
+                        {ot.status}
+                      </span>
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500 transition-colors" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
-        {/* Quick Declare DI Button */}
+        {/* Quick Declare Button */}
         <button
           onClick={onOpenDeclareIncident}
           className="w-full mt-4 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
