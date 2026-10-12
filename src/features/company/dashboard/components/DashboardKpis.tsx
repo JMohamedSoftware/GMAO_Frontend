@@ -36,7 +36,8 @@ export const DashboardKpis: React.FC<DashboardKpisProps> = ({
   const percentPanne = total > 0 ? Math.round((enPanne / total) * 100) : 0;
 
   // Dynamic Industrial Norms (Cahier des Charges § 12 & 14)
-  const dispoRate = total > 0 ? Math.round(((total - enPanne) / total) * 1000) / 10 : 100;
+  // null = no data yet (don't show a fake 100%)
+  const dispoRate = total > 0 ? Math.round(((total - enPanne) / total) * 1000) / 10 : null;
 
   // MTBF: Total operating hours / Total failures (only if we have real failure events)
   // Use hoursCount from equipment if available, else skip (no fake fallback)
@@ -211,14 +212,21 @@ export const DashboardKpis: React.FC<DashboardKpisProps> = ({
             </span>
             <div className="flex items-baseline gap-1.5">
               <span className="text-lg font-black text-slate-800 dark:text-white leading-tight">
-                {dispoRate}%
+                {dispoRate !== null ? `${dispoRate}%` : '—'}
               </span>
-              <span className="text-[10px] font-bold text-emerald-600">
-                {enPanne === 0 ? 'Optimal' : `${total - enPanne}/${total}`}
-              </span>
+              {dispoRate !== null ? (
+                <span className={`text-[10px] font-bold ${
+                  dispoRate === 100 ? 'text-emerald-600' :
+                  dispoRate >= 80 ? 'text-amber-600' : 'text-rose-600'
+                }`}>
+                  {enPanne === 0 ? 'Optimal' : `${total - enPanne}/${total}`}
+                </span>
+              ) : (
+                <span className="text-[10px] font-bold text-slate-400">Données insuffisantes</span>
+              )}
             </div>
             <span className="text-[9px] text-slate-400 block truncate">
-              Temps fct / Temps total
+              Équip. opérationnels / Total
             </span>
           </div>
         </div>
