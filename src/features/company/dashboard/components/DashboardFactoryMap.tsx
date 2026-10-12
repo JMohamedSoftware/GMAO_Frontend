@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Maximize2, MapPin, CheckCircle2, Clock, AlertTriangle, ArrowRight, Gauge, Activity, Thermometer } from 'lucide-react';
+import { Maximize2, MapPin, ArrowRight, Gauge, Activity } from 'lucide-react';
 import factoryPlanImg from '@/shared/assets/images/factory_plan.jpg';
 import machineDefaultImg from '@/shared/assets/images/machine_default.jpg';
 import { Equipment } from '@/shared/types/gmao';
@@ -59,9 +59,7 @@ export const DashboardFactoryMap: React.FC<DashboardFactoryMapProps> = ({
         name: e.name,
         category: e.category,
         status: e.status,
-        throughput: e.hoursCount ? `${e.hoursCount} h` : 'Actif',
-        temp: `${22 + (Math.abs(e.name.length * 3) % 40)}°C`,
-        health: e.healthIndex || 95,
+        throughput: e.hoursCount ? `${e.hoursCount} h` : '—',
         raw: e
       }));
     }
@@ -230,9 +228,8 @@ export const DashboardFactoryMap: React.FC<DashboardFactoryMapProps> = ({
                       <Gauge className="w-3 h-3 text-slate-400" />
                       {item.throughput}
                     </span>
-                    <span className="flex items-center gap-1 font-semibold">
-                      <Thermometer className="w-3 h-3 text-slate-400" />
-                      {item.temp}
+                    <span className="text-[9px] font-bold text-slate-400 uppercase truncate">
+                      {item.category}
                     </span>
                   </div>
                 </div>

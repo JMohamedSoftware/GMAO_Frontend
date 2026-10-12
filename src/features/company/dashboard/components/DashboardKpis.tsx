@@ -35,18 +35,35 @@ export const DashboardKpis: React.FC<DashboardKpisProps> = ({
   const percentMaint = total > 0 ? Math.round((enMaint / total) * 100) : 0;
   const percentPanne = total > 0 ? Math.round((enPanne / total) * 100) : 0;
 
-  // Dynamic Industrial Norms (Cahier des Charges)
+  // Dynamic Industrial Norms (Cahier des Charges § 12 & 14)
   const dispoRate = total > 0 ? Math.round(((total - enPanne) / total) * 1000) / 10 : 100;
 
-  // MTBF: Total operating hours / Total failures
-  const totalOperatingHours = equipments.reduce((sum, e) => sum + (e.hoursCount || 0), 0) || (total * 160);
+  // MTBF: Total operating hours / Total failures (only if we have real failure events)
+  // Use hoursCount from equipment if available, else skip (no fake fallback)
+  const totalOperatingHoursReal = equipments.reduce((sum, e) => sum + (e.hoursCount || 0), 0);
   const failureCount = incidents.length + workOrders.filter(w => w.type === 'Correctif').length;
-  const mtbf = failureCount > 0 ? Math.round(totalOperatingHours / failureCount) : (totalOperatingHours > 0 ? totalOperatingHours : 160);
+  const hasMtbfData = totalOperatingHoursReal > 0 && failureCount > 0;
+  const mtbf = hasMtbfData
+    ? Math.round(totalOperatingHoursReal / failureCount)
+    : null; // null = données insuffisantes
 
-  // MTTR: Average repair duration in hours for completed work orders
-  const completedOts = workOrders.filter(w => (w.status === 'Terminé' || w.status === 'Clôturé'));
-  const totalRepairHours = completedOts.reduce((sum, w) => sum + (w.durationMinutes ? w.durationMinutes / 60 : 2), 0);
-  const mttr = completedOts.length > 0 ? (totalRepairHours / completedOts.length).toFixed(1) : (enPanne > 0 ? '2.0' : '0.0');
+  // MTTR: Average repair duration for completed OTs.
+  // Priority: use startDate/endDate diff; fallback to durationMinutes if available
+  const completedOts = workOrders.filter(w => w.status === 'Terminé' || w.status === 'Clôturé');
+  const otsWithDuration = completedOts.filter(w => {
+    if (w.startDate && w.endDate) return true;
+    if (w.durationMinutes && w.durationMinutes > 0) return true;
+    return false;
+  });
+  const totalRepairHours = otsWithDuration.reduce((sum, w) => {
+    if (w.startDate && w.endDate) {
+      const diffMs = new Date(w.endDate).getTime() - new Date(w.startDate).getTime();
+      return sum + Math.max(0, diffMs / 3600000);
+    }
+    return sum + ((w.durationMinutes || 0) / 60);
+  }, 0);
+  const hasMttrData = otsWithDuration.length > 0;
+  const mttrVal = hasMttrData ? (totalRepairHours / otsWithDuration.length) : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -206,8 +223,7 @@ export const DashboardKpis: React.FC<DashboardKpisProps> = ({
           </div>
         </div>
 
-        {/* KPI 2: MTBF */}
-        <div className="p-3 bg-white dark:bg-slate-850 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center gap-3">
+          <div className="p-3 bg-white dark:bg-slate-850 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-100 dark:border-indigo-900/40">
             <TrendingUp className="w-4.5 h-4.5" />
           </div>
@@ -217,11 +233,15 @@ export const DashboardKpis: React.FC<DashboardKpisProps> = ({
             </span>
             <div className="flex items-baseline gap-1.5">
               <span className="text-lg font-black text-slate-800 dark:text-white leading-tight">
-                {mtbf} h
+                {mtbf !== null ? `${mtbf} h` : '—'}
               </span>
-              <span className={`text-[10px] font-bold ${mtbf >= 100 ? 'text-emerald-600' : 'text-amber-600'}`}>
-                {mtbf >= 100 ? 'Bon' : 'À suivre'}
-              </span>
+              {mtbf !== null ? (
+                <span className={`text-[10px] font-bold ${mtbf >= 100 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                  {mtbf >= 100 ? 'Bon' : 'À suivre'}
+                </span>
+              ) : (
+                <span className="text-[10px] font-bold text-slate-400">Données insuffisantes</span>
+              )}
             </div>
             <span className="text-[9px] text-slate-400 block truncate">
               Moyenne entre deux pannes
@@ -229,8 +249,7 @@ export const DashboardKpis: React.FC<DashboardKpisProps> = ({
           </div>
         </div>
 
-        {/* KPI 3: MTTR */}
-        <div className="p-3 bg-white dark:bg-slate-850 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center gap-3">
+          <div className="p-3 bg-white dark:bg-slate-850 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600 dark:text-cyan-400 flex items-center justify-center shrink-0 border border-cyan-100 dark:border-cyan-900/40">
             <ShieldCheck className="w-4.5 h-4.5" />
           </div>
@@ -240,11 +259,15 @@ export const DashboardKpis: React.FC<DashboardKpisProps> = ({
             </span>
             <div className="flex items-baseline gap-1.5">
               <span className="text-lg font-black text-slate-800 dark:text-white leading-tight">
-                {mttr} h
+                {mttrVal !== null ? `${mttrVal.toFixed(1)} h` : '—'}
               </span>
-              <span className="text-[10px] font-bold text-emerald-600">
-                {completedOts.length > 0 ? `${completedOts.length} OTs` : 'Cible < 2h'}
-              </span>
+              {mttrVal !== null ? (
+                <span className="text-[10px] font-bold text-emerald-600">
+                  {otsWithDuration.length} OT{otsWithDuration.length > 1 ? 's' : ''}
+                </span>
+              ) : (
+                <span className="text-[10px] font-bold text-slate-400">Données insuffisantes</span>
+              )}
             </div>
             <span className="text-[9px] text-slate-400 block truncate">
               Temps moyen de remise en route
