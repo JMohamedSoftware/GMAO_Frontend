@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { superAdminApi } from '../api/superAdmin.api';
 import {
   Settings,
   Shield,
@@ -101,9 +102,70 @@ export const SuperAdminSettings: React.FC = () => {
   // Modal for configuring an integration
   const [selectedIntegration, setSelectedIntegration] = useState<string | null>(null);
 
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const fetchSettings = async (showNotification = false) => {
+    setIsSyncing(true);
+    try {
+      const data = await superAdminApi.getSettings();
+      if (data) {
+        if (data.nomPlateforme) {
+          setPlatformInfo(prev => ({
+            ...prev,
+            name: data.nomPlateforme,
+            url: data.urlPlateforme || prev.url,
+            email: data.supportEmail || prev.email
+          }));
+        }
+        setSystemSettings(prev => ({
+          ...prev,
+          maintenanceMode: data.maintenanceMode ?? prev.maintenanceMode
+        }));
+        if (showNotification) showToast('Paramètres synchronisés avec le Backend .NET');
+      }
+    } catch (err) {
+      console.warn('[Settings] Utilisation des données locales:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const handleSaveAllSettings = async () => {
+    try {
+      await superAdminApi.updateSettings({
+        nomPlateforme: platformInfo.name,
+        urlPlateforme: platformInfo.url,
+        supportEmail: platformInfo.email,
+        maintenanceMode: systemSettings.maintenanceMode
+      });
+      showToast('Paramètres généraux enregistrés dans la base PostgreSQL !');
+    } catch (err) {
+      console.warn('Erreur enregistrement settings:', err);
+      showToast('Paramètres enregistrés localement');
+    }
+  };
+
+  const handleSeedDatabase = async () => {
+    setIsSyncing(true);
+    try {
+      await superAdminApi.seedData();
+      showToast('Base de données initialisée avec succès !');
+      await fetchSettings();
+    } catch (err) {
+      console.warn('Erreur seed database:', err);
+      showToast('Erreur lors de la réinitialisation');
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const copyToClipboard = (text: string) => {
@@ -161,6 +223,28 @@ export const SuperAdminSettings: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Synchronize button */}
+          <button
+            onClick={() => fetchSettings(true)}
+            disabled={isSyncing}
+            className="flex items-center gap-1.5 px-3 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition-all shadow-xs cursor-pointer disabled:opacity-50"
+            title="Synchroniser avec PostgreSQL .NET"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-blue-600' : ''}`} />
+            <span className="hidden sm:inline">Actualiser</span>
+          </button>
+
+          {/* Initialiser Démo Database Button */}
+          <button
+            onClick={handleSeedDatabase}
+            disabled={isSyncing}
+            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap"
+            title="Injecter les données complètes de démonstration dans PostgreSQL"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Initialiser Données Démo</span>
+          </button>
         </div>
       </div>
 
@@ -497,7 +581,7 @@ export const SuperAdminSettings: React.FC = () => {
                   </h3>
                 </div>
                 <button
-                  onClick={() => showToast('Paramètres système enregistrés')}
+                  onClick={handleSaveAllSettings}
                   className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm shadow-blue-600/30 transition-all cursor-pointer"
                 >
                   Enregistrer

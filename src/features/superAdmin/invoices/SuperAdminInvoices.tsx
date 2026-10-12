@@ -1,8 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { superAdminApi } from '../api/superAdmin.api';
 import {
   Receipt,
   Download,
   Calendar,
+  RefreshCw,
   CheckCircle2,
   Clock,
   XCircle,
@@ -378,6 +380,58 @@ export const SuperAdminInvoices: React.FC = () => {
     showToast('Fichier CSV exporté avec succès');
   };
 
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+
+  const fetchInvoices = async (showNotification = false) => {
+    setIsSyncing(true);
+    try {
+      const data = await superAdminApi.getInvoices();
+      if (data && data.length > 0) {
+        const mapped: InvoiceItem[] = data.map((inv, idx) => ({
+          id: String(inv.id),
+          invoiceNumber: inv.numeroFacture || `FAC-2026-${String(idx + 1).padStart(4, '0')}`,
+          company: inv.societeNom || 'Société Client',
+          logo: inv.societeNom.toLowerCase().includes('tomate') ? '🍅' : (inv.societeNom.toLowerCase().includes('sicam') ? '🥫' : '🏭'),
+          plan: inv.plan?.includes('Enterprise') ? 'Enterprise' : (inv.plan?.includes('Starter') ? 'Basic' : 'Professional'),
+          planBadgeColor: inv.plan?.includes('Enterprise')
+            ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-900'
+            : (inv.plan?.includes('Starter')
+              ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-900'
+              : 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-900'),
+          amount: `${Number(inv.montantTTC).toLocaleString('fr-FR')} TND`,
+          amountHT: `${Number(inv.montantHT).toLocaleString('fr-FR')} TND`,
+          tva: `${Math.round(inv.montantHT * 0.19).toLocaleString('fr-FR')} TND`,
+          amountTotal: `${Number(inv.montantTTC).toLocaleString('fr-FR')} TND`,
+          issueDate: new Date(inv.dateEmission).toLocaleDateString('fr-FR'),
+          dueDate: new Date(inv.dateEcheance).toLocaleDateString('fr-FR'),
+          paymentDate: inv.datePaiement ? new Date(inv.datePaiement).toLocaleDateString('fr-FR') : undefined,
+          status: (inv.statut as any) || 'Payée',
+          statusBadgeColor: inv.statut === 'Payée'
+            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400'
+            : (inv.statut === 'En attente'
+              ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400'
+              : 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400'),
+          paymentMethod: inv.methodePaiement || 'Virement bancaire',
+          contact: 'Direction Financière',
+          email: 'finance@societe.tn',
+          phone: '+216 71 000 000',
+          address: 'Tunisie',
+          period: inv.periode || 'Mars 2026'
+        }));
+        setInvoices(mapped);
+        if (showNotification) showToast('Factures synchronisées avec PostgreSQL .NET');
+      }
+    } catch (err) {
+      console.warn('[Invoices] Utilisation des données locales:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchInvoices();
+  }, []);
+
   return (
     <div className="flex flex-col gap-6 animate-[fadeIn_0.2s_ease-out] relative">
       {/* Toast Alert */}
@@ -427,6 +481,17 @@ export const SuperAdminInvoices: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Synchronize button */}
+          <button
+            onClick={() => fetchInvoices(true)}
+            disabled={isSyncing}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition-all shadow-xs cursor-pointer disabled:opacity-50"
+            title="Synchroniser avec PostgreSQL .NET"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-primary' : ''}`} />
+            <span className="hidden sm:inline">Actualiser</span>
+          </button>
         </div>
       </div>
 

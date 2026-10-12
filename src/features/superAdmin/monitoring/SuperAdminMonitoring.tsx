@@ -1,8 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { superAdminApi } from '../api/superAdmin.api';
 import {
   Activity,
   Users,
   Factory,
+  RefreshCw,
   Building2,
   HardDrive,
   Calendar,
@@ -386,6 +388,46 @@ export const SuperAdminMonitoring: React.FC = () => {
     showToast('Exportation des métriques générée');
   };
 
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [liveServer, setLiveServer] = useState<any>(null);
+
+  const fetchMonitoring = async (showNotification = false) => {
+    setIsSyncing(true);
+    try {
+      const data = await superAdminApi.getMonitoring();
+      if (data) {
+        if (data.server) setLiveServer(data.server);
+        if (data.tenants && data.tenants.length > 0) {
+          setTenantsList(prev => prev.map(t => {
+            const remote = data.tenants.find(rt => rt.id === Number(t.id.replace('mon-', '')) || rt.nom === t.name);
+            if (remote) {
+              return {
+                ...t,
+                usersUsed: remote.usersCount,
+                usersLimit: remote.maxUsers,
+                equipmentsUsed: remote.equipementsCount,
+                equipmentsLimit: remote.maxEquipements,
+                storageUsed: remote.storageUsedGb,
+                storageLimit: remote.maxStorageGb,
+                status: (remote.storageUsedGb / remote.maxStorageGb) > 0.85 ? 'En limite' : 'Actif'
+              };
+            }
+            return t;
+          }));
+        }
+        if (showNotification) showToast('Métriques synchronisées avec le serveur .NET');
+      }
+    } catch (err) {
+      console.warn('[Monitoring] Utilisation des données locales:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMonitoring();
+  }, []);
+
   return (
     <div className="flex flex-col gap-6 animate-[fadeIn_0.2s_ease-out] relative">
       {/* Toast Alert */}
@@ -435,6 +477,17 @@ export const SuperAdminMonitoring: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Synchronize button */}
+          <button
+            onClick={() => fetchMonitoring(true)}
+            disabled={isSyncing}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition-all shadow-xs cursor-pointer disabled:opacity-50"
+            title="Synchroniser avec PostgreSQL .NET"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-primary' : ''}`} />
+            <span className="hidden sm:inline">Actualiser</span>
+          </button>
         </div>
       </div>
 

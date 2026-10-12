@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { superAdminApi } from '../api/superAdmin.api';
 import {
   Users,
   UserPlus,
@@ -398,6 +399,55 @@ export const SuperAdminUsers: React.FC = () => {
   });
 
   const [editUserForm, setEditUserForm] = useState<UserItem | null>(null);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+
+  const fetchUsers = async (showNotification = false) => {
+    setIsSyncing(true);
+    try {
+      const data = await superAdminApi.getUsers();
+      if (data && data.length > 0) {
+        const mapped: UserItem[] = data.map((u, idx) => ({
+          id: String(u.id),
+          name: u.fullName || `${u.prenom} ${u.nom}`.trim() || u.nom,
+          email: u.email,
+          phone: u.telephone || '+216 71 890 000',
+          company: u.societeNom || 'SuperAdmin Global',
+          site: 'Usine Principale',
+          role: u.roleNom?.includes('Admin')
+            ? 'Admin Entreprise'
+            : (u.roleNom?.includes('Super')
+              ? 'Super Admin'
+              : (u.roleNom?.includes('Resp') ? 'Responsable' : 'Technicien')),
+          roleColor: u.roleNom?.includes('Super')
+            ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200 dark:border-rose-900'
+            : 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-900',
+          status: u.isActive ? 'Actif' : 'Inactif',
+          statusColor: u.isActive
+            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400'
+            : 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400',
+          lastLogin: new Date(u.lastLogin).toLocaleDateString('fr-FR') + ' ' + new Date(u.lastLogin).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+          registrationDate: new Date(u.createdAt).toLocaleDateString('fr-FR'),
+          jobTitle: u.roleNom || 'Opérateur Maintenance',
+          avatar: u.avatar || `https://images.unsplash.com/photo-${1534528741775 + (idx % 10)}?w=150&auto=format&fit=crop&q=80`,
+          permissions: ['Gestion utilisateurs', 'Gestion équipements', 'Maintenance (OT)'],
+          authorizedSites: [{ name: 'Usine Principale', status: 'Actif' }],
+          recentActivities: [
+            { id: `act-${u.id}`, action: 'Connexion à la plateforme', date: 'Aujourd’hui', type: 'login', iconBg: 'bg-blue-100 text-blue-600' }
+          ]
+        }));
+        setUsersList(mapped);
+        if (showNotification) showToast('Utilisateurs synchronisés avec PostgreSQL .NET');
+      }
+    } catch (err) {
+      console.warn('[Users] Utilisation des données locales:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   // Selected user for inspection
   const selectedUser = useMemo(() => {
@@ -506,9 +556,23 @@ export const SuperAdminUsers: React.FC = () => {
   };
 
   // Edit user submission
-  const handleSaveEditUser = (e: React.FormEvent) => {
+  const handleSaveEditUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editUserForm) return;
+
+    try {
+      const numId = parseInt(editUserForm.id, 10);
+      if (!isNaN(numId)) {
+        await superAdminApi.updateUser(numId, {
+          nom: editUserForm.name,
+          email: editUserForm.email,
+          telephone: editUserForm.phone,
+          isActive: editUserForm.status === 'Actif'
+        });
+      }
+    } catch (err) {
+      console.warn('Erreur mise à jour utilisateur backend:', err);
+    }
 
     setUsersList(prev =>
       prev.map(u => (u.id === editUserForm.id ? editUserForm : u))
@@ -518,12 +582,23 @@ export const SuperAdminUsers: React.FC = () => {
   };
 
   // Toggle user active / suspended
-  const handleToggleStatus = (user: UserItem) => {
+  const handleToggleStatus = async (user: UserItem) => {
     const nextStatus: UserItem['status'] = user.status === 'Actif' ? 'Inactif' : 'Actif';
     const nextColor =
       nextStatus === 'Actif'
         ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400'
         : 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400';
+
+    try {
+      const numId = parseInt(user.id, 10);
+      if (!isNaN(numId)) {
+        await superAdminApi.updateUser(numId, {
+          isActive: nextStatus === 'Actif'
+        });
+      }
+    } catch (err) {
+      console.warn('Erreur toggle statut backend:', err);
+    }
 
     setUsersList(prev =>
       prev.map(u => (u.id === user.id ? { ...u, status: nextStatus, statusColor: nextColor } : u))
@@ -592,6 +667,17 @@ export const SuperAdminUsers: React.FC = () => {
               Gérez les accès et les rôles de toutes les entreprises
             </span>
           </div>
+
+          {/* Synchronize button */}
+          <button
+            onClick={() => fetchUsers(true)}
+            disabled={isSyncing}
+            className="flex items-center gap-1.5 px-4 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition-all shadow-xs cursor-pointer disabled:opacity-50"
+            title="Synchroniser avec PostgreSQL .NET"
+          >
+            <RotateCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-blue-600' : ''}`} />
+            <span className="hidden sm:inline">Actualiser</span>
+          </button>
 
           <button
             onClick={() => setIsAddUserModalOpen(true)}

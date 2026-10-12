@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { superAdminApi } from '../api/superAdmin.api';
 import {
   Layers,
   Package,
@@ -11,6 +12,7 @@ import {
   Edit,
   Check,
   X,
+  RefreshCw,
   Crown,
   Cog,
   Wrench,
@@ -235,8 +237,61 @@ export const SuperAdminPlans: React.FC<SuperAdminPlansProps> = ({
     }
   ];
 
-  const handleSavePlanEdit = (e: React.FormEvent) => {
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+
+  const fetchPlans = async (showNotification = false) => {
+    setIsSyncing(true);
+    try {
+      const data = await superAdminApi.getPlans();
+      if (data && data.length > 0) {
+        setPlans(prev => prev.map(p => {
+          const remote = data.find(r => r.code?.toLowerCase() === p.id?.toLowerCase() || r.nom?.toLowerCase() === p.name?.toLowerCase());
+          if (remote) {
+            return {
+              ...p,
+              backendId: remote.id,
+              priceMonthly: Number(remote.prixMensuel),
+              priceYearly: Number(remote.prixAnnuel),
+              maxUsers: remote.maxUsers,
+              maxSites: remote.maxSites,
+              maxStorage: `${remote.maxStorageGb} Go`,
+              support: remote.supportLevel
+            };
+          }
+          return p;
+        }));
+        if (showNotification) showToast('Plans synchronisés avec le Backend .NET');
+      }
+    } catch (err) {
+      console.warn('[Plans] Utilisation des données locales:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPlans();
+  }, []);
+
+  const handleSavePlanEdit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedPlanForEdit) return;
+
+    try {
+      if (selectedPlanForEdit.backendId) {
+        await superAdminApi.updatePlan(selectedPlanForEdit.backendId, {
+          nom: selectedPlanForEdit.name,
+          prixMensuel: selectedPlanForEdit.priceMonthly,
+          prixAnnuel: selectedPlanForEdit.priceYearly,
+          maxUsers: selectedPlanForEdit.maxUsers,
+          maxSites: selectedPlanForEdit.maxSites,
+          supportLevel: selectedPlanForEdit.support
+        });
+      }
+    } catch (err) {
+      console.warn('Erreur mise à jour plan backend:', err);
+    }
+
     setPlans(prev => prev.map(p => p.id === selectedPlanForEdit.id ? selectedPlanForEdit : p));
     setSelectedPlanForEdit(null);
     showToast(`Plan ${selectedPlanForEdit.name} mis à jour avec succès`);
@@ -288,6 +343,17 @@ export const SuperAdminPlans: React.FC<SuperAdminPlansProps> = ({
             />
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-black/15" />
           </div>
+
+          {/* Synchronize button */}
+          <button
+            onClick={() => fetchPlans(true)}
+            disabled={isSyncing}
+            className="flex items-center gap-1.5 px-3 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs transition shadow-xs cursor-pointer disabled:opacity-50"
+            title="Synchroniser avec PostgreSQL .NET"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-primary' : ''}`} />
+            <span className="hidden sm:inline">Actualiser</span>
+          </button>
 
           {/* Add Plan Button */}
           <button

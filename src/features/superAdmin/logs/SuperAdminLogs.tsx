@@ -1,8 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { superAdminApi } from '../api/superAdmin.api';
 import {
   FileText,
   Users,
   Building2,
+  RefreshCw,
   ShieldAlert,
   AlertTriangle,
   Calendar,
@@ -64,7 +66,7 @@ export const SuperAdminLogs: React.FC = () => {
   };
 
   // 14 logs matching screenshot
-  const [logsList] = useState<LogEntry[]>([
+  const [logsList, setLogsList] = useState<LogEntry[]>([
     {
       id: 'log-001',
       dateTime: '29/09/2026 14:32',
@@ -357,6 +359,57 @@ export const SuperAdminLogs: React.FC = () => {
     );
   };
 
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+
+  const fetchLogs = async (showNotification = false) => {
+    setIsSyncing(true);
+    try {
+      const data = await superAdminApi.getLogs();
+      if (data && data.length > 0) {
+        const mapped: LogEntry[] = data.map((j, idx) => ({
+          id: String(j.id),
+          dateTime: new Date(j.dateHeure).toLocaleDateString('fr-FR') + ' ' + new Date(j.dateHeure).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+          userName: j.userNom || 'Super Admin',
+          userRole: j.userRole || 'SuperAdmin',
+          userAvatar: `https://images.unsplash.com/photo-${1534528741775 + (idx % 10)}?w=150&auto=format&fit=crop&q=80`,
+          companyName: j.societeNom || 'Plateforme Centrale',
+          companyLogo: '🏢',
+          action: j.action,
+          actionType: j.action.toLowerCase().includes('plan')
+            ? 'plan'
+            : (j.action.toLowerCase().includes('user') || j.action.toLowerCase().includes('utilisat')
+              ? 'user'
+              : (j.action.toLowerCase().includes('site')
+                ? 'site'
+                : (j.action.toLowerCase().includes('connexion') ? 'login' : 'limits'))),
+          actionColor: j.niveau === 'WARNING'
+            ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-900'
+            : (j.niveau === 'SECURITY' || j.niveau === 'ERROR'
+              ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200 dark:border-rose-900'
+              : 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-900'),
+          details: j.details,
+          status: j.statut === 'Échec' ? 'Échec' : 'Succès',
+          statusColor: j.statut === 'Échec'
+            ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400'
+            : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400',
+          ipAddress: j.adresseIp || '127.0.0.1',
+          browser: j.navigateur || 'Chrome 122 (Windows)',
+          descriptionDetail: j.details
+        }));
+        setLogsList(mapped);
+        if (showNotification) showToast('Journaux d’audit synchronisés avec PostgreSQL .NET');
+      }
+    } catch (err) {
+      console.warn('[Logs] Utilisation des données locales:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLogs();
+  }, []);
+
   return (
     <div className="flex flex-col gap-6 animate-[fadeIn_0.2s_ease-out] relative">
       {/* Toast Alert */}
@@ -406,6 +459,17 @@ export const SuperAdminLogs: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Synchronize button */}
+          <button
+            onClick={() => fetchLogs(true)}
+            disabled={isSyncing}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition-all shadow-xs cursor-pointer disabled:opacity-50"
+            title="Synchroniser avec PostgreSQL .NET"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-primary' : ''}`} />
+            <span className="hidden sm:inline">Actualiser</span>
+          </button>
         </div>
       </div>
 

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tenant } from '@/shared/types/gmao';
+import { superAdminApi, DashboardStatsResponse } from '../api/superAdmin.api';
 import {
   Crown,
   Building2,
@@ -77,6 +78,29 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
   const [selectedCompany, setSelectedCompany] = useState<any | null>(null);
   const [selectedRenewal, setSelectedRenewal] = useState<any | null>(null);
   const [actionSuccessMessage, setActionSuccessMessage] = useState<string | null>(null);
+
+  // Live Backend Data
+  const [liveStats, setLiveStats] = useState<DashboardStatsResponse | null>(null);
+  const [isRefreshingStats, setIsRefreshingStats] = useState<boolean>(false);
+
+  const loadDashboardStats = async (showToast = false) => {
+    setIsRefreshingStats(true);
+    try {
+      const data = await superAdminApi.getDashboardStats();
+      if (data && data.kpis) {
+        setLiveStats(data);
+        if (showToast) showNotification('Données synchronisées avec le Backend .NET');
+      }
+    } catch (err) {
+      console.warn('[Dashboard] Utilisation des données locales:', err);
+    } finally {
+      setIsRefreshingStats(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDashboardStats();
+  }, []);
 
   const showNotification = (msg: string) => {
     setActionSuccessMessage(msg);
@@ -379,6 +403,17 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               </div>
             )}
           </div>
+
+          {/* Bouton de Synchronisation Backend API */}
+          <button
+            onClick={() => loadDashboardStats(true)}
+            disabled={isRefreshingStats}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition shadow-xs cursor-pointer disabled:opacity-50"
+            title="Synchroniser avec la base de données PostgreSQL .NET"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingStats ? 'animate-spin text-primary' : ''}`} />
+            <span className="hidden sm:inline">Actualiser</span>
+          </button>
         </div>
       </div>
 
@@ -403,7 +438,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               Entreprises inscrites
             </span>
             <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-1 block">
-              {registeredCount}
+              {liveStats?.kpis?.totalTenants ?? registeredCount}
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-[11px]">
@@ -433,7 +468,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               Abonnements actifs
             </span>
             <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-1 block">
-              {activeCount}
+              {liveStats?.kpis?.activeTenants ?? activeCount}
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-[11px]">
@@ -463,7 +498,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               Période d'essai
             </span>
             <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-1 block">
-              {pendingCount}
+              {liveStats?.kpis?.pendingInvoicesCount ?? pendingCount}
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-[11px]">
@@ -673,7 +708,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
             {/* Total Revenue & Trend */}
             <div className="flex items-baseline gap-2 mt-2">
               <span className="text-xl font-black text-slate-900 dark:text-white tracking-tight font-mono">
-                248 500 TND
+                {(liveStats?.kpis?.mrr ?? mrr).toLocaleString('fr-FR')} TND
               </span>
               <span className="inline-flex items-center text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-1.5 py-0.5 rounded">
                 +18%

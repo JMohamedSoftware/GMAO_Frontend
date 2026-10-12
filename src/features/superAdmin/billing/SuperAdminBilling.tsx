@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { superAdminApi } from '../api/superAdmin.api';
 import {
   ShieldCheck,
   CreditCard,
@@ -10,6 +11,7 @@ import {
   Filter,
   Download,
   MoreHorizontal,
+  RefreshCw,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -399,13 +401,81 @@ export const SuperAdminBilling: React.FC = () => {
     showToast('Exportation des abonnements réussie !');
   };
 
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [liveBilling, setLiveBilling] = useState<any>(null);
+
+  const fetchBilling = async (showNotification = false) => {
+    setIsSyncing(true);
+    try {
+      const data = await superAdminApi.getBillingOverview();
+      if (data && data.subscriptions && data.subscriptions.length > 0) {
+        setLiveBilling(data);
+        const mapped = data.subscriptions.map((s: any, idx: number) => ({
+          id: `sub-${s.tenantId || idx + 1}`,
+          backendTenantId: s.tenantId,
+          code: `ENT-${String(s.tenantId || idx + 1).padStart(3, '0')}`,
+          company: s.tenantNom,
+          logo: s.tenantNom.toLowerCase().includes('tomate') ? '🍅' : (s.tenantNom.toLowerCase().includes('sicam') ? '🥫' : '🏭'),
+          category: s.category || 'Agroalimentaire',
+          manager: 'Direction Générale',
+          managerEmail: `contact@${s.tenantNom.toLowerCase().replace(/[^a-z]/g, '')}.tn`,
+          plan: s.plan || 'Business Pro',
+          planColor: s.plan?.includes('Enterprise')
+            ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-900'
+            : (s.plan?.includes('Starter')
+              ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-900'
+              : 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-900'),
+          sites: 2,
+          maxSites: 5,
+          users: 12,
+          maxUsers: 50,
+          equipments: 120,
+          maxEquipments: 1000,
+          monthlyOt: 18,
+          amount: `${Number(s.amount).toLocaleString('fr-FR')} TND`,
+          priceValue: Number(s.amount),
+          startDate: s.startDate ? new Date(s.startDate).toLocaleDateString('fr-FR') : '01/01/2026',
+          endDate: s.renewalDate ? new Date(s.renewalDate).toLocaleDateString('fr-FR') : '01/01/2027',
+          daysLeft: 300,
+          status: s.status === 'Actif' ? 'Actif' : (s.status === 'En essai' ? 'En essai' : 'Suspendu'),
+          statusColor: s.status === 'Actif' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400' : 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400',
+          modules: ['Gestion des équipements', 'Maintenance complète', 'Stock & achats', 'Multi-sites']
+        }));
+        setSubscriptions(mapped);
+        if (showNotification) showToast('Abonnements synchronisés avec le Backend .NET');
+      }
+    } catch (err) {
+      console.warn('[Billing] Utilisation des données locales:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBilling();
+  }, []);
+
   const handleOpenEditPlan = () => {
     setEditPlanForm({ ...activeSub });
     setIsEditPlanModalOpen(true);
   };
 
-  const handleSaveEditPlan = (e: React.FormEvent) => {
+  const handleSaveEditPlan = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!editPlanForm) return;
+
+    try {
+      if (editPlanForm.backendTenantId) {
+        await superAdminApi.updateSubscription(editPlanForm.backendTenantId, {
+          plan: editPlanForm.plan,
+          status: editPlanForm.status === 'Actif' ? 'Actif' : editPlanForm.status,
+          amount: editPlanForm.priceValue
+        });
+      }
+    } catch (err) {
+      console.warn('Erreur mise à jour abonnement backend:', err);
+    }
+
     setSubscriptions(prev => prev.map(s => s.id === editPlanForm.id ? editPlanForm : s));
     setIsEditPlanModalOpen(false);
     showToast(`Abonnement de ${editPlanForm.company} mis à jour`);
@@ -461,6 +531,17 @@ export const SuperAdminBilling: React.FC = () => {
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-1" />
           </div>
+
+          {/* Synchronize button */}
+          <button
+            onClick={() => fetchBilling(true)}
+            disabled={isSyncing}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs transition shadow-xs cursor-pointer disabled:opacity-50"
+            title="Synchroniser avec PostgreSQL .NET"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-primary' : ''}`} />
+            <span className="hidden sm:inline">Actualiser</span>
+          </button>
         </div>
       </div>
 
