@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useGmao } from '@/shared/hooks/useGmao';
-import { Bell, Search, User, Check, Trash2, Command, HelpCircle } from 'lucide-react';
+import { Bell, Search, User, Check, Trash2, Command, HelpCircle, ChevronDown } from 'lucide-react';
 
 interface NavbarProps {
   currentScreen: string;
@@ -107,15 +107,18 @@ export const Navbar: React.FC<NavbarProps> = ({ currentScreen, onNavigate, onOpe
         {/* Raycast Trigger Search Input */}
         <div
           onClick={onOpenCommandMenu}
-          className="w-80 h-9.5 rounded-custom-sm bg-white/40 dark:bg-slate-900/10 border border-slate-200/50 dark:border-slate-800/50 hover:border-slate-300 dark:hover:border-slate-700/80 px-3 flex items-center justify-between text-xs text-slate-400 cursor-pointer shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]"
+          className="w-80 lg:w-96 h-9.5 rounded-custom-sm bg-white/40 dark:bg-slate-900/10 border border-slate-200/50 dark:border-slate-800/50 hover:border-slate-300 dark:hover:border-slate-700/80 px-3 flex items-center justify-between text-xs text-slate-400 cursor-pointer shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]"
         >
           <div className="flex items-center gap-2">
             <Search className="w-3.5 h-3.5" />
-            <span>Rechercher partout...</span>
+            <span className="truncate">
+              {currentScreen.startsWith('saas-') || currentUser?.role === 'SuperAdmin'
+                ? 'Rechercher une entreprise, un site, un utilisateur...'
+                : 'Rechercher partout...'}
+            </span>
           </div>
-          <div className="flex items-center gap-1 bg-slate-200/80 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[9px] font-mono text-slate-500">
-            <Command className="w-2.5 h-2.5" />
-            <span>K</span>
+          <div className="flex items-center gap-1 bg-slate-200/80 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[9px] font-mono text-slate-500 shrink-0">
+            <span>Ctrl + K</span>
           </div>
         </div>
 
@@ -127,8 +130,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentScreen, onNavigate, onOpe
               }`}
           >
             <Bell className="w-4 h-4" />
-            {unreadNotifs.length > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+            {(unreadNotifs.length > 0 || currentScreen.startsWith('saas-')) && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center shadow-xs">
+                {unreadNotifs.length > 0 ? unreadNotifs.length : 5}
+              </span>
             )}
           </button>
 
@@ -203,10 +208,21 @@ export const Navbar: React.FC<NavbarProps> = ({ currentScreen, onNavigate, onOpe
 
         {/* User profile quick status */}
         {currentUser && (
-          <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-800/80">
-            <span className="text-[10px] text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full font-bold">
-              {currentUser.role}
-            </span>
+          <div className="flex items-center gap-2.5 pl-3 border-l border-slate-200 dark:border-slate-800/80">
+            <img
+              src={currentUser.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150"}
+              alt={currentUser.name}
+              className="w-8 h-8 rounded-full object-cover border border-slate-200 dark:border-slate-700 shadow-xs"
+            />
+            <div className="flex flex-col text-left hidden sm:flex">
+              <span className="text-xs font-black text-slate-850 dark:text-white leading-tight">
+                {currentUser.role === 'SuperAdmin' ? (currentUser.name || 'Ahmed Ben Ali') : currentUser.name}
+              </span>
+              <span className="text-[10px] text-slate-400 font-semibold leading-tight">
+                {currentUser.role === 'SuperAdmin' ? 'Super Administrateur' : currentUser.role}
+              </span>
+            </div>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
           </div>
         )}
 

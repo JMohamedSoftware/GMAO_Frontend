@@ -23,7 +23,10 @@ import {
   Activity,
   Layers,
   Settings,
-  UsersRound
+  UsersRound,
+  Home,
+  Factory,
+  ShieldCheck
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -76,13 +79,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate }) =
 
   // Super Admin global menus
   const superAdminMenuItems = [
-    { id: 'saas-dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'saas-tenants', label: 'Tenants', icon: Building2 },
-    { id: 'saas-plans', label: 'Plans', icon: Package },
-    { id: 'saas-billing', label: 'Billing', icon: CreditCard },
-    { id: 'saas-monitoring', label: 'Monitoring', icon: Activity },
-    { id: 'saas-logs', label: 'Logs', icon: Layers },
-    { id: 'saas-settings', label: 'Settings', icon: Settings }
+    { id: 'saas-dashboard', label: 'Tableau de bord', icon: Home },
+    { id: 'saas-tenants', label: 'Entreprises', icon: Building2 },
+    { id: 'saas-sites', label: 'Sites & Usines', icon: Factory },
+    { id: 'saas-plans', label: 'Plans & Offres', icon: Package },
+    { id: 'saas-billing', label: 'Abonnements', icon: ShieldCheck },
+    { id: 'saas-users', label: 'Utilisateurs', icon: UsersRound },
+    { id: 'saas-invoices', label: 'Facturation', icon: CreditCard },
+    { id: 'saas-monitoring', label: 'Suivi d’utilisation', icon: Activity },
+    { id: 'saas-logs', label: 'Journaux d’activité', icon: Layers },
+    { id: 'saas-settings', label: 'Paramètres', icon: Settings }
   ];
 
   // Calculate alerts to display

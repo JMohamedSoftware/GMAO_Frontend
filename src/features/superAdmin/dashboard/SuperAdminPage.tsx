@@ -2,15 +2,18 @@ import React, { useState } from 'react';
 import { useGmao } from '@/shared/hooks/useGmao';
 import { SuperAdminDashboard } from '@/features/superAdmin/dashboard/SuperAdminDashboard';
 import { SuperAdminTenants } from '@/features/superAdmin/tenants/SuperAdminTenants';
+import { SuperAdminSites } from '@/features/superAdmin/sites/SuperAdminSites';
 import { SuperAdminPlans } from '@/features/superAdmin/plans/SuperAdminPlans';
 import { SuperAdminBilling } from '@/features/superAdmin/billing/SuperAdminBilling';
+import { SuperAdminInvoices } from '@/features/superAdmin/invoices/SuperAdminInvoices';
+import { SuperAdminUsers } from '@/features/superAdmin/users/SuperAdminUsers';
 import { SuperAdminMonitoring } from '@/features/superAdmin/monitoring/SuperAdminMonitoring';
 import { SuperAdminLogs } from '@/features/superAdmin/logs/SuperAdminLogs';
 import { SuperAdminSettings } from '@/features/superAdmin/settings/SuperAdminSettings';
 import { CreateTenantWizard } from '@/features/superAdmin/createtenantwizard/CreateTenantWizard';
 
 interface SuperAdminProps {
-  activeTab?: 'dashboard' | 'tenants' | 'plans' | 'billing' | 'monitoring' | 'logs' | 'settings';
+  activeTab?: 'dashboard' | 'tenants' | 'sites' | 'plans' | 'billing' | 'users' | 'invoices' | 'monitoring' | 'logs' | 'settings';
 }
 
 export const SuperAdmin: React.FC<SuperAdminProps> = ({ activeTab = 'dashboard' }) => {
@@ -60,17 +63,19 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({ activeTab = 'dashboard' 
 
   return (
     <div className="flex flex-col gap-6 animate-[fadeIn_0.2s_ease-out]">
-      {/* Title */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-slate-800 dark:text-white">
-            SaaS Management Portal
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-450">
-            Superviseur Global • Gestion des espaces de travail de transformation de tomates
-          </p>
+      {/* Title - shown on secondary tabs only without custom headers */}
+      {!['dashboard', 'tenants', 'sites', 'plans', 'users', 'billing', 'invoices', 'monitoring', 'logs', 'settings'].includes(activeTab) && (
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-extrabold tracking-tight text-slate-800 dark:text-white">
+              SaaS Management Portal
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-450">
+              Superviseur Global • Gestion des espaces de travail de transformation de tomates
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Content Area */}
       <div className="flex-1 min-w-0 flex flex-col gap-6">
@@ -81,6 +86,7 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({ activeTab = 'dashboard' 
             registeredCount={registeredTenants.length}
             pendingCount={pendingRequests.length}
             revenueHistory={revenueHistory}
+            tenants={safeTenants}
           />
         )}
 
@@ -95,6 +101,12 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({ activeTab = 'dashboard' 
           />
         )}
 
+        {activeTab === 'users' && <SuperAdminUsers />}
+
+        {activeTab === 'sites' && (
+          <SuperAdminSites />
+        )}
+
         {activeTab === 'plans' && (
           <SuperAdminPlans 
             plansConfig={plansConfig}
@@ -105,6 +117,7 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({ activeTab = 'dashboard' 
         )}
 
         {activeTab === 'billing' && <SuperAdminBilling />}
+        {activeTab === 'invoices' && <SuperAdminInvoices />}
         {activeTab === 'monitoring' && <SuperAdminMonitoring />}
         {activeTab === 'logs' && <SuperAdminLogs />}
         {activeTab === 'settings' && <SuperAdminSettings />}
