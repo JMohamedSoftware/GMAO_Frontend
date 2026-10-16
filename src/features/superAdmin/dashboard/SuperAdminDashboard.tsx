@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Tenant } from '@/shared/types/gmao';
 import { superAdminApi, DashboardStatsResponse } from '../api/superAdmin.api';
+import { REAL_DB_COMPANIES } from '../constants/realTenantsData';
 import {
   Crown,
   Building2,
@@ -175,13 +176,18 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
 
   // 4. Dernières entreprises (from backend or static fallback)
   const LOGOS = ['🏭', '🍅', '🌾', '🍲', '🥫', '🌱', '🌿', '🏗️'];
-  const staticRecentCompanies = [
-    { id: 'cp', name: 'Conserve Plus', contact: 'S. Mansouri', plan: 'Professional', planColor: getPlanColor('Professional'), sites: 2, users: 12, status: 'Actif', date: '29/09/2026', logo: '🏭' },
-    { id: 'ti', name: 'Tomate Industrie', contact: 'K. Ammar', plan: 'Basic', planColor: getPlanColor('Basic'), sites: 1, users: 5, status: 'Actif', date: '27/09/2026', logo: '🍅' },
-    { id: 'af', name: 'AgroFood SARL', contact: 'M. Trabelsi', plan: 'Essai gratuit', planColor: getPlanColor('Essai gratuit'), sites: 1, users: 3, status: 'En essai', date: '25/09/2026', logo: '🌾' },
-    { id: 'mf', name: 'Méditerranée Food', contact: 'H. Ben Salah', plan: 'Enterprise', planColor: getPlanColor('Enterprise'), sites: 3, users: 25, status: 'Actif', date: '22/09/2026', logo: '🍲' },
-    { id: 'sc', name: 'Sousse Conserves', contact: 'A. Gharbi', plan: 'Basic', planColor: getPlanColor('Basic'), sites: 1, users: 4, status: 'Actif', date: '20/09/2026', logo: '🥫' }
-  ];
+  const staticRecentCompanies = REAL_DB_COMPANIES.slice(0, 5).map(c => ({
+    id: c.id,
+    name: c.name,
+    contact: c.contact,
+    plan: c.plan,
+    planColor: getPlanColor(c.plan),
+    sites: c.sites,
+    users: c.users,
+    status: c.status === 'Active' ? 'Actif' : c.status,
+    date: c.registrationDate,
+    logo: c.logo
+  }));
 
   const recentCompanies = liveStats?.recentTenants && liveStats.recentTenants.length > 0
     ? liveStats.recentTenants.map((t, i) => ({
@@ -200,11 +206,11 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
 
   // 5. Abonnements à renouveler (from backend or static fallback)
   const staticRenewals = [
-    { id: 'at', name: 'AgroTech', plan: 'Professional', expirationDate: '03/10/2026', daysLeft: 4, status: 'Bientôt', statusColor: 'bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200/60 dark:border-rose-900/40', daysColor: 'text-rose-600 dark:text-rose-400 font-extrabold', logo: '🌱' },
-    { id: 'sicam', name: 'SICAM', plan: 'Basic', expirationDate: '08/10/2026', daysLeft: 9, status: 'Bientôt', statusColor: 'bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200/60 dark:border-rose-900/40', daysColor: 'text-rose-600 dark:text-rose-400 font-extrabold', logo: '🥫' },
-    { id: 'cp2', name: 'Conserve Plus', plan: 'Enterprise', expirationDate: '15/10/2026', daysLeft: 16, status: 'Attention', statusColor: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200/60 dark:border-amber-900/40', daysColor: 'text-amber-600 dark:text-amber-400 font-bold', logo: '🏭' },
-    { id: 'ta', name: 'Tunis Agro', plan: 'Basic', expirationDate: '21/10/2026', daysLeft: 22, status: 'Attention', statusColor: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200/60 dark:border-amber-900/40', daysColor: 'text-amber-600 dark:text-amber-400 font-bold', logo: '🌾' },
-    { id: 'ct', name: 'Cap Tomate', plan: 'Professional', expirationDate: '27/10/2026', daysLeft: 28, status: 'Attention', statusColor: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200/60 dark:border-amber-900/40', daysColor: 'text-amber-600 dark:text-amber-400 font-bold', logo: '🍅' }
+    { id: '1', name: 'Usine Tomates POMODORO', plan: 'Business Pro', expirationDate: '27/07/2027', daysLeft: 345, status: 'Attention', statusColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200/60 dark:border-emerald-900/40', daysColor: 'text-emerald-600 dark:text-emerald-400 font-bold', logo: '🍅' },
+    { id: '2', name: 'Agro-Industrie Du Sud (SICAM)', plan: 'Enterprise Elite', expirationDate: '12/08/2027', daysLeft: 360, status: 'Bientôt', statusColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200/60 dark:border-emerald-900/40', daysColor: 'text-emerald-600 dark:text-emerald-400 font-bold', logo: '🥫' },
+    { id: '3', name: 'Conserverie Carthage SARL', plan: 'Business Pro', expirationDate: '12/01/2027', daysLeft: 290, status: 'Attention', statusColor: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200/60 dark:border-amber-900/40', daysColor: 'text-amber-600 dark:text-amber-400 font-bold', logo: '🥫' },
+    { id: '4', name: 'Société Tunisienne Des Boissons (SFBT)', plan: 'Enterprise Elite', expirationDate: '12/04/2027', daysLeft: 240, status: 'Attention', statusColor: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200/60 dark:border-amber-900/40', daysColor: 'text-amber-600 dark:text-amber-400 font-bold', logo: '🍾' },
+    { id: '9', name: 'Fromagerie Des Domaines', plan: 'Starter Cloud', expirationDate: '02/11/2026', daysLeft: 16, status: 'Bientôt', statusColor: 'bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200/60 dark:border-rose-900/40', daysColor: 'text-rose-600 dark:text-rose-400 font-extrabold', logo: '🧀' }
   ];
 
   const getRenewalStatus = (daysLeft: number) => {
@@ -234,10 +240,10 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
   };
 
   const staticRecentActivities = [
-    { id: 1, type: 'company', icon: Building2, iconColor: 'bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400', text: 'Nouvelle entreprise inscrite : ', highlight: 'Conserve Plus', time: '10:24' },
-    { id: 2, type: 'plan', icon: RefreshCw, iconColor: 'bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400', text: 'Plan mis à jour : ', highlight: 'Tomate Industrie (Professional)', time: '09:15' },
-    { id: 3, type: 'user', icon: Users, iconColor: 'bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400', text: 'Utilisateur ajouté : ', highlight: 'sarah.mansouri@conserveplus.tn', time: 'Hier 16:42' },
-    { id: 4, type: 'payment', icon: CreditCard, iconColor: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400', text: 'Paiement confirmé : ', highlight: 'AgroFood SARL', time: 'Hier 14:20' },
+    { id: 1, type: 'company', icon: Building2, iconColor: 'bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400', text: 'Nouvelle entreprise inscrite : ', highlight: 'Usine Tomates POMODORO', time: '10:24' },
+    { id: 2, type: 'plan', icon: RefreshCw, iconColor: 'bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400', text: 'Plan mis à jour : ', highlight: 'Agro-Industrie Du Sud (SICAM)', time: '09:15' },
+    { id: 3, type: 'user', icon: Users, iconColor: 'bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400', text: 'Utilisateur ajouté : ', highlight: 'admin@pomodoro.com', time: 'Hier 16:42' },
+    { id: 4, type: 'payment', icon: CreditCard, iconColor: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400', text: 'Paiement confirmé : ', highlight: 'Conserverie Carthage SARL', time: 'Hier 14:20' },
     { id: 5, type: 'site', icon: Factory, iconColor: 'bg-orange-50 text-orange-600 dark:bg-orange-950/60 dark:text-orange-400', text: 'Site ajouté : ', highlight: 'Usine Sousse', time: '28/09 11:03' }
   ];
 

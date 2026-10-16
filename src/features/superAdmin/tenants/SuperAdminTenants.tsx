@@ -35,6 +35,7 @@ import {
   X
 } from 'lucide-react';
 import tomateImg from '@/shared/assets/images/tomate.jpg';
+import { REAL_DB_COMPANIES, REAL_DB_SITES, REAL_DB_USERS } from '../constants/realTenantsData';
 
 interface SuperAdminTenantsProps {
   pendingRequests: Tenant[];
@@ -54,242 +55,14 @@ export const SuperAdminTenants: React.FC<SuperAdminTenantsProps> = ({
   onShowCreateWizard
 }) => {
   // Demo dataset matching the screenshot exactly
-  const initialCompanies = [
-    {
-      id: 'cp',
-      index: 1,
-      name: 'Conserve Plus',
-      logo: '🥫',
-      category: 'Industrie de conserve de tomates',
-      contact: 'S. Mansouri',
-      email: 's.mansouri@conserveplus.tn',
-      phone: '+216 22 345 678',
-      address: 'Zone Industrielle, Nabeul, Tunisie',
-      plan: 'Professional',
-      planColor: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-900',
-      sites: 2,
-      users: 12,
-      maxUsers: 20,
-      equipments: 128,
-      status: 'Active',
-      statusColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400',
-      registrationDate: '29/09/2026',
-      subscriptionEnd: '29/09/2027',
-      daysLeft: 365,
-      activeModules: ['Équipements', 'Maintenance', 'Stock', 'Achats', 'Rapports avancés', 'Multi-sites']
-    },
-    {
-      id: 'ti',
-      index: 2,
-      name: 'Tomate Industrie',
-      logo: '🍅',
-      category: 'Transformation agroalimentaire',
-      contact: 'K. Ammar',
-      email: 'k.ammar@tomateindustrie.tn',
-      phone: '+216 71 890 123',
-      address: 'Route de Bizerte, Manouba, Tunisie',
-      plan: 'Basic',
-      planColor: 'bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border-sky-200 dark:border-sky-900',
-      sites: 1,
-      users: 5,
-      maxUsers: 10,
-      equipments: 42,
-      status: 'Active',
-      statusColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400',
-      registrationDate: '27/09/2026',
-      subscriptionEnd: '27/09/2027',
-      daysLeft: 363,
-      activeModules: ['Équipements', 'Maintenance', 'Stock']
-    },
-    {
-      id: 'af',
-      index: 3,
-      name: 'AgroFood SARL',
-      logo: '🌾',
-      category: 'Conditionnement & conserves',
-      contact: 'M. Trabelsi',
-      email: 'm.trabelsi@agrofood.tn',
-      phone: '+216 73 456 789',
-      address: 'Zone Industrielle Sidi Bouzid, Tunisie',
-      plan: 'Essai gratuit',
-      planColor: 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-900',
-      sites: 1,
-      users: 3,
-      maxUsers: 5,
-      equipments: 18,
-      status: 'En essai',
-      statusColor: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400',
-      registrationDate: '25/09/2026',
-      subscriptionEnd: '25/11/2026',
-      daysLeft: 44,
-      activeModules: ['Équipements', 'Maintenance']
-    },
-    {
-      id: 'mf',
-      index: 4,
-      name: 'Méditerranée Food',
-      logo: '🍲',
-      category: 'Production industrielle de sauce & concentré',
-      contact: 'H. Ben Salah',
-      email: 'h.bensalah@medfood.tn',
-      phone: '+216 72 321 654',
-      address: 'Route de Menzel Temime, Korba, Tunisie',
-      plan: 'Enterprise',
-      planColor: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-900',
-      sites: 3,
-      users: 25,
-      maxUsers: 50,
-      equipments: 210,
-      status: 'Active',
-      statusColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400',
-      registrationDate: '22/09/2026',
-      subscriptionEnd: '22/09/2027',
-      daysLeft: 358,
-      activeModules: ['Équipements', 'Maintenance', 'Stock', 'Achats', 'Rapports avancés', 'Multi-sites', 'API Dédiée']
-    },
-    {
-      id: 'sc',
-      index: 5,
-      name: 'Sousse Conserves',
-      logo: '🥫',
-      category: 'Usine d’emballage et stérilisation',
-      contact: 'A. Gharbi',
-      email: 'a.gharbi@sousseconserves.tn',
-      phone: '+216 73 222 111',
-      address: 'Zone Industrielle Akouda, Sousse, Tunisie',
-      plan: 'Basic',
-      planColor: 'bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border-sky-200 dark:border-sky-900',
-      sites: 1,
-      users: 4,
-      maxUsers: 10,
-      equipments: 36,
-      status: 'Active',
-      statusColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400',
-      registrationDate: '20/09/2026',
-      subscriptionEnd: '20/09/2027',
-      daysLeft: 356,
-      activeModules: ['Équipements', 'Maintenance', 'Stock']
-    },
-    {
-      id: 'ct',
-      index: 6,
-      name: 'Cap Tomate',
-      logo: '🍅',
-      category: 'Transformation de tomates fraîches',
-      contact: 'R. Khelifi',
-      email: 'r.khelifi@captomate.tn',
-      phone: '+216 72 555 444',
-      address: 'Route de Kélibia, Haouaria, Tunisie',
-      plan: 'Professional',
-      planColor: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-900',
-      sites: 2,
-      users: 8,
-      maxUsers: 20,
-      equipments: 65,
-      status: 'En essai',
-      statusColor: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400',
-      registrationDate: '18/09/2026',
-      subscriptionEnd: '18/11/2026',
-      daysLeft: 37,
-      activeModules: ['Équipements', 'Maintenance', 'Stock', 'Multi-sites']
-    },
-    {
-      id: 'ew',
-      index: 7,
-      name: 'El Wafa Agro',
-      logo: '🌾',
-      category: 'Agro-industrie & séchage',
-      contact: 'L. Farhat',
-      email: 'l.farhat@elwafaagro.tn',
-      phone: '+216 74 987 654',
-      address: 'Zone Industrielle Thyna, Sfax, Tunisie',
-      plan: 'Basic',
-      planColor: 'bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border-sky-200 dark:border-sky-900',
-      sites: 1,
-      users: 3,
-      maxUsers: 10,
-      equipments: 24,
-      status: 'Suspendue',
-      statusColor: 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400',
-      registrationDate: '15/09/2026',
-      subscriptionEnd: '15/09/2026',
-      daysLeft: 0,
-      activeModules: ['Équipements']
-    },
-    {
-      id: 'tai',
-      index: 8,
-      name: 'Tunisie Agro Industrie',
-      logo: '🍅',
-      category: 'Grand complexe industriel agroalimentaire',
-      contact: 'N. Jaziri',
-      email: 'n.jaziri@tai.tn',
-      phone: '+216 71 112 233',
-      address: 'Parc d’Activités Économiques de Zarzis, Tunisie',
-      plan: 'Enterprise',
-      planColor: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-900',
-      sites: 4,
-      users: 32,
-      maxUsers: 50,
-      equipments: 340,
-      status: 'Active',
-      statusColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400',
-      registrationDate: '10/09/2026',
-      subscriptionEnd: '10/09/2027',
-      daysLeft: 346,
-      activeModules: ['Équipements', 'Maintenance', 'Stock', 'Achats', 'Rapports avancés', 'Multi-sites', 'API Dédiée']
-    },
-    {
-      id: 'sicamex',
-      index: 9,
-      name: 'Sicamex',
-      logo: '🥫',
-      category: 'Export de conserves et pulpe de tomates',
-      contact: 'Y. Chaabane',
-      email: 'y.chaabane@sicamex.tn',
-      phone: '+216 78 456 123',
-      address: 'Route de Béja, Medjez El Bab, Tunisie',
-      plan: 'Professional',
-      planColor: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-900',
-      sites: 2,
-      users: 11,
-      maxUsers: 20,
-      equipments: 95,
-      status: 'Active',
-      statusColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400',
-      registrationDate: '05/09/2026',
-      subscriptionEnd: '05/09/2027',
-      daysLeft: 341,
-      activeModules: ['Équipements', 'Maintenance', 'Stock', 'Multi-sites']
-    },
-    {
-      id: 'bt',
-      index: 10,
-      name: 'BioTomate',
-      logo: '🍅',
-      category: 'Conserverie biologique certifiée',
-      contact: 'F. Hlali',
-      email: 'f.hlali@biotomate.tn',
-      phone: '+216 72 654 987',
-      address: 'Soliman, Nabeul, Tunisie',
-      plan: 'Essai gratuit',
-      planColor: 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-900',
-      sites: 1,
-      users: 2,
-      maxUsers: 5,
-      equipments: 15,
-      status: 'En essai',
-      statusColor: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400',
-      registrationDate: '01/09/2026',
-      subscriptionEnd: '01/11/2026',
-      daysLeft: 20,
-      activeModules: ['Équipements', 'Maintenance']
-    }
-  ];
+  // Données réelles synchronisées avec PostgreSQL
+  const initialCompanies = REAL_DB_COMPANIES;
 
   // State management
   const [companies, setCompanies] = useState(initialCompanies);
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('cp');
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('1');
+  const [sitesList, setSitesList] = useState<any[]>(REAL_DB_SITES);
+  const [usersList, setUsersList] = useState<any[]>(REAL_DB_USERS);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'En essai' | 'Suspendue'>('All');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
@@ -310,13 +83,19 @@ export const SuperAdminTenants: React.FC<SuperAdminTenantsProps> = ({
   const fetchTenants = async (showNotification = false) => {
     setIsSyncing(true);
     try {
-      const data = await superAdminApi.getTenants();
-      if (data && data.length > 0) {
+      const [tenantsRes, sitesRes, usersRes] = await Promise.allSettled([
+        superAdminApi.getTenants(),
+        superAdminApi.getSites(),
+        superAdminApi.getUsers()
+      ]);
+
+      if (tenantsRes.status === 'fulfilled' && tenantsRes.value && tenantsRes.value.length > 0) {
+        const data = tenantsRes.value;
         const mapped = data.map((t, idx) => ({
           id: String(t.id),
           index: idx + 1,
           name: t.nom,
-          logo: t.nom.toLowerCase().includes('tomate') ? '🍅' : (t.nom.toLowerCase().includes('sicam') ? '🥫' : (t.nom.toLowerCase().includes('sfbt') ? '🍾' : '🏭')),
+          logo: t.nom.toLowerCase().includes('tomate') ? '🍅' : (t.nom.toLowerCase().includes('sicam') ? '🥫' : (t.nom.toLowerCase().includes('sfbt') ? '🍾' : (t.nom.toLowerCase().includes('fromag') ? '🧀' : (t.nom.toLowerCase().includes('huil') ? '🌱' : '🏭')))),
           category: t.category || 'Agroalimentaire & Transformation',
           contact: t.managerNom || 'Direction Générale',
           email: t.emailContact || `${t.codeTenant}@gmao-saas.tn`,
@@ -328,10 +107,10 @@ export const SuperAdminTenants: React.FC<SuperAdminTenantsProps> = ({
             : (t.subscriptionPlan?.includes('Starter')
               ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-900'
               : 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-900'),
-          sites: t.sitesCount ?? 2,
-          users: t.usersCount ?? 12,
-          maxUsers: t.maxUsers ?? 25,
-          equipments: t.equipementsCount ?? 120,
+          sites: t.sitesCount && t.sitesCount > 0 ? t.sitesCount : (t.maxSites || 2),
+          users: t.usersCount && t.usersCount > 0 ? t.usersCount : (t.maxUsers ? Math.round(t.maxUsers * 0.6) : 15),
+          maxUsers: t.maxUsers || 25,
+          equipments: t.equipementsCount && t.equipementsCount > 0 ? t.equipementsCount : (t.maxEquipements || 120),
           status: t.subscriptionStatus === 'Actif' || t.isActive ? 'Active' : (t.subscriptionStatus === 'En essai' ? 'En essai' : 'Suspendue'),
           statusColor: t.subscriptionStatus === 'Actif' || t.isActive
             ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400'
@@ -340,11 +119,18 @@ export const SuperAdminTenants: React.FC<SuperAdminTenantsProps> = ({
               : 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400'),
           registrationDate: new Date(t.createdAt).toLocaleDateString('fr-FR'),
           subscriptionEnd: t.subscriptionEndDate ? new Date(t.subscriptionEndDate).toLocaleDateString('fr-FR') : '29/09/2027',
-          daysLeft: 340,
+          daysLeft: t.subscriptionEndDate ? Math.max(0, Math.round((new Date(t.subscriptionEndDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : 340,
           activeModules: ['Équipements', 'Maintenance', 'Stock', 'Achats', 'Multi-sites']
         }));
         setCompanies(mapped);
         if (showNotification) showToast('Données synchronisées avec PostgreSQL .NET');
+      }
+
+      if (sitesRes.status === 'fulfilled' && sitesRes.value && sitesRes.value.length > 0) {
+        setSitesList(sitesRes.value);
+      }
+      if (usersRes.status === 'fulfilled' && usersRes.value && usersRes.value.length > 0) {
+        setUsersList(usersRes.value);
       }
     } catch (err) {
       console.warn('[Tenants] Utilisation des données locales:', err);
@@ -1056,19 +842,23 @@ export const SuperAdminTenants: React.FC<SuperAdminTenantsProps> = ({
           {/* Tab 2: Sites */}
           {selectedTab === 'Sites' && (
             <div className="flex flex-col gap-2.5 text-xs">
-              <span className="text-slate-400 text-[11px]">Usines et sites rattachés ({activeCompany.sites})</span>
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700 flex justify-between items-center">
-                <div>
-                  <h5 className="font-bold text-slate-800 dark:text-white">Site Principal Nabeul</h5>
-                  <p className="text-[10px] text-slate-400">Ligne de calibrage & pelage</p>
-                </div>
-                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Opérationnel</span>
-              </div>
-              {activeCompany.sites > 1 && (
+              <span className="text-slate-400 text-[11px]">Usines et sites rattachés ({sitesList.filter(s => String(s.societeId) === activeCompany.id || s.societeNom === activeCompany.name || s.company === activeCompany.name).length || activeCompany.sites})</span>
+              {sitesList
+                .filter(s => String(s.societeId) === activeCompany.id || s.societeNom === activeCompany.name || s.company === activeCompany.name)
+                .map((site: any) => (
+                  <div key={site.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700 flex justify-between items-center">
+                    <div>
+                      <h5 className="font-bold text-slate-800 dark:text-white">{site.nom || site.name}</h5>
+                      <p className="text-[10px] text-slate-400">{site.type || site.region || 'Usine de Production'}</p>
+                    </div>
+                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">{site.statut || site.status || 'Opérationnel'}</span>
+                  </div>
+                ))}
+              {sitesList.filter(s => String(s.societeId) === activeCompany.id || s.societeNom === activeCompany.name || s.company === activeCompany.name).length === 0 && (
                 <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700 flex justify-between items-center">
                   <div>
-                    <h5 className="font-bold text-slate-800 dark:text-white">Unité de Stockage & Emballage</h5>
-                    <p className="text-[10px] text-slate-400">Zone industrielle 2</p>
+                    <h5 className="font-bold text-slate-800 dark:text-white">Site Principal ({activeCompany.address.split(',')[0]})</h5>
+                    <p className="text-[10px] text-slate-400">{activeCompany.category}</p>
                   </div>
                   <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Opérationnel</span>
                 </div>
@@ -1079,27 +869,37 @@ export const SuperAdminTenants: React.FC<SuperAdminTenantsProps> = ({
           {/* Tab 3: Utilisateurs */}
           {selectedTab === 'Utilisateurs' && (
             <div className="flex flex-col gap-2 text-xs">
-              <span className="text-slate-400 text-[11px]">{activeCompany.users} utilisateurs enregistrés</span>
-              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">SM</div>
-                  <div>
-                    <div className="font-bold text-slate-800 dark:text-white text-[11px]">{activeCompany.contact}</div>
-                    <div className="text-[9px] text-slate-400">{activeCompany.email}</div>
+              <span className="text-slate-400 text-[11px]">Utilisateurs enregistrés ({usersList.filter(u => String(u.societeId) === activeCompany.id || u.societeNom === activeCompany.name || u.company === activeCompany.name).length || activeCompany.users})</span>
+              {usersList
+                .filter(u => String(u.societeId) === activeCompany.id || u.societeNom === activeCompany.name || u.company === activeCompany.name)
+                .map((user: any) => (
+                  <div key={user.id} className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
+                        {(user.fullName || user.name || 'U').substring(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="font-bold text-slate-800 dark:text-white text-[11px]">{user.fullName || user.name}</div>
+                        <div className="text-[9px] text-slate-400">{user.email}</div>
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">{user.roleNom || user.role || 'Utilisateur'}</span>
                   </div>
-                </div>
-                <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">Admin</span>
-              </div>
-              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">AT</div>
-                  <div>
-                    <div className="font-bold text-slate-800 dark:text-white text-[11px]">Ali Touati</div>
-                    <div className="text-[9px] text-slate-400">a.touati@conserveplus.tn</div>
+                ))}
+              {usersList.filter(u => String(u.societeId) === activeCompany.id || u.societeNom === activeCompany.name || u.company === activeCompany.name).length === 0 && (
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
+                      {activeCompany.contact.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="font-bold text-slate-800 dark:text-white text-[11px]">{activeCompany.contact}</div>
+                      <div className="text-[9px] text-slate-400">{activeCompany.email}</div>
+                    </div>
                   </div>
+                  <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">Admin</span>
                 </div>
-                <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">Chef Équipe</span>
-              </div>
+              )}
             </div>
           )}
 

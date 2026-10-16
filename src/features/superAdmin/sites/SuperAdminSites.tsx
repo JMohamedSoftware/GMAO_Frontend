@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { superAdminApi } from '../api/superAdmin.api';
+import { REAL_DB_SITES, REAL_DB_COMPANIES } from '../constants/realTenantsData';
 import {
   Building2,
   Factory,
@@ -62,198 +63,7 @@ export const SuperAdminSites: React.FC<SuperAdminSitesProps> = () => {
   };
 
   // 10 sites matching screenshot
-  const [sites, setSites] = useState([
-    {
-      id: 'sit-001',
-      code: 'SIT-001',
-      name: 'Usine Principale',
-      company: 'Conserve Plus',
-      companyLogo: '🥫',
-      region: 'Nabeul',
-      address: 'Zone Industrielle, Nabeul, Tunisie',
-      manager: 'S. Mansouri',
-      managerEmail: 's.mansouri@conserveplus.tn',
-      managerPhone: '+216 22 345 678',
-      equipments: 128,
-      users: 32,
-      activeWorkOrders: 18,
-      failures: 2,
-      status: 'Actif',
-      statusColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400',
-      coordinates: { x: 62, y: 32 } // Map percentage
-    },
-    {
-      id: 'sit-002',
-      code: 'SIT-002',
-      name: 'Ligne Concentré',
-      company: 'Tomate Industrie',
-      companyLogo: '🍅',
-      region: 'Kairouan',
-      address: 'Zone Industrielle El Baten, Kairouan',
-      manager: 'K. Ammar',
-      managerEmail: 'k.ammar@tomateindustrie.tn',
-      managerPhone: '+216 77 220 110',
-      equipments: 86,
-      users: 18,
-      activeWorkOrders: 9,
-      failures: 1,
-      status: 'Actif',
-      statusColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400',
-      coordinates: { x: 50, y: 48 }
-    },
-    {
-      id: 'sit-003',
-      code: 'SIT-003',
-      name: 'Conditionnement',
-      company: 'Tomate Industrie',
-      companyLogo: '🍅',
-      region: 'Kairouan',
-      address: 'Route de Sbikha, Kairouan',
-      manager: 'K. Ammar',
-      managerEmail: 'k.ammar@tomateindustrie.tn',
-      managerPhone: '+216 77 220 112',
-      equipments: 64,
-      users: 15,
-      activeWorkOrders: 12,
-      failures: 3,
-      status: 'Maintenance',
-      statusColor: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400',
-      coordinates: { x: 53, y: 46 }
-    },
-    {
-      id: 'sit-004',
-      code: 'SIT-004',
-      name: 'Site Sud',
-      company: 'AgroFood SARL',
-      companyLogo: '🌾',
-      region: 'Sfax',
-      address: 'Route de Gabès Km 3, Sfax',
-      manager: 'M. Trabelsi',
-      managerEmail: 'm.trabelsi@agrofood.tn',
-      managerPhone: '+216 74 445 556',
-      equipments: 45,
-      users: 12,
-      activeWorkOrders: 6,
-      failures: 0,
-      status: 'Actif',
-      statusColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400',
-      coordinates: { x: 58, y: 64 }
-    },
-    {
-      id: 'sit-005',
-      code: 'SIT-005',
-      name: 'Usine Méditerranée',
-      company: 'Méditerranée Food',
-      companyLogo: '🍲',
-      region: 'Sousse',
-      address: 'Zone Industrielle Sidi Abdelhamid, Sousse',
-      manager: 'H. Ben Salah',
-      managerEmail: 'h.bensalah@medfood.tn',
-      managerPhone: '+216 73 300 400',
-      equipments: 92,
-      users: 25,
-      activeWorkOrders: 14,
-      failures: 1,
-      status: 'Actif',
-      statusColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400',
-      coordinates: { x: 60, y: 42 }
-    },
-    {
-      id: 'sit-006',
-      code: 'SIT-006',
-      name: 'Station Utilités',
-      company: 'Conserve Plus',
-      companyLogo: '🥫',
-      region: 'Nabeul',
-      address: 'Route de Dar Chaâbane, Nabeul',
-      manager: 'A. Gharbi',
-      managerEmail: 'a.gharbi@conserveplus.tn',
-      managerPhone: '+216 22 111 222',
-      equipments: 37,
-      users: 8,
-      activeWorkOrders: 4,
-      failures: 0,
-      status: 'Actif',
-      statusColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400',
-      coordinates: { x: 64, y: 31 }
-    },
-    {
-      id: 'sit-007',
-      code: 'SIT-007',
-      name: 'Entrepôt Central',
-      company: 'Cap Tomate',
-      companyLogo: '🍅',
-      region: 'Tunis',
-      address: 'Zone Portuaire Radès, Tunis',
-      manager: 'R. Khelifi',
-      managerEmail: 'r.khelifi@captomate.tn',
-      managerPhone: '+216 71 450 670',
-      equipments: 28,
-      users: 10,
-      activeWorkOrders: 1,
-      failures: 0,
-      status: 'Inactif',
-      statusColor: 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400',
-      coordinates: { x: 54, y: 24 }
-    },
-    {
-      id: 'sit-008',
-      code: 'SIT-008',
-      name: 'Usine Expérimentale',
-      company: 'BioTomate',
-      companyLogo: '🍅',
-      region: 'Béja',
-      address: 'Domaine Agricole Thibar, Béja',
-      manager: 'F. Hlali',
-      managerEmail: 'f.hlali@biotomate.tn',
-      managerPhone: '+216 78 880 990',
-      equipments: 15,
-      users: 6,
-      activeWorkOrders: 5,
-      failures: 1,
-      status: 'Maintenance',
-      statusColor: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400',
-      coordinates: { x: 40, y: 28 }
-    },
-    {
-      id: 'sit-009',
-      code: 'SIT-009',
-      name: 'Station Eau',
-      company: 'Sicamex',
-      companyLogo: '🥫',
-      region: 'Gabès',
-      address: 'Zone Industrielle Ouedhref, Gabès',
-      manager: 'Y. Chaabane',
-      managerEmail: 'y.chaabane@sicamex.tn',
-      managerPhone: '+216 75 700 800',
-      equipments: 42,
-      users: 14,
-      activeWorkOrders: 8,
-      failures: 0,
-      status: 'Actif',
-      statusColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400',
-      coordinates: { x: 52, y: 76 }
-    },
-    {
-      id: 'sit-010',
-      code: 'SIT-010',
-      name: 'Chambre Froide',
-      company: 'El Wafa Agro',
-      companyLogo: '🌾',
-      region: 'Tunis',
-      address: 'Marché de Gros Bir El Kassâa, Ben Arous',
-      manager: 'L. Farhat',
-      managerEmail: 'l.farhat@elwafaagro.tn',
-      managerPhone: '+216 71 999 888',
-      equipments: 26,
-      users: 7,
-      activeWorkOrders: 3,
-      failures: 0,
-      status: 'Actif',
-      statusColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400',
-      coordinates: { x: 55, y: 26 }
-    }
-  ]);
+  const [sites, setSites] = useState<any[]>(REAL_DB_SITES);
 
   // Filtered sites
   const filteredSites = useMemo(() => {
@@ -1147,10 +957,7 @@ export const SuperAdminSites: React.FC<SuperAdminSitesProps> = () => {
               <div>
                 <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300 block mb-1">Entreprise</label>
                 <select className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl">
-                  <option>Conserve Plus</option>
-                  <option>Tomate Industrie</option>
-                  <option>AgroFood SARL</option>
-                  <option>Méditerranée Food</option>
+                  {REAL_DB_COMPANIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
                 </select>
               </div>
 

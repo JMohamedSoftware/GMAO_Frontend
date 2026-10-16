@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { superAdminApi } from '../api/superAdmin.api';
+import { REAL_DB_USERS, REAL_DB_COMPANIES } from '../constants/realTenantsData';
 import {
   Users,
   UserPlus,
@@ -67,7 +68,7 @@ export interface UserItem {
 }
 
 export const SuperAdminUsers: React.FC = () => {
-  const [selectedUserId, setSelectedUserId] = useState<string>('usr-001');
+  const [selectedUserId, setSelectedUserId] = useState<string>('5');
   const [searchTerm, setSearchTerm] = useState('');
   const [companyFilter, setCompanyFilter] = useState('All');
   const [roleFilter, setRoleFilter] = useState('All');
@@ -91,307 +92,14 @@ export const SuperAdminUsers: React.FC = () => {
   };
 
   // 12 initial users matching the screenshot exactly
-  const [usersList, setUsersList] = useState<UserItem[]>([
-    {
-      id: 'usr-001',
-      name: 'Sami Mansouri',
-      email: 's.mansouri@conserveplus.tn',
-      phone: '+216 22 345 678',
-      company: 'Conserve Plus',
-      site: 'Usine Principale',
-      role: 'Admin Entreprise',
-      roleColor: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-900',
-      status: 'Actif',
-      statusColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400',
-      lastLogin: '29/09/2026 10:42',
-      registrationDate: '29/09/2025',
-      jobTitle: 'Responsable Maintenance',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-      permissions: [
-        'Gestion utilisateurs',
-        'Gestion équipements',
-        'Maintenance (OT)',
-        'Stock & achats',
-        'Rapports',
-        'Paramètres entreprise'
-      ],
-      authorizedSites: [
-        { name: 'Usine Principale', status: 'Actif' },
-        { name: 'Site Sud', status: 'Actif' },
-        { name: 'Ligne Concentré', status: 'Actif' }
-      ],
-      recentActivities: [
-        { id: 'act-1', action: 'Connexion à la plateforme', date: '29/09/2026 10:42', type: 'login', iconBg: 'bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400' },
-        { id: 'act-2', action: 'Création d’un OT #OT-2026-4372', date: '29/09/2026 09:15', type: 'workorder', iconBg: 'bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400' },
-        { id: 'act-3', action: 'Ajout d’un utilisateur', date: '28/09/2026 16:30', type: 'user', iconBg: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400' },
-        { id: 'act-4', action: 'Modification d’un équipement', date: '27/09/2026 14:20', type: 'equipment', iconBg: 'bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-400' }
-      ]
-    },
-    {
-      id: 'usr-002',
-      name: 'Khaled Ammar',
-      email: 'k.ammar@tomateindustrie.tn',
-      phone: '+216 23 456 789',
-      company: 'Tomate Industrie',
-      site: 'Ligne 1',
-      role: 'Technicien',
-      roleColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900',
-      status: 'Actif',
-      statusColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400',
-      lastLogin: '29/09/2026 09:15',
-      registrationDate: '15/10/2025',
-      jobTitle: 'Technicien Électromécanicien',
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-      permissions: [
-        'Gestion équipements',
-        'Maintenance (OT)',
-        'Stock & achats'
-      ],
-      authorizedSites: [
-        { name: 'Ligne 1', status: 'Actif' },
-        { name: 'Ligne 2', status: 'Actif' }
-      ],
-      recentActivities: [
-        { id: 'act-21', action: 'Clôture OT #OT-2026-4369', date: '29/09/2026 09:15', type: 'workorder', iconBg: 'bg-emerald-100 text-emerald-600' },
-        { id: 'act-22', action: 'Connexion à la plateforme', date: '29/09/2026 08:30', type: 'login', iconBg: 'bg-blue-100 text-blue-600' }
-      ]
-    },
-    {
-      id: 'usr-003',
-      name: 'Mohamed Trabelsi',
-      email: 'm.trabelsi@agrofood.tn',
-      phone: '+216 24 567 890',
-      company: 'AgroFood SARL',
-      site: 'Site Sud',
-      role: 'Responsable',
-      roleColor: 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-900',
-      status: 'Actif',
-      statusColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400',
-      lastLogin: '28/09/2026 16:20',
-      registrationDate: '01/11/2025',
-      jobTitle: 'Chef d’Atelier Extraction',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
-      permissions: [
-        'Gestion utilisateurs',
-        'Gestion équipements',
-        'Maintenance (OT)',
-        'Rapports'
-      ],
-      authorizedSites: [
-        { name: 'Site Sud', status: 'Actif' }
-      ],
-      recentActivities: [
-        { id: 'act-31', action: 'Validation rapport mensuel', date: '28/09/2026 16:20', type: 'equipment', iconBg: 'bg-purple-100 text-purple-600' }
-      ]
-    },
-    {
-      id: 'usr-004',
-      name: 'Hichem Ben Salah',
-      email: 'h.bensalah@medfood.tn',
-      phone: '+216 25 678 901',
-      company: 'Méditerranée Food',
-      site: 'Usine',
-      role: 'Technicien',
-      roleColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900',
-      status: 'Actif',
-      statusColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400',
-      lastLogin: '28/09/2026 14:33',
-      registrationDate: '12/12/2025',
-      jobTitle: 'Technicien Automatisme',
-      avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80',
-      permissions: ['Gestion équipements', 'Maintenance (OT)'],
-      authorizedSites: [{ name: 'Usine', status: 'Actif' }],
-      recentActivities: [
-        { id: 'act-41', action: 'Remplacement capteur pression', date: '28/09/2026 14:33', type: 'equipment', iconBg: 'bg-sky-100 text-sky-600' }
-      ]
-    },
-    {
-      id: 'usr-005',
-      name: 'Amine Gharbi',
-      email: 'a.gharbi@soussecondserves.tn',
-      phone: '+216 26 789 012',
-      company: 'Sousse Conserves',
-      site: 'Conditionnement',
-      role: 'Technicien',
-      roleColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900',
-      status: 'En attente',
-      statusColor: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400',
-      lastLogin: '-',
-      registrationDate: '27/09/2026',
-      jobTitle: 'Opérateur Polyvalent',
-      avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150&auto=format&fit=crop&q=80',
-      permissions: ['Maintenance (OT)'],
-      authorizedSites: [{ name: 'Conditionnement', status: 'Inactif' }],
-      recentActivities: [
-        { id: 'act-51', action: 'Invitation envoyée par email', date: '27/09/2026 11:00', type: 'user', iconBg: 'bg-amber-100 text-amber-600' }
-      ]
-    },
-    {
-      id: 'usr-006',
-      name: 'Rami Khelifi',
-      email: 'r.khelifi@captomate.tn',
-      phone: '+216 27 890 123',
-      company: 'Cap Tomate',
-      site: 'Usine Principale',
-      role: 'Responsable',
-      roleColor: 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-900',
-      status: 'Actif',
-      statusColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400',
-      lastLogin: '29/09/2026 08:11',
-      registrationDate: '18/09/2025',
-      jobTitle: 'Superviseur de Ligne',
-      avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80',
-      permissions: ['Gestion utilisateurs', 'Gestion équipements', 'Maintenance (OT)', 'Rapports'],
-      authorizedSites: [{ name: 'Usine Principale', status: 'Actif' }],
-      recentActivities: [
-        { id: 'act-61', action: 'Approbation bon de travail', date: '29/09/2026 08:11', type: 'workorder', iconBg: 'bg-purple-100 text-purple-600' }
-      ]
-    },
-    {
-      id: 'usr-007',
-      name: 'Leila Farhat',
-      email: 'l.farhat@elwafaagro.tn',
-      phone: '+216 28 901 234',
-      company: 'El Wafa Agro',
-      site: 'Chambre Froide',
-      role: 'Technicien',
-      roleColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900',
-      status: 'Inactif',
-      statusColor: 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400',
-      lastLogin: '25/09/2026 11:20',
-      registrationDate: '15/09/2025',
-      jobTitle: 'Technicienne Frigoriste',
-      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
-      permissions: ['Gestion équipements', 'Maintenance (OT)'],
-      authorizedSites: [{ name: 'Chambre Froide', status: 'Inactif' }],
-      recentActivities: [
-        { id: 'act-71', action: 'Désactivation automatique après inactivité', date: '25/09/2026 11:20', type: 'user', iconBg: 'bg-rose-100 text-rose-600' }
-      ]
-    },
-    {
-      id: 'usr-008',
-      name: 'Nour Jaziri',
-      email: 'n.jaziri@tai.tn',
-      phone: '+216 29 012 345',
-      company: 'Tunisie Agro Industrie',
-      site: 'Usine',
-      role: 'Admin Entreprise',
-      roleColor: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-900',
-      status: 'Actif',
-      statusColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400',
-      lastLogin: '29/09/2026 09:55',
-      registrationDate: '10/03/2026',
-      jobTitle: 'Directeur Général',
-      avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
-      permissions: ['Gestion utilisateurs', 'Gestion équipements', 'Maintenance (OT)', 'Stock & achats', 'Rapports', 'Paramètres entreprise'],
-      authorizedSites: [{ name: 'Usine', status: 'Actif' }, { name: 'Dépôt Central', status: 'Actif' }],
-      recentActivities: [
-        { id: 'act-81', action: 'Exportation de l’audit de maintenance', date: '29/09/2026 09:55', type: 'equipment', iconBg: 'bg-blue-100 text-blue-600' }
-      ]
-    },
-    {
-      id: 'usr-009',
-      name: 'Yassine Chaabane',
-      email: 'y.chaabane@sicamex.tn',
-      phone: '+216 20 123 456',
-      company: 'Sicamex',
-      site: 'Usine Principale',
-      role: 'Technicien',
-      roleColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900',
-      status: 'Actif',
-      statusColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400',
-      lastLogin: '28/09/2026 17:30',
-      registrationDate: '05/09/2025',
-      jobTitle: 'Technicien Régleur Ligne',
-      avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80',
-      permissions: ['Gestion équipements', 'Maintenance (OT)'],
-      authorizedSites: [{ name: 'Usine Principale', status: 'Actif' }],
-      recentActivities: [
-        { id: 'act-91', action: 'Clôture préventive hebdomadaire', date: '28/09/2026 17:30', type: 'workorder', iconBg: 'bg-emerald-100 text-emerald-600' }
-      ]
-    },
-    {
-      id: 'usr-010',
-      name: 'Fatma Hlali',
-      email: 'f.hlali@biotomate.tn',
-      phone: '+216 21 234 567',
-      company: 'BioTomate',
-      site: 'Maintenance',
-      role: 'Technicien',
-      roleColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900',
-      status: 'En attente',
-      statusColor: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400',
-      lastLogin: '-',
-      registrationDate: '01/08/2026',
-      jobTitle: 'Technicienne Qualité & Suivi',
-      avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
-      permissions: ['Maintenance (OT)'],
-      authorizedSites: [{ name: 'Maintenance', status: 'Inactif' }],
-      recentActivities: [
-        { id: 'act-101', action: 'Attente d’activation du compte', date: '01/08/2026 10:00', type: 'user', iconBg: 'bg-amber-100 text-amber-600' }
-      ]
-    },
-    {
-      id: 'usr-011',
-      name: 'Ahmed Saidi',
-      email: 'a.saidi@conserveplus.tn',
-      phone: '+216 22 987 654',
-      company: 'Conserve Plus',
-      site: 'Usine Principale',
-      role: 'Super Admin',
-      roleColor: 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200 dark:border-rose-900',
-      status: 'Actif',
-      statusColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400',
-      lastLogin: '29/09/2026 10:50',
-      registrationDate: '20/08/2025',
-      jobTitle: 'Auditeur Principal GMAO',
-      avatar: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=150&auto=format&fit=crop&q=80',
-      permissions: [
-        'Gestion utilisateurs',
-        'Gestion équipements',
-        'Maintenance (OT)',
-        'Stock & achats',
-        'Rapports',
-        'Paramètres entreprise',
-        'Audit Système Global'
-      ],
-      authorizedSites: [
-        { name: 'Usine Principale', status: 'Actif' },
-        { name: 'Site Sud', status: 'Actif' }
-      ],
-      recentActivities: [
-        { id: 'act-111', action: 'Connexion Super Admin', date: '29/09/2026 10:50', type: 'login', iconBg: 'bg-rose-100 text-rose-600' }
-      ]
-    },
-    {
-      id: 'usr-012',
-      name: 'Marwa Ben Ali',
-      email: 'm.benali@tomateindustrie.tn',
-      phone: '+216 23 876 543',
-      company: 'Tomate Industrie',
-      site: 'Ligne 2',
-      role: 'Technicien',
-      roleColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900',
-      status: 'Inactif',
-      statusColor: 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400',
-      lastLogin: '20/09/2026 13:14',
-      registrationDate: '10/06/2025',
-      jobTitle: 'Technicienne Conditionnement',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-      permissions: ['Gestion équipements', 'Maintenance (OT)'],
-      authorizedSites: [{ name: 'Ligne 2', status: 'Inactif' }],
-      recentActivities: [
-        { id: 'act-121', action: 'Accès suspendu par l’administrateur', date: '20/09/2026 13:14', type: 'user', iconBg: 'bg-rose-100 text-rose-600' }
-      ]
-    }
-  ]);
+  const [usersList, setUsersList] = useState<UserItem[]>(REAL_DB_USERS);
 
   // Form states for Add / Edit
   const [newUserForm, setNewUserForm] = useState({
     name: '',
     email: '',
     phone: '',
-    company: 'Conserve Plus',
+    company: 'Usine Tomates POMODORO',
     site: 'Usine Principale',
     role: 'Technicien' as UserItem['role'],
     jobTitle: 'Technicien Maintenance',
@@ -546,7 +254,7 @@ export const SuperAdminUsers: React.FC = () => {
       name: '',
       email: '',
       phone: '',
-      company: 'Conserve Plus',
+      company: 'Usine Tomates POMODORO',
       site: 'Usine Principale',
       role: 'Technicien',
       jobTitle: 'Technicien Maintenance',

@@ -82,258 +82,33 @@ export const SuperAdminMonitoring: React.FC = () => {
   };
 
   // 10 tenants matching screenshot
-  const [tenantsList, setTenantsList] = useState<MonitoringTenant[]>([
-    {
-      id: 'mon-001',
-      name: 'Conserve Plus',
-      logo: '🥫',
-      category: 'Entreprise industrielle de conserve de tomates',
-      plan: 'Professional',
-      planBadgeColor: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-900',
-      sitesUsed: 2,
-      sitesLimit: 5,
-      usersUsed: 12,
-      usersLimit: 50,
-      equipmentsUsed: 128,
-      equipmentsLimit: 1000,
-      storageUsed: 8.4,
-      storageLimit: 50,
-      status: 'Actif',
-      email: 's.mansouri@conserveplus.tn',
-      contact: 'S. Mansouri',
+  const [tenantsList, setTenantsList] = useState<MonitoringTenant[]>(
+    REAL_DB_COMPANIES.map(c => ({
+      id: `mon-${c.id}`,
+      name: c.name,
+      logo: c.logo,
+      category: c.category,
+      plan: c.plan,
+      planBadgeColor: c.planColor,
+      sitesUsed: c.sites,
+      sitesLimit: c.maxSites,
+      usersUsed: c.users,
+      usersLimit: c.maxUsers,
+      equipmentsUsed: c.equipments,
+      equipmentsLimit: c.maxEquipments,
+      storageUsed: c.storageUsedGb,
+      storageLimit: c.maxStorageGb,
+      status: c.status === 'Active' ? 'Actif' : c.status,
+      email: c.email,
+      contact: c.contact,
       trend: {
         months: ['Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep'],
-        users: [25, 45, 60, 75, 85, 95],
-        equipments: [40, 65, 80, 100, 115, 128],
-        storage: [15, 18, 20, 22, 25, 28]
+        users: [10, 15, 20, 22, 24, c.users],
+        equipments: [30, 50, 70, 90, 120, c.equipments],
+        storage: [5, 8, 12, 14, 16, Math.round(c.storageUsedGb)]
       }
-    },
-    {
-      id: 'mon-002',
-      name: 'Tomate Industrie',
-      logo: '🍅',
-      category: 'Transformation agroalimentaire & concentré',
-      plan: 'Basic',
-      planBadgeColor: 'bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border-sky-200 dark:border-sky-900',
-      sitesUsed: 1,
-      sitesLimit: 1,
-      usersUsed: 5,
-      usersLimit: 10,
-      equipmentsUsed: 86,
-      equipmentsLimit: 200,
-      storageUsed: 4.1,
-      storageLimit: 10,
-      status: 'En limite',
-      email: 'k.ammar@tomateindustrie.tn',
-      contact: 'K. Ammar',
-      trend: {
-        months: ['Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep'],
-        users: [10, 20, 35, 45, 55, 64],
-        equipments: [30, 45, 60, 70, 80, 86],
-        storage: [8, 11, 14, 16, 18, 20]
-      }
-    },
-    {
-      id: 'mon-003',
-      name: 'AgroFood SARL',
-      logo: '🏭',
-      category: 'Groupe Agro-industriel moderne',
-      plan: 'Enterprise',
-      planBadgeColor: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-900',
-      sitesUsed: 3,
-      sitesLimit: 10,
-      usersUsed: 25,
-      usersLimit: 100,
-      equipmentsUsed: 320,
-      equipmentsLimit: 2000,
-      storageUsed: 18.7,
-      storageLimit: 100,
-      status: 'Actif',
-      email: 'm.trabelsi@agrofood.tn',
-      contact: 'M. Trabelsi',
-      trend: {
-        months: ['Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep'],
-        users: [20, 30, 38, 44, 48, 52],
-        equipments: [80, 140, 200, 250, 290, 320],
-        storage: [10, 12, 14, 15, 16, 18.7]
-      }
-    },
-    {
-      id: 'mon-004',
-      name: 'Méditerranée Food',
-      logo: '🥫',
-      category: 'Conditionnement & conserves premium',
-      plan: 'Professional',
-      planBadgeColor: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-900',
-      sitesUsed: 3,
-      sitesLimit: 5,
-      usersUsed: 18,
-      usersLimit: 50,
-      equipmentsUsed: 245,
-      equipmentsLimit: 1000,
-      storageUsed: 12.3,
-      storageLimit: 50,
-      status: 'Actif',
-      email: 'h.bensalah@medfood.tn',
-      contact: 'H. Ben Salah',
-      trend: {
-        months: ['Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep'],
-        users: [15, 22, 28, 32, 36, 40],
-        equipments: [50, 90, 140, 180, 210, 245],
-        storage: [6, 8, 9, 10, 11, 12.3]
-      }
-    },
-    {
-      id: 'mon-005',
-      name: 'Sousse Conserves',
-      logo: '🍅',
-      category: 'Production de sauce et double concentré',
-      plan: 'Basic',
-      planBadgeColor: 'bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border-sky-200 dark:border-sky-900',
-      sitesUsed: 1,
-      sitesLimit: 1,
-      usersUsed: 4,
-      usersLimit: 10,
-      equipmentsUsed: 67,
-      equipmentsLimit: 200,
-      storageUsed: 6.2,
-      storageLimit: 10,
-      status: 'En limite',
-      email: 'a.gharbi@sousseconserves.tn',
-      contact: 'A. Gharbi',
-      trend: {
-        months: ['Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep'],
-        users: [8, 12, 18, 22, 26, 30],
-        equipments: [20, 30, 42, 50, 60, 67],
-        storage: [3, 4, 4.5, 5, 5.8, 6.2]
-      }
-    },
-    {
-      id: 'mon-006',
-      name: 'Cap Tomate',
-      logo: '🍅',
-      category: 'Transformation maraîchère régionale',
-      plan: 'Professional',
-      planBadgeColor: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-900',
-      sitesUsed: 2,
-      sitesLimit: 5,
-      usersUsed: 10,
-      usersLimit: 50,
-      equipmentsUsed: 140,
-      equipmentsLimit: 1000,
-      storageUsed: 9.8,
-      storageLimit: 50,
-      status: 'Actif',
-      email: 'r.khelifi@captomate.tn',
-      contact: 'R. Khelifi',
-      trend: {
-        months: ['Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep'],
-        users: [5, 8, 12, 14, 17, 20],
-        equipments: [40, 65, 85, 110, 125, 140],
-        storage: [4, 5.5, 7, 8, 8.8, 9.8]
-      }
-    },
-    {
-      id: 'mon-007',
-      name: 'El Wafa Agro',
-      logo: '🌾',
-      category: 'Agro-industrie et logistique froide',
-      plan: 'Basic',
-      planBadgeColor: 'bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border-sky-200 dark:border-sky-900',
-      sitesUsed: 1,
-      sitesLimit: 2,
-      usersUsed: 3,
-      usersLimit: 10,
-      equipmentsUsed: 56,
-      equipmentsLimit: 200,
-      storageUsed: 3.1,
-      storageLimit: 10,
-      status: 'Actif',
-      email: 'l.farhat@elwafaagro.tn',
-      contact: 'L. Farhat',
-      trend: {
-        months: ['Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep'],
-        users: [4, 6, 8, 10, 12, 14],
-        equipments: [15, 24, 32, 40, 48, 56],
-        storage: [1.5, 1.8, 2.2, 2.5, 2.8, 3.1]
-      }
-    },
-    {
-      id: 'mon-008',
-      name: 'Tunisie Agro Industrie',
-      logo: '🇹🇳',
-      category: 'Complexe industriel de transformation',
-      plan: 'Enterprise',
-      planBadgeColor: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-900',
-      sitesUsed: 4,
-      sitesLimit: 10,
-      usersUsed: 32,
-      usersLimit: 100,
-      equipmentsUsed: 418,
-      equipmentsLimit: 2000,
-      storageUsed: 28.5,
-      storageLimit: 100,
-      status: 'Actif',
-      email: 'n.jaziri@tai.tn',
-      contact: 'N. Jaziri',
-      trend: {
-        months: ['Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep'],
-        users: [12, 18, 24, 28, 30, 32],
-        equipments: [120, 190, 260, 320, 370, 418],
-        storage: [12, 16, 20, 23, 26, 28.5]
-      }
-    },
-    {
-      id: 'mon-009',
-      name: 'Sicamex',
-      logo: '🥫',
-      category: 'Conserverie & extraction industrielle',
-      plan: 'Professional',
-      planBadgeColor: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-900',
-      sitesUsed: 2,
-      sitesLimit: 5,
-      usersUsed: 11,
-      usersLimit: 50,
-      equipmentsUsed: 198,
-      equipmentsLimit: 1000,
-      storageUsed: 11.0,
-      storageLimit: 50,
-      status: 'Actif',
-      email: 'y.chaabane@sicamex.tn',
-      contact: 'Y. Chaabane',
-      trend: {
-        months: ['Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep'],
-        users: [8, 10, 11, 11, 11, 11],
-        equipments: [60, 95, 130, 160, 180, 198],
-        storage: [4, 6, 7.5, 9, 10, 11]
-      }
-    },
-    {
-      id: 'mon-010',
-      name: 'BioTomate',
-      logo: '🌱',
-      category: 'Filière biologique certifiée',
-      plan: 'Basic',
-      planBadgeColor: 'bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border-sky-200 dark:border-sky-900',
-      sitesUsed: 1,
-      sitesLimit: 1,
-      usersUsed: 2,
-      usersLimit: 10,
-      equipmentsUsed: 44,
-      equipmentsLimit: 200,
-      storageUsed: 5.6,
-      storageLimit: 10,
-      status: 'En limite',
-      email: 'f.hlali@biotomate.tn',
-      contact: 'F. Hlali',
-      trend: {
-        months: ['Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep'],
-        users: [2, 2, 2, 2, 2, 2],
-        equipments: [10, 18, 25, 32, 38, 44],
-        storage: [2, 2.8, 3.6, 4.2, 5.0, 5.6]
-      }
-    }
-  ]);
+    }))
+  );
 
   // Selected tenant for preview
   const selectedTenant = useMemo(() => {
@@ -646,13 +421,13 @@ export const SuperAdminMonitoring: React.FC = () => {
             </div>
 
             {[
-              { name: 'Conserve Plus', val: 72 },
-              { name: 'Tomate Industrie', val: 64 },
-              { name: 'AgroFood SARL', val: 52 },
-              { name: 'Méditerranée Food', val: 40 },
-              { name: 'Sousse Conserves', val: 30 },
-              { name: 'Cap Tomate', val: 20 },
-              { name: 'Autres', val: 16 }
+              { name: 'SICAM', val: 60 },
+              { name: 'SFBT', val: 80 },
+              { name: 'POMODORO', val: 25 },
+              { name: 'Carthage SARL', val: 30 },
+              { name: 'Unimed', val: 50 },
+              { name: 'Carthage Grains', val: 45 },
+              { name: 'Autres', val: 22 }
             ].map(item => (
               <div key={item.name} className="flex-1 flex flex-col items-center gap-1 group relative z-10">
                 <div className="absolute -top-6 opacity-0 group-hover:opacity-100 transition-opacity px-1.5 py-0.5 rounded bg-slate-900 text-white text-[9px] font-bold pointer-events-none z-20 whitespace-nowrap">
@@ -695,13 +470,13 @@ export const SuperAdminMonitoring: React.FC = () => {
             </div>
 
             {[
-              { name: 'Conserve Plus', val: 370 },
-              { name: 'Tomate Industrie', val: 330 },
-              { name: 'AgroFood SARL', val: 280 },
-              { name: 'Méditerranée Food', val: 140 },
-              { name: 'Sousse Conserves', val: 70 },
-              { name: 'Cap Tomate', val: 50 },
-              { name: 'Autres', val: 35 }
+              { name: 'SFBT', val: 500 },
+              { name: 'SICAM', val: 350 },
+              { name: 'Unimed', val: 320 },
+              { name: 'Carthage Grains', val: 280 },
+              { name: 'Carthage SARL', val: 180 },
+              { name: 'POMODORO', val: 150 },
+              { name: 'Autres', val: 105 }
             ].map(item => (
               <div key={item.name} className="flex-1 flex flex-col items-center gap-1 group relative z-10">
                 <div className="absolute -top-6 opacity-0 group-hover:opacity-100 transition-opacity px-1.5 py-0.5 rounded bg-slate-900 text-white text-[9px] font-bold pointer-events-none z-20 whitespace-nowrap">
@@ -743,12 +518,12 @@ export const SuperAdminMonitoring: React.FC = () => {
             </div>
 
             {[
-              { name: 'Conserve Plus', val: 27 },
-              { name: 'Tomate Industrie', val: 20 },
-              { name: 'AgroFood SARL', val: 16 },
-              { name: 'Méditerranée Food', val: 12 },
-              { name: 'Cap Tomate', val: 9 },
-              { name: 'Autres', val: 7 }
+              { name: 'SFBT', val: 64 },
+              { name: 'SICAM', val: 42.5 },
+              { name: 'Unimed', val: 39.5 },
+              { name: 'Carthage Grains', val: 31.4 },
+              { name: 'Carthage SARL', val: 18.2 },
+              { name: 'POMODORO', val: 14.5 }
             ].map(item => (
               <div key={item.name} className="flex-1 flex flex-col items-center gap-1 group relative z-10">
                 <div className="absolute -top-6 opacity-0 group-hover:opacity-100 transition-opacity px-1.5 py-0.5 rounded bg-slate-900 text-white text-[9px] font-bold pointer-events-none z-20 whitespace-nowrap">

@@ -73,7 +73,7 @@ export const SuperAdminLogs: React.FC = () => {
       userName: 'Ahmed Ben Ali',
       userRole: 'Super Administrateur',
       userAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-      companyName: 'Conserve Plus',
+      companyName: 'Usine Tomates POMODORO',
       companyLogo: '🥫',
       action: 'Modification plan',
       actionType: 'plan',
@@ -93,7 +93,7 @@ export const SuperAdminLogs: React.FC = () => {
       userName: 'Sami Mansouri',
       userRole: 'Admin Entreprise',
       userAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-      companyName: 'Conserve Plus',
+      companyName: 'Usine Tomates POMODORO',
       companyLogo: '🥫',
       action: 'Ajout utilisateur',
       actionType: 'user',
@@ -111,7 +111,7 @@ export const SuperAdminLogs: React.FC = () => {
       userName: 'Khaled Ammar',
       userRole: 'Admin Entreprise',
       userAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
-      companyName: 'Tomate Industrie',
+      companyName: 'Agro-Industrie Du Sud (SICAM)',
       companyLogo: '🍅',
       action: 'Création site',
       actionType: 'site',
@@ -147,7 +147,7 @@ export const SuperAdminLogs: React.FC = () => {
       userName: 'Mohamed Trabelsi',
       userRole: 'Technicien',
       userAvatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80',
-      companyName: 'AgroFood SARL',
+      companyName: 'Conserverie Carthage SARL',
       companyLogo: '🏭',
       action: 'Connexion',
       actionType: 'login',
@@ -165,7 +165,7 @@ export const SuperAdminLogs: React.FC = () => {
       userName: 'Hichem Ben Salah',
       userRole: 'Admin Entreprise',
       userAvatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150&auto=format&fit=crop&q=80',
-      companyName: 'Méditerranée Food',
+      companyName: 'Société Tunisienne Des Boissons (SFBT)',
       companyLogo: '🥫',
       action: 'Suppression utilisateur',
       actionType: 'delete',
@@ -255,7 +255,7 @@ export const SuperAdminLogs: React.FC = () => {
       userName: 'Leila Farhat',
       userRole: 'Technicien',
       userAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
-      companyName: 'Tomate Industrie',
+      companyName: 'Agro-Industrie Du Sud (SICAM)',
       companyLogo: '🍅',
       action: 'Téléchargement',
       actionType: 'download',
@@ -309,7 +309,7 @@ export const SuperAdminLogs: React.FC = () => {
       userName: 'Rami Khelifi',
       userRole: 'Responsable',
       userAvatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80',
-      companyName: 'Conserve Plus',
+      companyName: 'Usine Tomates POMODORO',
       companyLogo: '🥫',
       action: 'Export rapport',
       actionType: 'export',
@@ -659,14 +659,7 @@ export const SuperAdminLogs: React.FC = () => {
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 appearance-none pr-7 cursor-pointer"
                 >
                   <option value="All">Toutes les entreprises</option>
-                  <option value="Conserve Plus">Conserve Plus</option>
-                  <option value="Tomate Industrie">Tomate Industrie</option>
-                  <option value="AgroFood SARL">AgroFood SARL</option>
-                  <option value="Méditerranée Food">Méditerranée Food</option>
-                  <option value="Sicamex">Sicamex</option>
-                  <option value="Cap Tomate">Cap Tomate</option>
-                  <option value="Sousse Conserves">Sousse Conserves</option>
-                  <option value="El Wafa Agro">El Wafa Agro</option>
+                  {REAL_DB_COMPANIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
                 </select>
                 <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               </div>
