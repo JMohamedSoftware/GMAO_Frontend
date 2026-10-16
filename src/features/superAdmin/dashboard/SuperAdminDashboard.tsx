@@ -107,6 +107,24 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     setTimeout(() => setActionSuccessMessage(null), 3000);
   };
 
+  // Helper: plan color mapping
+  const getPlanColor = (plan: string) => {
+    switch (plan?.toLowerCase()) {
+      case 'professional': return 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-900';
+      case 'basic': return 'bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border-sky-200 dark:border-sky-900';
+      case 'enterprise': return 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-900';
+      case 'essai gratuit': return 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-900';
+      default: return 'bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700';
+    }
+  };
+
+  const PLAN_COLORS: Record<string, string> = {
+    'Basic': '#3B82F6',
+    'Professional': '#10B981',
+    'Enterprise': '#F59E0B',
+    'Essai gratuit': '#8B5CF6',
+  };
+
   // 1. Croissance des entreprises (Data matching screenshot)
   const growthData = [
     { month: 'Jan', new: 4, active: 12 },
@@ -120,15 +138,29 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     { month: 'Sept', new: 19, active: 39 }
   ];
 
-  // 2. Répartition des abonnements (Donut)
-  const subscriptionBreakdown = [
+  // 2. Répartition des abonnements (from backend or static fallback)
+  const staticSubscriptionBreakdown = [
     { name: 'Basic', value: 15, percentage: 31, color: '#3B82F6' },
     { name: 'Professional', value: 20, percentage: 42, color: '#10B981' },
     { name: 'Enterprise', value: 8, percentage: 17, color: '#F59E0B' },
     { name: 'Essai gratuit', value: 5, percentage: 10, color: '#8B5CF6' }
   ];
 
-  // 3. Revenus (TND) (Bar Chart matching screenshot heights)
+  const subscriptionBreakdown = liveStats?.planDistribution && liveStats.planDistribution.length > 0
+    ? (() => {
+        const total = liveStats.planDistribution.reduce((s, p) => s + p.count, 0) || 1;
+        return liveStats.planDistribution.map(p => ({
+          name: p.plan,
+          value: p.count,
+          percentage: Math.round((p.count / total) * 100),
+          color: PLAN_COLORS[p.plan] ?? '#64748B'
+        }));
+      })()
+    : staticSubscriptionBreakdown;
+
+  const totalTenantsForDonut = subscriptionBreakdown.reduce((s, p) => s + p.value, 0);
+
+  // 3. Revenus (TND)
   const revenueChartData = [
     { month: 'Jan', revenue: 46000 },
     { month: 'Fév', revenue: 68000 },
@@ -141,182 +173,96 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     { month: 'Sept', revenue: 148000 }
   ];
 
-  // 4. Dernières entreprises inscrites
-  const recentCompanies = [
-    {
-      id: 'cp',
-      name: 'Conserve Plus',
-      contact: 'S. Mansouri',
-      plan: 'Professional',
-      planColor: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-900',
-      sites: 2,
-      users: 12,
-      status: 'Actif',
-      date: '29/09/2026',
-      iconBg: 'bg-emerald-500/10 text-emerald-600',
-      logo: '🏭'
-    },
-    {
-      id: 'ti',
-      name: 'Tomate Industrie',
-      contact: 'K. Ammar',
-      plan: 'Basic',
-      planColor: 'bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border-sky-200 dark:border-sky-900',
-      sites: 1,
-      users: 5,
-      status: 'Actif',
-      date: '27/09/2026',
-      iconBg: 'bg-red-500/10 text-red-600',
-      logo: '🍅'
-    },
-    {
-      id: 'af',
-      name: 'AgroFood SARL',
-      contact: 'M. Trabelsi',
-      plan: 'Essai gratuit',
-      planColor: 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-900',
-      sites: 1,
-      users: 3,
-      status: 'En essai',
-      date: '25/09/2026',
-      iconBg: 'bg-amber-500/10 text-amber-600',
-      logo: '🌾'
-    },
-    {
-      id: 'mf',
-      name: 'Méditerranée Food',
-      contact: 'H. Ben Salah',
-      plan: 'Enterprise',
-      planColor: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-900',
-      sites: 3,
-      users: 25,
-      status: 'Actif',
-      date: '22/09/2026',
-      iconBg: 'bg-teal-500/10 text-teal-600',
-      logo: '🍲'
-    },
-    {
-      id: 'sc',
-      name: 'Sousse Conserves',
-      contact: 'A. Gharbi',
-      plan: 'Basic',
-      planColor: 'bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border-sky-200 dark:border-sky-900',
-      sites: 1,
-      users: 4,
-      status: 'Actif',
-      date: '20/09/2026',
-      iconBg: 'bg-indigo-500/10 text-indigo-600',
-      logo: '🥫'
-    }
+  // 4. Dernières entreprises (from backend or static fallback)
+  const LOGOS = ['🏭', '🍅', '🌾', '🍲', '🥫', '🌱', '🌿', '🏗️'];
+  const staticRecentCompanies = [
+    { id: 'cp', name: 'Conserve Plus', contact: 'S. Mansouri', plan: 'Professional', planColor: getPlanColor('Professional'), sites: 2, users: 12, status: 'Actif', date: '29/09/2026', logo: '🏭' },
+    { id: 'ti', name: 'Tomate Industrie', contact: 'K. Ammar', plan: 'Basic', planColor: getPlanColor('Basic'), sites: 1, users: 5, status: 'Actif', date: '27/09/2026', logo: '🍅' },
+    { id: 'af', name: 'AgroFood SARL', contact: 'M. Trabelsi', plan: 'Essai gratuit', planColor: getPlanColor('Essai gratuit'), sites: 1, users: 3, status: 'En essai', date: '25/09/2026', logo: '🌾' },
+    { id: 'mf', name: 'Méditerranée Food', contact: 'H. Ben Salah', plan: 'Enterprise', planColor: getPlanColor('Enterprise'), sites: 3, users: 25, status: 'Actif', date: '22/09/2026', logo: '🍲' },
+    { id: 'sc', name: 'Sousse Conserves', contact: 'A. Gharbi', plan: 'Basic', planColor: getPlanColor('Basic'), sites: 1, users: 4, status: 'Actif', date: '20/09/2026', logo: '🥫' }
   ];
 
-  // 5. Abonnements à renouveler
-  const renewals = [
-    {
-      id: 'at',
-      name: 'AgroTech',
-      plan: 'Professional',
-      expirationDate: '03/10/2026',
-      daysLeft: 4,
-      status: 'Bientôt',
-      statusColor: 'bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200/60 dark:border-rose-900/40',
-      daysColor: 'text-rose-600 dark:text-rose-400 font-extrabold',
-      logo: '🌱'
-    },
-    {
-      id: 'sicam',
-      name: 'SICAM',
-      plan: 'Basic',
-      expirationDate: '08/10/2026',
-      daysLeft: 9,
-      status: 'Bientôt',
-      statusColor: 'bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200/60 dark:border-rose-900/40',
-      daysColor: 'text-rose-600 dark:text-rose-400 font-extrabold',
-      logo: '🥫'
-    },
-    {
-      id: 'cp2',
-      name: 'Conserve Plus',
-      plan: 'Enterprise',
-      expirationDate: '15/10/2026',
-      daysLeft: 16,
-      status: 'Attention',
-      statusColor: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200/60 dark:border-amber-900/40',
-      daysColor: 'text-amber-600 dark:text-amber-400 font-bold',
-      logo: '🏭'
-    },
-    {
-      id: 'ta',
-      name: 'Tunis Agro',
-      plan: 'Basic',
-      expirationDate: '21/10/2026',
-      daysLeft: 22,
-      status: 'Attention',
-      statusColor: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200/60 dark:border-amber-900/40',
-      daysColor: 'text-amber-600 dark:text-amber-400 font-bold',
-      logo: '🌾'
-    },
-    {
-      id: 'ct',
-      name: 'Cap Tomate',
-      plan: 'Professional',
-      expirationDate: '27/10/2026',
-      daysLeft: 28,
-      status: 'Attention',
-      statusColor: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200/60 dark:border-amber-900/40',
-      daysColor: 'text-amber-600 dark:text-amber-400 font-bold',
-      logo: '🍅'
-    }
+  const recentCompanies = liveStats?.recentTenants && liveStats.recentTenants.length > 0
+    ? liveStats.recentTenants.map((t, i) => ({
+        id: String(t.id),
+        name: t.nom,
+        contact: t.managerNom || '—',
+        plan: t.subscriptionPlan,
+        planColor: getPlanColor(t.subscriptionPlan),
+        sites: t.sitesCount,
+        users: t.usersCount,
+        status: t.subscriptionStatus === 'Actif' ? 'Actif' : t.subscriptionStatus === 'Essai' ? 'En essai' : t.subscriptionStatus,
+        date: new Date(t.createdAt).toLocaleDateString('fr-FR'),
+        logo: LOGOS[i % LOGOS.length]
+      }))
+    : staticRecentCompanies;
+
+  // 5. Abonnements à renouveler (from backend or static fallback)
+  const staticRenewals = [
+    { id: 'at', name: 'AgroTech', plan: 'Professional', expirationDate: '03/10/2026', daysLeft: 4, status: 'Bientôt', statusColor: 'bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200/60 dark:border-rose-900/40', daysColor: 'text-rose-600 dark:text-rose-400 font-extrabold', logo: '🌱' },
+    { id: 'sicam', name: 'SICAM', plan: 'Basic', expirationDate: '08/10/2026', daysLeft: 9, status: 'Bientôt', statusColor: 'bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200/60 dark:border-rose-900/40', daysColor: 'text-rose-600 dark:text-rose-400 font-extrabold', logo: '🥫' },
+    { id: 'cp2', name: 'Conserve Plus', plan: 'Enterprise', expirationDate: '15/10/2026', daysLeft: 16, status: 'Attention', statusColor: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200/60 dark:border-amber-900/40', daysColor: 'text-amber-600 dark:text-amber-400 font-bold', logo: '🏭' },
+    { id: 'ta', name: 'Tunis Agro', plan: 'Basic', expirationDate: '21/10/2026', daysLeft: 22, status: 'Attention', statusColor: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200/60 dark:border-amber-900/40', daysColor: 'text-amber-600 dark:text-amber-400 font-bold', logo: '🌾' },
+    { id: 'ct', name: 'Cap Tomate', plan: 'Professional', expirationDate: '27/10/2026', daysLeft: 28, status: 'Attention', statusColor: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200/60 dark:border-amber-900/40', daysColor: 'text-amber-600 dark:text-amber-400 font-bold', logo: '🍅' }
   ];
 
-  // 6. Activités récentes
-  const recentActivities = [
-    {
-      id: 1,
-      type: 'company',
-      icon: Building2,
-      iconColor: 'bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400',
-      text: 'Nouvelle entreprise inscrite : ',
-      highlight: 'Conserve Plus',
-      time: '10:24'
-    },
-    {
-      id: 2,
-      type: 'plan',
-      icon: RefreshCw,
-      iconColor: 'bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400',
-      text: 'Plan mis à jour : ',
-      highlight: 'Tomate Industrie (Professional)',
-      time: '09:15'
-    },
-    {
-      id: 3,
-      type: 'user',
-      icon: Users,
-      iconColor: 'bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400',
-      text: 'Utilisateur ajouté : ',
-      highlight: 'sarah.mansouri@conserveplus.tn',
-      time: 'Hier 16:42'
-    },
-    {
-      id: 4,
-      type: 'payment',
-      icon: CreditCard,
-      iconColor: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400',
-      text: 'Paiement confirmé : ',
-      highlight: 'AgroFood SARL',
-      time: 'Hier 14:20'
-    },
-    {
-      id: 5,
-      type: 'site',
-      icon: Factory,
-      iconColor: 'bg-orange-50 text-orange-600 dark:bg-orange-950/60 dark:text-orange-400',
-      text: 'Site ajouté : ',
-      highlight: 'Usine Sousse',
-      time: '28/09 11:03'
-    }
+  const getRenewalStatus = (daysLeft: number) => {
+    if (daysLeft <= 7) return { status: 'Bientôt', statusColor: 'bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200/60 dark:border-rose-900/40', daysColor: 'text-rose-600 dark:text-rose-400 font-extrabold' };
+    return { status: 'Attention', statusColor: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200/60 dark:border-amber-900/40', daysColor: 'text-amber-600 dark:text-amber-400 font-bold' };
+  };
+
+  const renewals = liveStats?.renewingTenants && liveStats.renewingTenants.length > 0
+    ? liveStats.renewingTenants.map((r, i) => ({
+        id: String(r.id),
+        name: r.nom,
+        plan: r.subscriptionPlan,
+        expirationDate: new Date(r.subscriptionEndDate).toLocaleDateString('fr-FR'),
+        daysLeft: r.daysLeft,
+        logo: LOGOS[i % LOGOS.length],
+        ...getRenewalStatus(r.daysLeft)
+      }))
+    : staticRenewals;
+
+  // 6. Activités récentes (from backend recentLogs or static fallback)
+  const LOG_ICON_MAP: Record<string, { icon: any; iconColor: string; text: string }> = {
+    'Création Entreprise': { icon: Building2, iconColor: 'bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400', text: 'Nouvelle entreprise inscrite : ' },
+    'Mise à jour Plan': { icon: RefreshCw, iconColor: 'bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400', text: 'Plan mis à jour : ' },
+    'Création Utilisateur': { icon: Users, iconColor: 'bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400', text: 'Utilisateur ajouté : ' },
+    'Paiement': { icon: CreditCard, iconColor: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400', text: 'Paiement confirmé : ' },
+    'Création Site': { icon: Factory, iconColor: 'bg-orange-50 text-orange-600 dark:bg-orange-950/60 dark:text-orange-400', text: 'Site ajouté : ' },
+  };
+
+  const staticRecentActivities = [
+    { id: 1, type: 'company', icon: Building2, iconColor: 'bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400', text: 'Nouvelle entreprise inscrite : ', highlight: 'Conserve Plus', time: '10:24' },
+    { id: 2, type: 'plan', icon: RefreshCw, iconColor: 'bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400', text: 'Plan mis à jour : ', highlight: 'Tomate Industrie (Professional)', time: '09:15' },
+    { id: 3, type: 'user', icon: Users, iconColor: 'bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400', text: 'Utilisateur ajouté : ', highlight: 'sarah.mansouri@conserveplus.tn', time: 'Hier 16:42' },
+    { id: 4, type: 'payment', icon: CreditCard, iconColor: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400', text: 'Paiement confirmé : ', highlight: 'AgroFood SARL', time: 'Hier 14:20' },
+    { id: 5, type: 'site', icon: Factory, iconColor: 'bg-orange-50 text-orange-600 dark:bg-orange-950/60 dark:text-orange-400', text: 'Site ajouté : ', highlight: 'Usine Sousse', time: '28/09 11:03' }
   ];
+
+  const recentActivities = liveStats?.recentLogs && liveStats.recentLogs.length > 0
+    ? liveStats.recentLogs.map((log) => {
+        const mapping = LOG_ICON_MAP[log.action] ?? {
+          icon: Activity,
+          iconColor: 'bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+          text: `${log.action} : `
+        };
+        const logDate = new Date(log.dateHeure);
+        const now = new Date();
+        const diffH = Math.round((now.getTime() - logDate.getTime()) / 3600000);
+        const timeStr = diffH < 1 ? 'À l'instant' : diffH < 24 ? `${logDate.getHours()}:${String(logDate.getMinutes()).padStart(2, '0')}` : `Hier ${logDate.getHours()}:${String(logDate.getMinutes()).padStart(2, '0')}`;
+        return {
+          id: log.id,
+          type: log.categorie,
+          icon: mapping.icon,
+          iconColor: mapping.iconColor,
+          text: mapping.text,
+          highlight: log.details || log.userNom,
+          time: timeStr
+        };
+      })
+    : staticRecentActivities;
 
   return (
     <div className="flex flex-col gap-5 w-full pb-8 select-none animate-[fadeIn_0.2s_ease-out]">
@@ -498,7 +444,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               Période d'essai
             </span>
             <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-1 block">
-              {liveStats?.kpis?.pendingInvoicesCount ?? pendingCount}
+              {liveStats?.kpis?.trialTenantsCount ?? pendingCount}
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-[11px]">
@@ -528,7 +474,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               Abonnements à renouveler
             </span>
             <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-1 block">
-              3
+              {liveStats?.kpis?.renewalCount ?? renewals.length}
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-[11px]">
@@ -643,7 +589,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                 <span className="text-base font-black text-slate-900 dark:text-white leading-none">
-                  48
+                  {totalTenantsForDonut}
                 </span>
                 <span className="text-[9px] text-slate-400 font-semibold mt-0.5">
                   entreprises
@@ -933,7 +879,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               <div>
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                    286
+                    {liveStats?.kpis?.totalUsers ?? 286}
                   </span>
                   <span className="text-xs font-bold text-slate-500">utilisateurs</span>
                 </div>

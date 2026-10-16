@@ -28,6 +28,8 @@ export interface DashboardStatsResponse {
     arr: number;
     totalRevenue: number;
     pendingInvoicesCount: number;
+    trialTenantsCount: number;
+    renewalCount: number;
     systemHealth: number;
     avgResponseTimeMs: number;
   };
@@ -46,12 +48,20 @@ export interface DashboardStatsResponse {
     nom: string;
     codeTenant: string;
     category: string;
+    managerNom: string;
     subscriptionPlan: string;
     subscriptionStatus: string;
     subscriptionAmount: number;
     createdAt: string;
     sitesCount: number;
     usersCount: number;
+  }>;
+  renewingTenants: Array<{
+    id: number;
+    nom: string;
+    subscriptionPlan: string;
+    subscriptionEndDate: string;
+    daysLeft: number;
   }>;
   planDistribution: Array<{
     plan: string;
