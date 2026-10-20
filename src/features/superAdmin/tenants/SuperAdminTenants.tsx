@@ -95,6 +95,7 @@ export const SuperAdminTenants: React.FC<SuperAdminTenantsProps> = ({
           id: String(t.id),
           index: idx + 1,
           name: t.nom,
+          code: t.codeTenant || `TEN-${String(idx + 1).padStart(3, '0')}`,
           logo: t.nom.toLowerCase().includes('tomate') ? '🍅' : (t.nom.toLowerCase().includes('sicam') ? '🥫' : (t.nom.toLowerCase().includes('sfbt') ? '🍾' : (t.nom.toLowerCase().includes('fromag') ? '🧀' : (t.nom.toLowerCase().includes('huil') ? '🌱' : '🏭')))),
           category: t.category || 'Agroalimentaire & Transformation',
           contact: t.managerNom || 'Direction Générale',
@@ -108,10 +109,16 @@ export const SuperAdminTenants: React.FC<SuperAdminTenantsProps> = ({
               ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-900'
               : 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-900'),
           sites: t.sitesCount && t.sitesCount > 0 ? t.sitesCount : (t.maxSites || 2),
+          maxSites: t.maxSites || 5,
           users: t.usersCount && t.usersCount > 0 ? t.usersCount : (t.maxUsers ? Math.round(t.maxUsers * 0.6) : 15),
           maxUsers: t.maxUsers || 25,
           equipments: t.equipementsCount && t.equipementsCount > 0 ? t.equipementsCount : (t.maxEquipements || 120),
-          status: t.subscriptionStatus === 'Actif' || t.isActive ? 'Active' : (t.subscriptionStatus === 'En essai' ? 'En essai' : 'Suspendue'),
+          maxEquipments: t.maxEquipements || 200,
+          storageUsedGb: t.storageUsedGb || 12,
+          maxStorageGb: t.maxStorageGb || 50,
+          capacityTonsPerDay: t.capacityTonsPerDay || 0,
+          monthlyAmount: t.monthlyAmount || 0,
+          status: (t.subscriptionStatus === 'Actif' || t.isActive ? 'Active' : (t.subscriptionStatus === 'En essai' ? 'En essai' : 'Suspendue')) as 'Active' | 'En essai' | 'Suspendue',
           statusColor: t.subscriptionStatus === 'Actif' || t.isActive
             ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400'
             : (t.subscriptionStatus === 'En essai'
@@ -160,9 +167,9 @@ export const SuperAdminTenants: React.FC<SuperAdminTenantsProps> = ({
   }, [companies, selectedCompanyId]);
 
   const totalTenantsCount = companies.length;
-  const activeTenantsCount = companies.filter(c => c.status === 'Active' || c.status === 'Actif').length;
-  const trialTenantsCount = companies.filter(c => c.status === 'En essai' || c.status === 'Trial').length;
-  const suspendedTenantsCount = companies.filter(c => c.status === 'Suspendue' || c.status === 'Inactif').length;
+  const activeTenantsCount = companies.filter(c => c.status === 'Active').length;
+  const trialTenantsCount = companies.filter(c => c.status === 'En essai').length;
+  const suspendedTenantsCount = companies.filter(c => c.status === 'Suspendue').length;
 
   const activeTenantsPercent = totalTenantsCount > 0 ? Math.round((activeTenantsCount / totalTenantsCount) * 100) : 0;
 
