@@ -25,33 +25,46 @@ function AppContent() {
   const [currentScreen, setCurrentScreen] = useState<string>(() => {
     const params = new URLSearchParams(window.location.search);
     const initialScreen = params.get('screen');
-    return initialScreen || 'dashboard';
+    if (initialScreen) return initialScreen;
+
+    // If user is SuperAdmin and not impersonating, always start on Super Admin dashboard
+    try {
+      const storedUser = localStorage.getItem('gmao_current_user');
+      const storedImpersonated = localStorage.getItem('gmao_impersonated_tenant_id');
+      if (storedUser) {
+        const u = JSON.parse(storedUser);
+        if (u?.role === 'SuperAdmin' && (!storedImpersonated || storedImpersonated === 'null' || storedImpersonated === 'undefined')) {
+          return 'saas-dashboard';
+        }
+      }
+    } catch {}
+
+    return 'dashboard';
   });
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const initialScreen = params.get('screen');
-    if (initialScreen && !currentUser) {
-      // Just keep it in state, login will happen
-      return;
-    }
-    if (!initialScreen && currentUser?.role === 'SuperAdmin') {
-      if (!impersonatedTenantId) {
+    const screenParam = params.get('screen');
+
+    // If logged in as SuperAdmin and NOT simulating a tenant:
+    if (currentUser?.role === 'SuperAdmin' && !impersonatedTenantId) {
+      // If currently on company dashboard or no screen specified, route to Super Admin dashboard
+      if (!screenParam || screenParam === 'dashboard' || currentScreen === 'dashboard') {
         setCurrentScreen('saas-dashboard');
       }
     }
-  }, [currentUser, impersonatedTenantId]);
+  }, [currentUser, impersonatedTenantId, currentScreen]);
 
   // Sync currentScreen to URL so refresh works
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('screen') !== currentScreen) {
-      const newUrl = currentScreen === 'dashboard' 
+      const newUrl = (currentScreen === 'dashboard' && currentUser?.role !== 'SuperAdmin')
         ? window.location.pathname 
         : `${window.location.pathname}?screen=${currentScreen}`;
       window.history.replaceState(null, '', newUrl);
     }
-  }, [currentScreen]);
+  }, [currentScreen, currentUser]);
 
   // Inter-page state passes
   const [selectedEqFromDash, setSelectedEqFromDash] = useState<EqType | null>(null);
@@ -86,9 +99,23 @@ function AppContent() {
     }
   };
 
+  const handleLoginSuccess = () => {
+    try {
+      const storedUser = localStorage.getItem('gmao_current_user');
+      if (storedUser) {
+        const u = JSON.parse(storedUser);
+        if (u?.role === 'SuperAdmin') {
+          setCurrentScreen('saas-dashboard');
+          return;
+        }
+      }
+    } catch {}
+    setCurrentScreen('dashboard');
+  };
+
   // If not logged in, render the login page
   if (!currentUser) {
-    return <Login onLoginSuccess={() => setCurrentScreen('dashboard')} />;
+    return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
   return (

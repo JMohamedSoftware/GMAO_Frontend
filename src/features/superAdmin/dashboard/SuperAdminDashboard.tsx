@@ -367,7 +367,11 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               Entreprises inscrites
             </span>
             <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-1 block">
-              {liveStats?.kpis?.totalTenants ?? registeredCount}
+              {isRefreshingStats && !liveStats ? (
+                <span className="inline-block w-16 h-8 bg-slate-200 dark:bg-slate-700 animate-pulse rounded-lg" />
+              ) : (
+                liveStats?.kpis?.totalTenants ?? (registeredCount || 0)
+              )}
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-[11px]">
@@ -397,7 +401,11 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               Abonnements actifs
             </span>
             <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-1 block">
-              {liveStats?.kpis?.activeTenants ?? activeCount}
+              {isRefreshingStats && !liveStats ? (
+                <span className="inline-block w-16 h-8 bg-slate-200 dark:bg-slate-700 animate-pulse rounded-lg" />
+              ) : (
+                liveStats?.kpis?.activeTenants ?? (activeCount || 0)
+              )}
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-[11px]">
@@ -427,7 +435,11 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               Période d'essai
             </span>
             <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-1 block">
-              {liveStats?.kpis?.trialTenantsCount ?? pendingCount}
+              {isRefreshingStats && !liveStats ? (
+                <span className="inline-block w-16 h-8 bg-slate-200 dark:bg-slate-700 animate-pulse rounded-lg" />
+              ) : (
+                liveStats?.kpis?.trialTenantsCount ?? (pendingCount || 0)
+              )}
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-[11px]">
@@ -457,7 +469,11 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               Abonnements à renouveler
             </span>
             <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-1 block">
-              {liveStats?.kpis?.renewalCount ?? renewals.length}
+              {isRefreshingStats && !liveStats ? (
+                <span className="inline-block w-16 h-8 bg-slate-200 dark:bg-slate-700 animate-pulse rounded-lg" />
+              ) : (
+                liveStats?.kpis?.renewalCount ?? (renewals.length || 0)
+              )}
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-[11px]">

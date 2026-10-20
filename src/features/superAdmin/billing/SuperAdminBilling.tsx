@@ -807,7 +807,7 @@ export const SuperAdminBilling: React.FC = () => {
                   Modules inclus dans le plan
                 </h4>
                 <div className="grid grid-cols-2 gap-y-1.5 gap-x-2 text-xs">
-                  {activeSub.modules.map(mod => (
+                  {activeSub.modules.map((mod: string) => (
                     <div key={mod} className="flex items-center gap-1.5">
                       <Check className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                       <span className="text-[10px] text-slate-650 dark:text-slate-300 font-medium leading-tight">

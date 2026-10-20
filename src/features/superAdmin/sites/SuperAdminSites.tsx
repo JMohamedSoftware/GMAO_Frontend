@@ -94,6 +94,11 @@ export const SuperAdminSites: React.FC<SuperAdminSitesProps> = () => {
     return Array.from(new Set(sites.map(s => s.region).filter(Boolean)));
   }, [sites]);
 
+  const availableCompanies = useMemo(() => {
+    const list = Array.from(new Set(sites.map(s => s.company).filter(Boolean)));
+    return list.length > 0 ? list : ['Conserverie du Midi S.A.', 'POMODORO Industries'];
+  }, [sites]);
+
   const handleResetFilters = () => {
     setSearchTerm('');
     setStatusFilter('All');
@@ -944,7 +949,7 @@ export const SuperAdminSites: React.FC<SuperAdminSitesProps> = () => {
               <div>
                 <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300 block mb-1">Entreprise</label>
                 <select className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl">
-                  {REAL_DB_COMPANIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+                  {availableCompanies.map((cName: string) => <option key={cName} value={cName}>{cName}</option>)}
                 </select>
               </div>
 

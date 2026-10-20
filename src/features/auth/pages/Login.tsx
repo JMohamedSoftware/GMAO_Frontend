@@ -19,8 +19,20 @@ export const Login: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated) onLoginSuccess();
-  }, [isAuthenticated, onLoginSuccess]);
+    if (isAuthenticated) {
+      const sessionStr = localStorage.getItem('gmao_session');
+      const currentUserStr = localStorage.getItem('gmao_current_user');
+      if (sessionStr && !currentUserStr) {
+        try {
+          const session = JSON.parse(sessionStr);
+          if (session.user) {
+            reduxLogin(session.user.email, '', session.user.tenantId || undefined, session.user.role, session.user.name, session.user.id?.toString());
+          }
+        } catch {}
+      }
+      onLoginSuccess();
+    }
+  }, [isAuthenticated, onLoginSuccess, reduxLogin]);
 
   // ── Form submit ──────────────────────────────────────
   const handleSubmit = async (credentials: { email: string; password: string }) => {

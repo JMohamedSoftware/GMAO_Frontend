@@ -55,8 +55,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate }) =
   const auth = useAuth();
   const myUserId = auth.currentUser?.id ?? currentUser?.id;
 
-  const isSuperAdmin = currentUser?.role === 'SuperAdmin';
-  const isImpersonating = isSuperAdmin && !!impersonatedTenantId;
+  const isSuperAdmin = currentUser?.role === 'SuperAdmin' || auth.currentUser?.role === 'SuperAdmin';
+  const isImpersonating = isSuperAdmin && !!impersonatedTenantId && impersonatedTenantId !== 'null' && impersonatedTenantId !== 'undefined';
 
   const currentTenant = tenants.find(t => t.id === impersonatedTenantId);
 
@@ -132,19 +132,33 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate }) =
         </div>
 
         {/* Impersonation Banner Alert */}
-        {isImpersonating && currentTenant && (
+        {isImpersonating && (
           <div className="mb-4 w-full p-2 bg-amber-500/15 border border-amber-500/20 text-amber-800 dark:text-amber-300 rounded-xl text-[9px] font-bold flex flex-col items-center gap-1.5 text-center">
-            <span>Sim: {currentTenant.name.substring(0, 8)}..</span>
+            <span>Sim: {currentTenant ? currentTenant.name.substring(0, 8) : (impersonatedTenantId ? String(impersonatedTenantId).substring(0, 8) : 'Société')}..</span>
             <button
               onClick={() => {
                 impersonateTenant(null);
                 onNavigate('saas-dashboard');
               }}
-              className="w-full py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded font-black text-center text-[8px] shadow-sm uppercase"
+              className="w-full py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded font-black text-center text-[8px] shadow-sm uppercase cursor-pointer transition"
             >
               Quitter
             </button>
           </div>
+        )}
+
+        {/* Quick return button to Super Admin if impersonating */}
+        {isSuperAdmin && isImpersonating && (
+          <button
+            onClick={() => {
+              impersonateTenant(null);
+              onNavigate('saas-dashboard');
+            }}
+            className="w-full mb-3 p-2 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-amber-400 rounded-xl flex items-center justify-center gap-1.5 text-[10px] font-black border border-amber-500/30 shadow-md cursor-pointer transition"
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Super Admin</span>
+          </button>
         )}
 
         {/* Campaign selector */}

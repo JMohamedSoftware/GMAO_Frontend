@@ -41,10 +41,23 @@ const getInitialTenants = (): Tenant[] => {
   ];
 };
 
+const getInitialImpersonatedTenant = (): string | null => {
+  try {
+    const val = localStorage.getItem('gmao_impersonated_tenant_id');
+    if (!val || val === 'null' || val === 'undefined') {
+      localStorage.removeItem('gmao_impersonated_tenant_id');
+      return null;
+    }
+    return val;
+  } catch {
+    return null;
+  }
+};
+
 const initialState: GmaoState = {
   tenants: getInitialTenants(),
   currentTenantId: localStorage.getItem('gmao_current_tenant_id') || 'tenant-midi',
-  impersonatedTenantId: localStorage.getItem('gmao_impersonated_tenant_id'),
+  impersonatedTenantId: getInitialImpersonatedTenant(),
   currentUser: localStorage.getItem('gmao_current_user') ? JSON.parse(localStorage.getItem('gmao_current_user') as string) : null,
   darkMode: localStorage.getItem('gmao_dark_mode') ? JSON.parse(localStorage.getItem('gmao_dark_mode') as string) : false,
   selectedCampaign: 'Campagne 2026',
@@ -227,6 +240,9 @@ export const gmaoSlice = createSlice({
       state.currentUser = action.payload.user;
       state.currentTenantId = action.payload.tenantId;
       state.impersonatedTenantId = null;
+      try {
+        localStorage.removeItem('gmao_impersonated_tenant_id');
+      } catch {}
       localStorage.setItem('gmao_current_user', JSON.stringify(action.payload.user));
       if (action.payload.tenantId) {
         localStorage.setItem('gmao_current_tenant_id', action.payload.tenantId);
@@ -238,15 +254,23 @@ export const gmaoSlice = createSlice({
       state.currentUser = null;
       state.currentTenantId = 'tenant-midi';
       state.impersonatedTenantId = null;
+      try {
+        localStorage.removeItem('gmao_impersonated_tenant_id');
+      } catch {}
       localStorage.removeItem('gmao_current_user');
       localStorage.setItem('gmao_current_tenant_id', 'tenant-midi');
     },
     impersonateTenant: (state, action: PayloadAction<string | null>) => {
-      state.impersonatedTenantId = action.payload;
-      if (action.payload) {
-        localStorage.setItem('gmao_impersonated_tenant_id', action.payload);
+      if (action.payload && action.payload !== 'null' && action.payload !== 'undefined') {
+        state.impersonatedTenantId = action.payload;
+        try {
+          localStorage.setItem('gmao_impersonated_tenant_id', action.payload);
+        } catch {}
       } else {
-        localStorage.removeItem('gmao_impersonated_tenant_id');
+        state.impersonatedTenantId = null;
+        try {
+          localStorage.removeItem('gmao_impersonated_tenant_id');
+        } catch {}
       }
     },
     setTenantStatus: (state, action: PayloadAction<{ id: string; status: 'Active' | 'Suspended' | 'Pending' }>) => {
