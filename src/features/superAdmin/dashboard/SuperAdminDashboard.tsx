@@ -257,7 +257,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
         const logDate = new Date(log.dateHeure);
         const now = new Date();
         const diffH = Math.round((now.getTime() - logDate.getTime()) / 3600000);
-        const timeStr = diffH < 1 ? 'À l'instant' : diffH < 24 ? `${logDate.getHours()}:${String(logDate.getMinutes()).padStart(2, '0')}` : `Hier ${logDate.getHours()}:${String(logDate.getMinutes()).padStart(2, '0')}`;
+        const timeStr = diffH < 1 ? `À l'instant` : diffH < 24 ? `${logDate.getHours()}:${String(logDate.getMinutes()).padStart(2, '0')}` : `Hier ${logDate.getHours()}:${String(logDate.getMinutes()).padStart(2, '0')}`;
         return {
           id: log.id,
           type: log.categorie,
