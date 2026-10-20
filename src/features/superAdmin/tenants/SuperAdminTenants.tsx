@@ -117,7 +117,7 @@ export const SuperAdminTenants: React.FC<SuperAdminTenantsProps> = ({
           storageUsedGb: t.storageUsedGb || 12,
           maxStorageGb: t.maxStorageGb || 50,
           capacityTonsPerDay: t.capacityTonsPerDay || 0,
-          monthlyAmount: t.monthlyAmount || 0,
+          monthlyAmount: t.subscriptionAmount || 0,
           status: (t.subscriptionStatus === 'Actif' || t.isActive ? 'Active' : (t.subscriptionStatus === 'En essai' ? 'En essai' : 'Suspendue')) as 'Active' | 'En essai' | 'Suspendue',
           statusColor: t.subscriptionStatus === 'Actif' || t.isActive
             ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400'
