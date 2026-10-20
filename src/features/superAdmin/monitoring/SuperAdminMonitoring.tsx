@@ -89,7 +89,7 @@ export const SuperAdminMonitoring: React.FC = () => {
       name: c.name,
       logo: c.logo,
       category: c.category,
-      plan: c.plan,
+      plan: (c.plan.includes('Enterprise') ? 'Enterprise' : c.plan.includes('Basic') ? 'Basic' : 'Professional') as 'Enterprise' | 'Professional' | 'Basic',
       planBadgeColor: c.planColor,
       sitesUsed: c.sites,
       sitesLimit: c.maxSites,
@@ -99,7 +99,7 @@ export const SuperAdminMonitoring: React.FC = () => {
       equipmentsLimit: c.maxEquipments,
       storageUsed: c.storageUsedGb,
       storageLimit: c.maxStorageGb,
-      status: c.status === 'Active' ? 'Actif' : c.status,
+      status: (c.status === 'Active' ? 'Actif' : 'En limite') as 'Actif' | 'En limite',
       email: c.email,
       contact: c.contact,
       trend: {
