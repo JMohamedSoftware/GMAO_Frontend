@@ -126,6 +126,12 @@ export const SuperAdminMonitoring: React.FC = () => {
     });
   }, [tenantsList, searchTerm, planFilter]);
 
+  const totalMonitoredTenants = tenantsList.length;
+  const totalUsersUsed = tenantsList.reduce((acc, t) => acc + (t.usersUsed || 0), 0);
+  const totalEquipmentsUsed = tenantsList.reduce((acc, t) => acc + (t.equipmentsUsed || 0), 0);
+  const totalSitesUsed = tenantsList.reduce((acc, t) => acc + (t.sitesUsed || 0), 0);
+  const totalStorageUsed = tenantsList.reduce((acc, t) => acc + (t.storageUsed || 0), 0).toFixed(1);
+
   // Checkbox handlers
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
@@ -276,16 +282,16 @@ export const SuperAdminMonitoring: React.FC = () => {
             </div>
             <div>
               <div className="text-2xl font-black text-slate-800 dark:text-white leading-tight">
-                286
+                {totalUsersUsed}
               </div>
               <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                 Utilisateurs actifs
               </div>
               <div className="flex items-center gap-1.5 mt-1">
                 <span className="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
-                  ↑ +12%
+                  ↑ 100%
                 </span>
-                <span className="text-[9px] text-slate-400">vs mois dernier</span>
+                <span className="text-[9px] text-slate-400">métriques réelles</span>
               </div>
             </div>
           </div>
@@ -307,16 +313,16 @@ export const SuperAdminMonitoring: React.FC = () => {
             </div>
             <div>
               <div className="text-2xl font-black text-slate-800 dark:text-white leading-tight">
-                1 248
+                {totalEquipmentsUsed.toLocaleString('fr-FR')}
               </div>
               <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                 Équipements
               </div>
               <div className="flex items-center gap-1.5 mt-1">
                 <span className="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
-                  ↑ +18%
+                  ↑ Actifs
                 </span>
-                <span className="text-[9px] text-slate-400">vs mois dernier</span>
+                <span className="text-[9px] text-slate-400">en exploitation</span>
               </div>
             </div>
           </div>
@@ -338,16 +344,16 @@ export const SuperAdminMonitoring: React.FC = () => {
             </div>
             <div>
               <div className="text-2xl font-black text-slate-800 dark:text-white leading-tight">
-                86
+                {totalSitesUsed}
               </div>
               <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                 Sites / Usines
               </div>
               <div className="flex items-center gap-1.5 mt-1">
                 <span className="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
-                  ↑ +7%
+                  ↑ Multi-sites
                 </span>
-                <span className="text-[9px] text-slate-400">vs mois dernier</span>
+                <span className="text-[9px] text-slate-400">connectés</span>
               </div>
             </div>
           </div>
@@ -369,16 +375,16 @@ export const SuperAdminMonitoring: React.FC = () => {
             </div>
             <div>
               <div className="text-2xl font-black text-slate-800 dark:text-white leading-tight">
-                62.5 GB
+                {totalStorageUsed} GB
               </div>
               <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                 Stockage utilisé
               </div>
               <div className="flex items-center gap-1.5 mt-1">
-                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400">
-                  ↓ +24%
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
+                  Cloud
                 </span>
-                <span className="text-[9px] text-slate-400">vs mois dernier</span>
+                <span className="text-[9px] text-slate-400">documents & photos</span>
               </div>
             </div>
           </div>
@@ -784,55 +790,24 @@ export const SuperAdminMonitoring: React.FC = () => {
           {/* Pagination */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
             <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-              1-10 sur 48 entreprises
+              {filteredTenants.length > 0 ? `1-${filteredTenants.length}` : '0'} sur {filteredTenants.length} entreprise{filteredTenants.length > 1 ? 's' : ''}
             </span>
             <div className="flex items-center gap-1.5">
               <button
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs transition-colors"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(1)}
+                className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs transition-colors disabled:opacity-40"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <button
-                onClick={() => setCurrentPage(1)}
                 className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xs font-bold shadow-sm shadow-blue-600/30"
               >
                 1
               </button>
               <button
-                onClick={() => setCurrentPage(2)}
-                className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300"
-              >
-                2
-              </button>
-              <button
-                onClick={() => setCurrentPage(3)}
-                className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300"
-              >
-                3
-              </button>
-              <button
-                onClick={() => setCurrentPage(4)}
-                className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300"
-              >
-                4
-              </button>
-              <button
-                onClick={() => setCurrentPage(5)}
-                className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300"
-              >
-                5
-              </button>
-              <span className="text-slate-400 px-1 text-xs font-bold">...</span>
-              <button
-                onClick={() => setCurrentPage(10)}
-                className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300"
-              >
-                10
-              </button>
-              <button
-                onClick={() => setCurrentPage(currentPage + 1)}
-                className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs transition-colors"
+                disabled={true}
+                className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs transition-colors disabled:opacity-40"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>

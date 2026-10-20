@@ -83,6 +83,19 @@ export const SuperAdminSites: React.FC<SuperAdminSitesProps> = () => {
     return sites.find(s => s.id === selectedSiteId) || sites[0];
   }, [sites, selectedSiteId]);
 
+  const totalSitesCount = sites.length;
+  const activeSitesCount = sites.filter(s => s.status === 'Actif').length;
+  const maintenanceSitesCount = sites.filter(s => s.status === 'Maintenance').length;
+  const inactiveSitesCount = sites.filter(s => s.status === 'Inactif').length;
+
+  const activePercent = totalSitesCount > 0 ? Math.round((activeSitesCount / totalSitesCount) * 100) : 0;
+  const maintenancePercent = totalSitesCount > 0 ? Math.round((maintenanceSitesCount / totalSitesCount) * 100) : 0;
+  const inactivePercent = totalSitesCount > 0 ? Math.round((inactiveSitesCount / totalSitesCount) * 100) : 0;
+
+  const availableRegions = useMemo(() => {
+    return Array.from(new Set(sites.map(s => s.region).filter(Boolean)));
+  }, [sites]);
+
   const handleResetFilters = () => {
     setSearchTerm('');
     setStatusFilter('All');
@@ -252,14 +265,14 @@ export const SuperAdminSites: React.FC<SuperAdminSitesProps> = () => {
               Sites & Usines
             </span>
             <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-1 block">
-              86
+              {totalSitesCount}
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-[11px]">
             <span className="inline-flex items-center gap-0.5 font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-1.5 py-0.5 rounded-md">
-              <TrendingUp className="w-3 h-3" /> +18%
+              <TrendingUp className="w-3 h-3" /> +100%
             </span>
-            <span className="text-slate-400 font-medium">vs mois dernier</span>
+            <span className="text-slate-400 font-medium">sites réels</span>
           </div>
         </div>
 
@@ -282,12 +295,12 @@ export const SuperAdminSites: React.FC<SuperAdminSitesProps> = () => {
               Sites actifs
             </span>
             <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-1 block">
-              72
+              {activeSitesCount}
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-[11px]">
             <span className="inline-flex items-center gap-0.5 font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-1.5 py-0.5 rounded-md">
-              84%
+              {activePercent}%
             </span>
           </div>
         </div>
@@ -310,12 +323,12 @@ export const SuperAdminSites: React.FC<SuperAdminSitesProps> = () => {
               En maintenance
             </span>
             <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-1 block">
-              8
+              {maintenanceSitesCount}
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-[11px]">
             <span className="font-bold text-amber-600 dark:text-amber-400">
-              9%
+              {maintenancePercent}%
             </span>
           </div>
         </div>
@@ -338,12 +351,12 @@ export const SuperAdminSites: React.FC<SuperAdminSitesProps> = () => {
               Inactifs
             </span>
             <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-1 block">
-              6
+              {inactiveSitesCount}
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-[11px]">
             <span className="font-bold text-rose-600 dark:text-rose-400">
-              7%
+              {inactivePercent}%
             </span>
           </div>
         </div>
@@ -423,13 +436,9 @@ export const SuperAdminSites: React.FC<SuperAdminSitesProps> = () => {
                 className="h-8.5 px-3 rounded-xl border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-850 text-slate-700 dark:text-slate-200 text-xs font-semibold outline-none cursor-pointer"
               >
                 <option value="All">Toutes les régions</option>
-                <option value="Nabeul">Nabeul</option>
-                <option value="Kairouan">Kairouan</option>
-                <option value="Sfax">Sfax</option>
-                <option value="Sousse">Sousse</option>
-                <option value="Tunis">Tunis</option>
-                <option value="Béja">Béja</option>
-                <option value="Gabès">Gabès</option>
+                {availableRegions.map(reg => (
+                  <option key={reg} value={reg}>{reg}</option>
+                ))}
               </select>
 
               {/* Reset button */}
@@ -457,7 +466,7 @@ export const SuperAdminSites: React.FC<SuperAdminSitesProps> = () => {
                       <th className="py-2.5 px-2">Responsable</th>
                       <th className="py-2.5 px-1.5 text-center">Équipements</th>
                       <th className="py-2.5 px-1.5 text-center">Utilisateurs</th>
-                      <th className="py-2.5 px-2">Statut</th>
+                      <th className="py-2.5 px-2 whitespace-nowrap">Statut</th>
                       <th className="py-2.5 px-1 text-right">Actions</th>
                     </tr>
                   </thead>
@@ -613,46 +622,26 @@ export const SuperAdminSites: React.FC<SuperAdminSitesProps> = () => {
           {/* Pagination Footer */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500 mt-2">
             <div>
-              <span>1-10 sur 86 sites</span>
+              <span>{filteredSites.length > 0 ? `1-${filteredSites.length}` : '0'} sur {filteredSites.length} site{filteredSites.length > 1 ? 's' : ''}</span>
             </div>
 
             <div className="flex items-center gap-1.5">
               <button
                 disabled={currentPage === 1}
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                onClick={() => setCurrentPage(1)}
                 className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
 
-              {[1, 2, 3, 4, 5].map((pageNum) => (
-                <button
-                  key={pageNum}
-                  onClick={() => setCurrentPage(pageNum)}
-                  className={`w-7 h-7 rounded-lg text-xs font-bold transition ${
-                    currentPage === pageNum
-                      ? 'bg-primary text-white shadow-xs'
-                      : 'border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-650 dark:text-slate-300'
-                  }`}
-                >
-                  {pageNum}
-                </button>
-              ))}
-
-              <span className="px-1 text-slate-400">...</span>
-
               <button
-                onClick={() => setCurrentPage(9)}
-                className={`w-7 h-7 rounded-lg text-xs font-bold transition border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-650 dark:text-slate-300 ${
-                  currentPage === 9 ? 'bg-primary text-white' : ''
-                }`}
+                className="w-7 h-7 rounded-lg text-xs font-bold transition bg-primary text-white shadow-xs"
               >
-                9
+                1
               </button>
 
               <button
-                disabled={currentPage === 9}
-                onClick={() => setCurrentPage(prev => Math.min(9, prev + 1))}
+                disabled={true}
                 className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40"
               >
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -660,7 +649,7 @@ export const SuperAdminSites: React.FC<SuperAdminSitesProps> = () => {
 
               <div className="ml-2">
                 <span className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-650 dark:text-slate-300 font-semibold text-[11px]">
-                  10 / page ▾
+                  {filteredSites.length} / page
                 </span>
               </div>
             </div>

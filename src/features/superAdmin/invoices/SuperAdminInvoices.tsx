@@ -205,6 +205,20 @@ export const SuperAdminInvoices: React.FC = () => {
     fetchInvoices();
   }, []);
 
+  const totalInvoicesCount = invoices.length;
+  const paidInvoicesCount = invoices.filter(i => i.status === 'Payée').length;
+  const pendingInvoicesCount = invoices.filter(i => i.status === 'En attente').length;
+  const overdueInvoicesCount = invoices.filter(i => i.status === 'En retard').length;
+
+  const totalRevenue = invoices.reduce((acc, i) => {
+    const num = parseFloat(i.amount.replace(/[^0-9.]/g, '')) || 0;
+    return acc + num;
+  }, 0);
+
+  const paidPercent = totalInvoicesCount > 0 ? Math.round((paidInvoicesCount / totalInvoicesCount) * 100) : 0;
+  const pendingPercent = totalInvoicesCount > 0 ? Math.round((pendingInvoicesCount / totalInvoicesCount) * 100) : 0;
+  const overduePercent = totalInvoicesCount > 0 ? Math.round((overdueInvoicesCount / totalInvoicesCount) * 100) : 0;
+
   return (
     <div className="flex flex-col gap-6 animate-[fadeIn_0.2s_ease-out] relative">
       {/* Toast Alert */}
@@ -278,16 +292,16 @@ export const SuperAdminInvoices: React.FC = () => {
             </div>
             <div>
               <div className="text-2xl font-black text-slate-800 dark:text-white leading-tight">
-                58 420 TND
+                {totalRevenue.toLocaleString('fr-FR')} TND
               </div>
               <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                Revenus totaux
+                Revenus facturés
               </div>
               <div className="flex items-center gap-1.5 mt-1">
                 <span className="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
-                  ↑ +18%
+                  ↑ 100%
                 </span>
-                <span className="text-[9px] text-slate-400">vs période précédente</span>
+                <span className="text-[9px] text-slate-400">données réelles</span>
               </div>
             </div>
           </div>
@@ -309,16 +323,16 @@ export const SuperAdminInvoices: React.FC = () => {
             </div>
             <div>
               <div className="text-2xl font-black text-slate-800 dark:text-white leading-tight">
-                42
+                {paidInvoicesCount}
               </div>
               <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                 Factures payées
               </div>
               <div className="flex items-center gap-1.5 mt-1">
                 <span className="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
-                  ↑ +12%
+                  {paidPercent}%
                 </span>
-                <span className="text-[9px] text-slate-400">vs période précédente</span>
+                <span className="text-[9px] text-slate-400">du total</span>
               </div>
             </div>
           </div>
@@ -340,16 +354,16 @@ export const SuperAdminInvoices: React.FC = () => {
             </div>
             <div>
               <div className="text-2xl font-black text-slate-800 dark:text-white leading-tight">
-                8
+                {pendingInvoicesCount}
               </div>
               <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                 En attente de paiement
               </div>
               <div className="flex items-center gap-1.5 mt-1">
                 <span className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400">
-                  ↓ +2
+                  {pendingPercent}%
                 </span>
-                <span className="text-[9px] text-slate-400">vs période précédente</span>
+                <span className="text-[9px] text-slate-400">en cours</span>
               </div>
             </div>
           </div>
@@ -371,16 +385,16 @@ export const SuperAdminInvoices: React.FC = () => {
             </div>
             <div>
               <div className="text-2xl font-black text-slate-800 dark:text-white leading-tight">
-                3
+                {overdueInvoicesCount}
               </div>
               <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                 En retard
               </div>
               <div className="flex items-center gap-1.5 mt-1">
                 <span className="text-[10px] font-extrabold text-rose-600 dark:text-rose-400">
-                  ↑ +1
+                  {overduePercent}%
                 </span>
-                <span className="text-[9px] text-slate-400">vs période précédente</span>
+                <span className="text-[9px] text-slate-400">à relancer</span>
               </div>
             </div>
           </div>
@@ -644,7 +658,7 @@ export const SuperAdminInvoices: React.FC = () => {
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                 <span className="text-xl font-black text-slate-800 dark:text-white leading-none">
-                  48
+                  {totalInvoicesCount}
                 </span>
                 <span className="text-[10px] text-slate-400 font-medium">Factures</span>
               </div>
@@ -657,14 +671,21 @@ export const SuperAdminInvoices: React.FC = () => {
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
                   <span className="text-slate-600 dark:text-slate-300 font-medium">Payées</span>
                 </div>
-                <span className="font-extrabold text-slate-800 dark:text-white">87% (42)</span>
+                <span className="font-extrabold text-slate-800 dark:text-white">{paidPercent}% ({paidInvoicesCount})</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
                   <span className="text-slate-600 dark:text-slate-300 font-medium">En attente</span>
                 </div>
-                <span className="font-extrabold text-slate-800 dark:text-white">6% (3)</span>
+                <span className="font-extrabold text-slate-800 dark:text-white">{pendingPercent}% ({pendingInvoicesCount})</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                  <span className="text-slate-600 dark:text-slate-300 font-medium">En retard</span>
+                </div>
+                <span className="font-extrabold text-slate-800 dark:text-white">{overduePercent}% ({overdueInvoicesCount})</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
@@ -877,48 +898,24 @@ export const SuperAdminInvoices: React.FC = () => {
           {/* Pagination */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
             <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-              1-10 sur 48 factures
+              {filteredInvoices.length > 0 ? `1-${filteredInvoices.length}` : '0'} sur {filteredInvoices.length} facture{filteredInvoices.length > 1 ? 's' : ''}
             </span>
             <div className="flex items-center gap-1.5">
               <button
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs transition-colors"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(1)}
+                className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs transition-colors disabled:opacity-40"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <button
-                onClick={() => setCurrentPage(1)}
                 className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xs font-bold shadow-sm shadow-blue-600/30"
               >
                 1
               </button>
               <button
-                onClick={() => setCurrentPage(2)}
-                className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300"
-              >
-                2
-              </button>
-              <button
-                onClick={() => setCurrentPage(3)}
-                className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300"
-              >
-                3
-              </button>
-              <button
-                onClick={() => setCurrentPage(4)}
-                className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300"
-              >
-                4
-              </button>
-              <button
-                onClick={() => setCurrentPage(5)}
-                className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300"
-              >
-                5
-              </button>
-              <button
-                onClick={() => setCurrentPage(currentPage + 1)}
-                className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs transition-colors"
+                disabled={true}
+                className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs transition-colors disabled:opacity-40"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>

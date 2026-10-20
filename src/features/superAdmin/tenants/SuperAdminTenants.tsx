@@ -159,6 +159,13 @@ export const SuperAdminTenants: React.FC<SuperAdminTenantsProps> = ({
     return companies.find(c => c.id === selectedCompanyId) || companies[0];
   }, [companies, selectedCompanyId]);
 
+  const totalTenantsCount = companies.length;
+  const activeTenantsCount = companies.filter(c => c.status === 'Active' || c.status === 'Actif').length;
+  const trialTenantsCount = companies.filter(c => c.status === 'En essai' || c.status === 'Trial').length;
+  const suspendedTenantsCount = companies.filter(c => c.status === 'Suspendue' || c.status === 'Inactif').length;
+
+  const activeTenantsPercent = totalTenantsCount > 0 ? Math.round((activeTenantsCount / totalTenantsCount) * 100) : 0;
+
   // Export to CSV
   const handleExport = () => {
     const headers = ['Nom', 'Contact', 'Email', 'Plan', 'Sites', 'Utilisateurs', 'Statut', 'Date Inscription'];
@@ -310,14 +317,14 @@ export const SuperAdminTenants: React.FC<SuperAdminTenantsProps> = ({
               Entreprises total
             </span>
             <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-1 block">
-              48
+              {totalTenantsCount}
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-[11px]">
             <span className="inline-flex items-center gap-0.5 font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-1.5 py-0.5 rounded-md">
-              <TrendingUp className="w-3 h-3" /> +12%
+              <TrendingUp className="w-3 h-3" /> 100%
             </span>
-            <span className="text-slate-400 font-medium">vs mois dernier</span>
+            <span className="text-slate-400 font-medium">données réelles</span>
           </div>
         </div>
 
@@ -340,14 +347,14 @@ export const SuperAdminTenants: React.FC<SuperAdminTenantsProps> = ({
               Entreprises actives
             </span>
             <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-1 block">
-              39
+              {activeTenantsCount}
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-[11px]">
             <span className="inline-flex items-center gap-0.5 font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-1.5 py-0.5 rounded-md">
-              <TrendingUp className="w-3 h-3" /> +8%
+              {activeTenantsPercent}%
             </span>
-            <span className="text-slate-400 font-medium">vs mois dernier</span>
+            <span className="text-slate-400 font-medium">du portefeuille</span>
           </div>
         </div>
 
@@ -369,14 +376,14 @@ export const SuperAdminTenants: React.FC<SuperAdminTenantsProps> = ({
               Période d'essai
             </span>
             <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-1 block">
-              6
+              {trialTenantsCount}
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-[11px]">
             <span className="inline-flex items-center gap-0.5 font-bold text-amber-600 dark:text-amber-400">
-              ● +2
+              ● {trialTenantsCount}
             </span>
-            <span className="text-slate-400 font-medium">ce mois-ci</span>
+            <span className="text-slate-400 font-medium">en cours d'évaluation</span>
           </div>
         </div>
 
@@ -398,14 +405,14 @@ export const SuperAdminTenants: React.FC<SuperAdminTenantsProps> = ({
               Suspendues
             </span>
             <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-1 block">
-              3
+              {suspendedTenantsCount}
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-[11px]">
             <span className="inline-flex items-center gap-0.5 font-bold text-rose-600 dark:text-rose-400">
-              ● -1
+              ● {suspendedTenantsCount}
             </span>
-            <span className="text-slate-400 font-medium">vs mois dernier</span>
+            <span className="text-slate-400 font-medium">hors service</span>
           </div>
         </div>
       </div>
@@ -583,35 +590,26 @@ export const SuperAdminTenants: React.FC<SuperAdminTenantsProps> = ({
           {/* Pagination Footer */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500">
             <div>
-              <span>1-10 sur 48 entreprises</span>
+              <span>{filteredCompanies.length > 0 ? `1-${filteredCompanies.length}` : '0'} sur {filteredCompanies.length} entreprise{filteredCompanies.length > 1 ? 's' : ''}</span>
             </div>
 
             <div className="flex items-center gap-1.5">
               <button
                 disabled={currentPage === 1}
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                onClick={() => setCurrentPage(1)}
                 className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
 
-              {[1, 2, 3, 4, 5].map((pageNum) => (
-                <button
-                  key={pageNum}
-                  onClick={() => setCurrentPage(pageNum)}
-                  className={`w-7 h-7 rounded-lg text-xs font-bold transition ${
-                    currentPage === pageNum
-                      ? 'bg-primary text-white shadow-xs'
-                      : 'border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-650 dark:text-slate-300'
-                  }`}
-                >
-                  {pageNum}
-                </button>
-              ))}
+              <button
+                className="w-7 h-7 rounded-lg text-xs font-bold transition bg-primary text-white shadow-xs"
+              >
+                1
+              </button>
 
               <button
-                disabled={currentPage === 5}
-                onClick={() => setCurrentPage(prev => Math.min(5, prev + 1))}
+                disabled={true}
                 className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40"
               >
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -619,7 +617,7 @@ export const SuperAdminTenants: React.FC<SuperAdminTenantsProps> = ({
 
               <div className="ml-2">
                 <span className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-650 dark:text-slate-300 font-semibold text-[11px]">
-                  10 / page ▾
+                  {filteredCompanies.length} / page
                 </span>
               </div>
             </div>

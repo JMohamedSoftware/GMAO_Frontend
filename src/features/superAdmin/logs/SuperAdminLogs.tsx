@@ -344,6 +344,14 @@ export const SuperAdminLogs: React.FC = () => {
     });
   }, [logsList, searchTerm, companyFilter, statusFilter]);
 
+  // Dynamic KPI counts
+  const totalActionsCount = logsList.length;
+  const activeUsersInLogs = useMemo(() => new Set(logsList.map(l => l.userName)).size, [logsList]);
+  const companiesInLogs = useMemo(() => new Set(logsList.map(l => l.companyName)).size, [logsList]);
+  const sensitiveActionsCount = useMemo(() => logsList.filter(l => l.actionType === 'suspension' || l.actionType === 'delete' || l.actionType === 'plan').length, [logsList]);
+  const failedActionsCount = useMemo(() => logsList.filter(l => l.status === 'Échec').length, [logsList]);
+  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / itemsPerPage));
+
   // Checkbox handlers
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
@@ -483,7 +491,7 @@ export const SuperAdminLogs: React.FC = () => {
             </div>
             <div>
               <div className="text-2xl font-black text-slate-800 dark:text-white leading-tight">
-                1 842
+                {totalActionsCount.toLocaleString('fr-FR')}
               </div>
               <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                 Actions totales
@@ -513,7 +521,7 @@ export const SuperAdminLogs: React.FC = () => {
             </div>
             <div>
               <div className="text-2xl font-black text-slate-800 dark:text-white leading-tight">
-                286
+                {activeUsersInLogs}
               </div>
               <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                 Utilisateurs actifs
@@ -543,7 +551,7 @@ export const SuperAdminLogs: React.FC = () => {
             </div>
             <div>
               <div className="text-2xl font-black text-slate-800 dark:text-white leading-tight">
-                48
+                {companiesInLogs}
               </div>
               <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                 Entreprises concernées
@@ -573,7 +581,7 @@ export const SuperAdminLogs: React.FC = () => {
             </div>
             <div>
               <div className="text-2xl font-black text-slate-800 dark:text-white leading-tight">
-                12
+                {sensitiveActionsCount}
               </div>
               <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                 Actions sensibles
@@ -603,7 +611,7 @@ export const SuperAdminLogs: React.FC = () => {
             </div>
             <div>
               <div className="text-2xl font-black text-slate-800 dark:text-white leading-tight">
-                3
+                {failedActionsCount}
               </div>
               <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                 Tentatives échouées
@@ -807,7 +815,7 @@ export const SuperAdminLogs: React.FC = () => {
           {/* Table Pagination */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
             <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-              1-14 sur 1 842 journaux
+              {Math.min(filteredLogs.length, itemsPerPage)}-{filteredLogs.length} sur {filteredLogs.length.toLocaleString('fr-FR')} journaux
             </span>
             <div className="flex items-center gap-1.5">
               <button
@@ -816,43 +824,30 @@ export const SuperAdminLogs: React.FC = () => {
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <button
-                onClick={() => setCurrentPage(1)}
-                className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xs font-bold shadow-sm shadow-blue-600/30"
-              >
-                1
-              </button>
-              <button
-                onClick={() => setCurrentPage(2)}
-                className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300"
-              >
-                2
-              </button>
-              <button
-                onClick={() => setCurrentPage(3)}
-                className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300"
-              >
-                3
-              </button>
-              <button
-                onClick={() => setCurrentPage(4)}
-                className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300"
-              >
-                4
-              </button>
-              <button
-                onClick={() => setCurrentPage(5)}
-                className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300"
-              >
-                5
-              </button>
-              <span className="text-slate-400 px-1 text-xs font-bold">...</span>
-              <button
-                onClick={() => setCurrentPage(132)}
-                className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300"
-              >
-                132
-              </button>
+              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold transition-colors ${
+                    currentPage === page
+                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30'
+                      : 'border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+              {totalPages > 5 && (
+                <>
+                  <span className="text-slate-400 px-1 text-xs font-bold">...</span>
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300"
+                  >
+                    {totalPages}
+                  </button>
+                </>
+              )}
               <button
                 onClick={() => setCurrentPage(currentPage + 1)}
                 className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs transition-colors"

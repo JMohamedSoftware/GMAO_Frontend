@@ -184,6 +184,17 @@ export const SuperAdminUsers: React.FC = () => {
     return Array.from(new Set(usersList.map(u => u.company)));
   }, [usersList]);
 
+  const totalUsersCount = usersList.length;
+  const activeUsersCount = usersList.filter(u => u.status === 'Actif').length;
+  const pendingUsersCount = usersList.filter(u => u.status === 'En attente').length;
+  const inactiveUsersCount = usersList.filter(u => u.status === 'Inactif').length;
+  const adminUsersCount = usersList.filter(u => u.role === 'Admin Entreprise' || u.role === 'Super Admin').length;
+
+  const activeUsersPercent = totalUsersCount > 0 ? Math.round((activeUsersCount / totalUsersCount) * 100) : 0;
+  const pendingUsersPercent = totalUsersCount > 0 ? Math.round((pendingUsersCount / totalUsersCount) * 100) : 0;
+  const inactiveUsersPercent = totalUsersCount > 0 ? Math.round((inactiveUsersCount / totalUsersCount) * 100) : 0;
+  const adminUsersPercent = totalUsersCount > 0 ? Math.round((adminUsersCount / totalUsersCount) * 100) : 0;
+
   // Select all handler
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
@@ -407,16 +418,16 @@ export const SuperAdminUsers: React.FC = () => {
             </div>
             <div>
               <div className="text-2xl font-black text-slate-800 dark:text-white leading-tight">
-                286
+                {totalUsersCount}
               </div>
               <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                 Utilisateurs total
               </div>
               <div className="flex items-center gap-1.5 mt-1">
                 <span className="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
-                  ↑ +14%
+                  ↑ 100%
                 </span>
-                <span className="text-[9px] text-slate-400">vs mois dernier</span>
+                <span className="text-[9px] text-slate-400">comptes réels</span>
               </div>
             </div>
           </div>
@@ -438,14 +449,14 @@ export const SuperAdminUsers: React.FC = () => {
             </div>
             <div>
               <div className="text-2xl font-black text-slate-800 dark:text-white leading-tight">
-                212
+                {activeUsersCount}
               </div>
               <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                 Actifs
               </div>
               <div className="mt-1">
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
-                  74%
+                  {activeUsersPercent}%
                 </span>
               </div>
             </div>
@@ -468,14 +479,14 @@ export const SuperAdminUsers: React.FC = () => {
             </div>
             <div>
               <div className="text-2xl font-black text-slate-800 dark:text-white leading-tight">
-                28
+                {pendingUsersCount}
               </div>
               <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                 En attente
               </div>
               <div className="mt-1">
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400">
-                  10%
+                  {pendingUsersPercent}%
                 </span>
               </div>
             </div>
@@ -498,14 +509,14 @@ export const SuperAdminUsers: React.FC = () => {
             </div>
             <div>
               <div className="text-2xl font-black text-slate-800 dark:text-white leading-tight">
-                32
+                {inactiveUsersCount}
               </div>
               <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                 Inactifs
               </div>
               <div className="mt-1">
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400">
-                  11%
+                  {inactiveUsersPercent}%
                 </span>
               </div>
             </div>
@@ -528,14 +539,14 @@ export const SuperAdminUsers: React.FC = () => {
             </div>
             <div>
               <div className="text-2xl font-black text-slate-800 dark:text-white leading-tight">
-                14
+                {adminUsersCount}
               </div>
               <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                 Administrateurs
               </div>
               <div className="mt-1">
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-400">
-                  5%
+                  {adminUsersPercent}%
                 </span>
               </div>
             </div>
@@ -772,75 +783,24 @@ export const SuperAdminUsers: React.FC = () => {
           {/* Table Pagination footer */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
             <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-              1-{Math.min(filteredUsers.length, itemsPerPage)} sur 286 utilisateurs
+              {filteredUsers.length > 0 ? `1-${Math.min(filteredUsers.length, itemsPerPage)}` : '0'} sur {filteredUsers.length} utilisateur{filteredUsers.length > 1 ? 's' : ''}
             </span>
             <div className="flex items-center gap-1.5">
               <button
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs transition-colors"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(1)}
+                className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs transition-colors disabled:opacity-40"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <button
-                onClick={() => setCurrentPage(1)}
-                className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold ${
-                  currentPage === 1
-                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30'
-                    : 'border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
-                }`}
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold bg-blue-600 text-white shadow-sm shadow-blue-600/30"
               >
                 1
               </button>
               <button
-                onClick={() => setCurrentPage(2)}
-                className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold ${
-                  currentPage === 2
-                    ? 'bg-blue-600 text-white'
-                    : 'border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
-                }`}
-              >
-                2
-              </button>
-              <button
-                onClick={() => setCurrentPage(3)}
-                className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold ${
-                  currentPage === 3
-                    ? 'bg-blue-600 text-white'
-                    : 'border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
-                }`}
-              >
-                3
-              </button>
-              <button
-                onClick={() => setCurrentPage(4)}
-                className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold ${
-                  currentPage === 4
-                    ? 'bg-blue-600 text-white'
-                    : 'border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
-                }`}
-              >
-                4
-              </button>
-              <button
-                onClick={() => setCurrentPage(5)}
-                className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold ${
-                  currentPage === 5
-                    ? 'bg-blue-600 text-white'
-                    : 'border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
-                }`}
-              >
-                5
-              </button>
-              <span className="text-slate-400 px-1 text-xs font-bold">...</span>
-              <button
-                onClick={() => setCurrentPage(24)}
-                className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300"
-              >
-                24
-              </button>
-              <button
-                onClick={() => setCurrentPage(currentPage + 1)}
-                className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs transition-colors"
+                disabled={true}
+                className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs transition-colors disabled:opacity-40"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>

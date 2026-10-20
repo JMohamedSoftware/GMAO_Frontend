@@ -19,6 +19,25 @@ export const Navbar: React.FC<NavbarProps> = ({ currentScreen, onNavigate, onOpe
   const [showNotifications, setShowNotifications] = useState(false);
 
   const getBreadcrumbs = () => {
+    if (currentScreen.startsWith('saas-')) {
+      const saasMap: Record<string, string> = {
+        'saas-dashboard': 'Tableau de bord',
+        'saas-tenants': 'Entreprises',
+        'saas-sites': 'Sites & Usines',
+        'saas-plans': 'Plans & Offres',
+        'saas-billing': 'Abonnements',
+        'saas-invoices': 'Facturation',
+        'saas-users': 'Utilisateurs',
+        'saas-monitoring': 'Surveillance & Métriques',
+        'saas-logs': 'Journaux d’activité',
+        'saas-settings': 'Paramètres Plateforme'
+      };
+      return [
+        { label: 'Super Admin', action: () => onNavigate('saas-dashboard') },
+        { label: saasMap[currentScreen] || currentScreen, action: () => { } }
+      ];
+    }
+
     const parts = currentScreen.split('-');
     const mainScreen = parts[0];
 
@@ -83,7 +102,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentScreen, onNavigate, onOpe
   };
 
   return (
-    <header className="fixed top-4 left-40 lg:left-48 right-4 h-16 glass-panel rounded-custom-lg border border-white/40 dark:border-slate-800/40 px-6 flex justify-between items-center shadow-sm z-40 select-none">
+    <header className="fixed top-4 left-40 lg:left-48 right-4 h-16 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-custom-lg border border-slate-200/80 dark:border-slate-800 px-6 flex justify-between items-center shadow-md z-40 select-none">
 
       {/* Breadcrumb Path */}
       <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400">
