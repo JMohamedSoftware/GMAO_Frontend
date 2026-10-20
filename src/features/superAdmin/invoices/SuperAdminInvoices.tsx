@@ -79,8 +79,8 @@ export const SuperAdminInvoices: React.FC = () => {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  // 10 invoices matching screenshot
-  const [invoices, setInvoices] = useState<InvoiceItem[]>(REAL_DB_INVOICES as any);
+  // Invoices loaded from backend API
+  const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
 
   // Selected invoice for detail preview
   const selectedInvoice = useMemo(() => {

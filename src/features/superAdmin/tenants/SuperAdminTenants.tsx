@@ -35,7 +35,7 @@ import {
   X
 } from 'lucide-react';
 import tomateImg from '@/shared/assets/images/tomate.jpg';
-import { REAL_DB_COMPANIES, REAL_DB_SITES, REAL_DB_USERS } from '../constants/realTenantsData';
+import { RealCompany } from '../constants/realTenantsData';
 
 interface SuperAdminTenantsProps {
   pendingRequests: Tenant[];
@@ -54,15 +54,11 @@ export const SuperAdminTenants: React.FC<SuperAdminTenantsProps> = ({
   impersonateTenant,
   onShowCreateWizard
 }) => {
-  // Demo dataset matching the screenshot exactly
-  // Données réelles synchronisées avec PostgreSQL
-  const initialCompanies = REAL_DB_COMPANIES;
-
   // State management
-  const [companies, setCompanies] = useState(initialCompanies);
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('1');
-  const [sitesList, setSitesList] = useState<any[]>(REAL_DB_SITES);
-  const [usersList, setUsersList] = useState<any[]>(REAL_DB_USERS);
+  const [companies, setCompanies] = useState<RealCompany[]>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
+  const [sitesList, setSitesList] = useState<any[]>([]);
+  const [usersList, setUsersList] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'En essai' | 'Suspendue'>('All');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);

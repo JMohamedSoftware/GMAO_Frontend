@@ -83,33 +83,8 @@ export const SuperAdminMonitoring: React.FC = () => {
   };
 
   // 10 tenants matching screenshot
-  const [tenantsList, setTenantsList] = useState<MonitoringTenant[]>(
-    REAL_DB_COMPANIES.map(c => ({
-      id: `mon-${c.id}`,
-      name: c.name,
-      logo: c.logo,
-      category: c.category,
-      plan: (c.plan.includes('Enterprise') ? 'Enterprise' : c.plan.includes('Basic') ? 'Basic' : 'Professional') as 'Enterprise' | 'Professional' | 'Basic',
-      planBadgeColor: c.planColor,
-      sitesUsed: c.sites,
-      sitesLimit: c.maxSites,
-      usersUsed: c.users,
-      usersLimit: c.maxUsers,
-      equipmentsUsed: c.equipments,
-      equipmentsLimit: c.maxEquipments,
-      storageUsed: c.storageUsedGb,
-      storageLimit: c.maxStorageGb,
-      status: (c.status === 'Active' ? 'Actif' : 'En limite') as 'Actif' | 'En limite',
-      email: c.email,
-      contact: c.contact,
-      trend: {
-        months: ['Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep'],
-        users: [10, 15, 20, 22, 24, c.users],
-        equipments: [30, 50, 70, 90, 120, c.equipments],
-        storage: [5, 8, 12, 14, 16, Math.round(c.storageUsedGb)]
-      }
-    }))
-  );
+  // Tenants loaded from backend API
+  const [tenantsList, setTenantsList] = useState<MonitoringTenant[]>([]);
 
   // Selected tenant for preview
   const selectedTenant = useMemo(() => {

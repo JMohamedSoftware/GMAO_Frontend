@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { superAdminApi } from '../api/superAdmin.api';
-import { REAL_DB_SITES, REAL_DB_COMPANIES } from '../constants/realTenantsData';
 import {
   Building2,
   Factory,
@@ -62,8 +61,7 @@ export const SuperAdminSites: React.FC<SuperAdminSitesProps> = () => {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  // 10 sites matching screenshot
-  const [sites, setSites] = useState<any[]>(REAL_DB_SITES);
+  const [sites, setSites] = useState<any[]>([]);
 
   // Filtered sites
   const filteredSites = useMemo(() => {

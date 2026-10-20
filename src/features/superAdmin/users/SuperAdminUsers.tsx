@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { superAdminApi } from '../api/superAdmin.api';
-import { REAL_DB_USERS, REAL_DB_COMPANIES } from '../constants/realTenantsData';
 import {
   Users,
   UserPlus,
@@ -91,8 +90,7 @@ export const SuperAdminUsers: React.FC = () => {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  // 12 initial users matching the screenshot exactly
-  const [usersList, setUsersList] = useState<UserItem[]>(REAL_DB_USERS);
+  const [usersList, setUsersList] = useState<UserItem[]>([]);
 
   // Form states for Add / Edit
   const [newUserForm, setNewUserForm] = useState({

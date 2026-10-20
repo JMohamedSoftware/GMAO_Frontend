@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { superAdminApi } from '../api/superAdmin.api';
-import { REAL_DB_COMPANIES } from '../constants/realTenantsData';
 import {
   ShieldCheck,
   CreditCard,
@@ -54,36 +53,8 @@ export const SuperAdminBilling: React.FC = () => {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  // 10 subscriptions matching screenshot
-  const [subscriptions, setSubscriptions] = useState(
-    REAL_DB_COMPANIES.map(c => ({
-      id: `sub-${c.id}`,
-      backendTenantId: Number(c.id),
-      code: `ENT-${String(c.id).padStart(3, '0')}`,
-      company: c.name,
-      logo: c.logo,
-      category: c.category,
-      manager: c.contact,
-      managerEmail: c.email,
-      plan: c.plan,
-      planColor: c.planColor,
-      sites: c.sites,
-      maxSites: c.maxSites,
-      users: c.users,
-      maxUsers: c.maxUsers,
-      equipments: c.equipments,
-      maxEquipments: c.maxEquipments,
-      monthlyOt: Math.round(c.equipments * 0.15),
-      amount: `${c.monthlyAmount} TND`,
-      priceValue: c.monthlyAmount,
-      startDate: c.registrationDate,
-      endDate: c.subscriptionEnd,
-      daysLeft: c.daysLeft,
-      status: c.status === 'Active' ? 'Actif' : c.status,
-      statusColor: c.statusColor,
-      modules: c.activeModules
-    }))
-  );
+  // Subscriptions loaded from backend API
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
 
   // Filter subscriptions
   const filteredSubscriptions = useMemo(() => {

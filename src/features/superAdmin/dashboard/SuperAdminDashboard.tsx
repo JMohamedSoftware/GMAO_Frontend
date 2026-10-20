@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Tenant } from '@/shared/types/gmao';
 import { superAdminApi, DashboardStatsResponse } from '../api/superAdmin.api';
-import { REAL_DB_COMPANIES } from '../constants/realTenantsData';
 import {
   Crown,
   Building2,
@@ -174,21 +173,8 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     { month: 'Sept', revenue: 148000 }
   ];
 
-  // 4. Dernières entreprises (from backend or static fallback)
+  // No static fallback — only show real companies from the backend
   const LOGOS = ['🏭', '🍅', '🌾', '🍲', '🥫', '🌱', '🌿', '🏗️'];
-  const staticRecentCompanies = REAL_DB_COMPANIES.slice(0, 5).map(c => ({
-    id: c.id,
-    name: c.name,
-    contact: c.contact,
-    plan: c.plan,
-    planColor: getPlanColor(c.plan),
-    sites: c.sites,
-    users: c.users,
-    status: c.status === 'Active' ? 'Actif' : c.status,
-    date: c.registrationDate,
-    logo: c.logo
-  }));
-
   const recentCompanies = liveStats?.recentTenants && liveStats.recentTenants.length > 0
     ? liveStats.recentTenants.map((t, i) => ({
         id: String(t.id),
@@ -202,16 +188,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
         date: new Date(t.createdAt).toLocaleDateString('fr-FR'),
         logo: LOGOS[i % LOGOS.length]
       }))
-    : staticRecentCompanies;
-
-  // 5. Abonnements à renouveler (from backend or static fallback)
-  const staticRenewals = [
-    { id: '1', name: 'Usine Tomates POMODORO', plan: 'Business Pro', expirationDate: '27/07/2027', daysLeft: 345, status: 'Attention', statusColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200/60 dark:border-emerald-900/40', daysColor: 'text-emerald-600 dark:text-emerald-400 font-bold', logo: '🍅' },
-    { id: '2', name: 'Agro-Industrie Du Sud (SICAM)', plan: 'Enterprise Elite', expirationDate: '12/08/2027', daysLeft: 360, status: 'Bientôt', statusColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200/60 dark:border-emerald-900/40', daysColor: 'text-emerald-600 dark:text-emerald-400 font-bold', logo: '🥫' },
-    { id: '3', name: 'Conserverie Carthage SARL', plan: 'Business Pro', expirationDate: '12/01/2027', daysLeft: 290, status: 'Attention', statusColor: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200/60 dark:border-amber-900/40', daysColor: 'text-amber-600 dark:text-amber-400 font-bold', logo: '🥫' },
-    { id: '4', name: 'Société Tunisienne Des Boissons (SFBT)', plan: 'Enterprise Elite', expirationDate: '12/04/2027', daysLeft: 240, status: 'Attention', statusColor: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200/60 dark:border-amber-900/40', daysColor: 'text-amber-600 dark:text-amber-400 font-bold', logo: '🍾' },
-    { id: '9', name: 'Fromagerie Des Domaines', plan: 'Starter Cloud', expirationDate: '02/11/2026', daysLeft: 16, status: 'Bientôt', statusColor: 'bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200/60 dark:border-rose-900/40', daysColor: 'text-rose-600 dark:text-rose-400 font-extrabold', logo: '🧀' }
-  ];
+    : [];
 
   const getRenewalStatus = (daysLeft: number) => {
     if (daysLeft <= 7) return { status: 'Bientôt', statusColor: 'bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200/60 dark:border-rose-900/40', daysColor: 'text-rose-600 dark:text-rose-400 font-extrabold' };
@@ -228,7 +205,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
         logo: LOGOS[i % LOGOS.length],
         ...getRenewalStatus(r.daysLeft)
       }))
-    : staticRenewals;
+    : [];
 
   // 6. Activités récentes (from backend recentLogs or static fallback)
   const LOG_ICON_MAP: Record<string, { icon: any; iconColor: string; text: string }> = {
