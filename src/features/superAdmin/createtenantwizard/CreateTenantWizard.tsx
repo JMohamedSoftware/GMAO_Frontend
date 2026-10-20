@@ -33,7 +33,7 @@ export const CreateTenantWizard: React.FC<CreateTenantWizardProps> = ({ show, on
   const [companySlug, setCompanySlug] = useState('');
   const [timezone, setTimezone] = useState('GMT+1');
   const [language, setLanguage] = useState('Français');
-  const [currency, setCurrency] = useState('EUR');
+  const [currency, setCurrency] = useState('TND');
   const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
 
   // Step 4: Administrator
@@ -281,9 +281,9 @@ export const CreateTenantWizard: React.FC<CreateTenantWizardProps> = ({ show, on
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] text-slate-400 font-bold uppercase">Devise</label>
                   <select value={currency} onChange={(e) => setCurrency(e.target.value)} className="p-2 border border-slate-205 dark:border-slate-800 rounded-lg outline-none bg-transparent dark:text-white dark:bg-slate-900">
-                    <option value="EUR">EUR (TND)</option>
-                    <option value="TND">TND (DT)</option>
-                    <option value="USD">USD ($)</option>
+                    <option value="TND">TND - Dinar Tunisien (DT)</option>
+                    <option value="EUR">EUR - Euro (€)</option>
+                    <option value="USD">USD - Dollar ($)</option>
                   </select>
                 </div>
                 <div className="flex flex-col gap-1">
@@ -397,6 +397,8 @@ export const CreateTenantWizard: React.FC<CreateTenantWizardProps> = ({ show, on
                       <span>Accent {primaryColor}</span>
                       <span className="text-slate-300">|</span>
                       <span>Langue: {language}</span>
+                      <span className="text-slate-300">|</span>
+                      <span>Devise: {currency}</span>
                     </div>
                     <div className="text-right">
                       <span className="text-[9px] text-slate-400 block uppercase font-bold">Forfait Choisi</span>
