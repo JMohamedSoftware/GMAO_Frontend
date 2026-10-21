@@ -65,6 +65,7 @@ export const SuperAdminTenants: React.FC<SuperAdminTenantsProps> = ({
   const [selectedTab, setSelectedTab] = useState<'Aperçu' | 'Sites' | 'Utilisateurs' | 'Abonnement' | 'Activité'>('Aperçu');
   const [currentPage, setCurrentPage] = useState(1);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Edit Modal State
   const [isEditing, setIsEditing] = useState(false);
@@ -104,12 +105,12 @@ export const SuperAdminTenants: React.FC<SuperAdminTenantsProps> = ({
             : (t.subscriptionPlan?.includes('Starter')
               ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-900'
               : 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-900'),
-          sites: t.sitesCount && t.sitesCount > 0 ? t.sitesCount : (t.maxSites || 2),
-          maxSites: t.maxSites || 5,
-          users: t.usersCount && t.usersCount > 0 ? t.usersCount : (t.maxUsers ? Math.round(t.maxUsers * 0.6) : 15),
-          maxUsers: t.maxUsers || 25,
-          equipments: t.equipementsCount && t.equipementsCount > 0 ? t.equipementsCount : (t.maxEquipements || 120),
-          maxEquipments: t.maxEquipements || 200,
+          sites: t.sitesCount ?? t.maxSites ?? 0,
+          maxSites: t.maxSites ?? 5,
+          users: t.usersCount ?? (t.maxUsers ? Math.round(t.maxUsers * 0.6) : 0),
+          maxUsers: t.maxUsers ?? 25,
+          equipments: t.equipementsCount ?? t.maxEquipements ?? 0,
+          maxEquipments: t.maxEquipements ?? 200,
           storageUsedGb: t.storageUsedGb || 12,
           maxStorageGb: t.maxStorageGb || 50,
           capacityTonsPerDay: t.capacityTonsPerDay || 0,
@@ -139,6 +140,7 @@ export const SuperAdminTenants: React.FC<SuperAdminTenantsProps> = ({
       console.warn('[Tenants] Utilisation des données locales:', err);
     } finally {
       setIsSyncing(false);
+      setIsLoading(false);
     }
   };
 
@@ -629,6 +631,22 @@ export const SuperAdminTenants: React.FC<SuperAdminTenantsProps> = ({
 
         {/* RIGHT COLUMN: PREVIEW OF SELECTED COMPANY (col-span-4) */}
         <div className="lg:col-span-5 xl:col-span-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-col gap-4">
+          {/* Guard: show placeholder while loading or no company selected */}
+          {(isLoading || !activeCompany) ? (
+            <div className="flex flex-col items-center justify-center h-64 gap-3 text-slate-400">
+              {isLoading ? (
+                <>
+                  <RefreshCw className="w-8 h-8 animate-spin text-primary/50" />
+                  <p className="text-xs font-medium">Chargement des entreprises...</p>
+                </>
+              ) : (
+                <>
+                  <Building2 className="w-8 h-8 opacity-30" />
+                  <p className="text-xs font-medium">Sélectionnez une entreprise</p>
+                </>
+              )}
+            </div>
+          ) : (<>
           {/* Card Top Header */}
           <div className="flex items-start justify-between pb-3.5 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-3">
@@ -938,6 +956,7 @@ export const SuperAdminTenants: React.FC<SuperAdminTenantsProps> = ({
               </div>
             </div>
           )}
+          </>)}
         </div>
       </div>
 
