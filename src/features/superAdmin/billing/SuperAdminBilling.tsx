@@ -99,6 +99,7 @@ export const SuperAdminBilling: React.FC = () => {
   };
 
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [liveBilling, setLiveBilling] = useState<any>(null);
 
   const fetchBilling = async (showNotification = false) => {
@@ -145,6 +146,7 @@ export const SuperAdminBilling: React.FC = () => {
       console.warn('[Billing] Utilisation des données locales:', err);
     } finally {
       setIsSyncing(false);
+      setIsLoading(false);
     }
   };
 
@@ -617,7 +619,15 @@ export const SuperAdminBilling: React.FC = () => {
 
         {/* RIGHT COLUMN: PREVIEW OF SELECTED SUBSCRIPTION (col-span-4) */}
         <div className="lg:col-span-5 xl:col-span-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-col gap-4">
-          {/* Company Top Header with Actions Dropdown */}
+          {(isLoading || !activeSub) ? (
+            <div className="flex flex-col items-center justify-center h-64 gap-3 text-slate-400">
+              {isLoading ? (
+                <><RefreshCw className="w-8 h-8 animate-spin text-primary/50" /><p className="text-xs font-medium">Chargement des abonnements...</p></>
+              ) : (
+                <><Building2 className="w-8 h-8 opacity-30" /><p className="text-xs font-medium">Sélectionnez un abonnement</p></>
+              )}
+            </div>
+          ) : (<>
           <div className="flex items-start justify-between pb-3.5 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-850 flex items-center justify-center text-2xl shadow-xs border border-slate-200/60 dark:border-slate-700">
@@ -899,6 +909,7 @@ export const SuperAdminBilling: React.FC = () => {
               </div>
             </div>
           )}
+          </>)}
         </div>
       </div>
 

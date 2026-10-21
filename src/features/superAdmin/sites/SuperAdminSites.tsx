@@ -107,6 +107,7 @@ export const SuperAdminSites: React.FC<SuperAdminSitesProps> = () => {
   };
 
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const fetchSites = async (showNotification = false) => {
     setIsSyncing(true);
@@ -141,6 +142,7 @@ export const SuperAdminSites: React.FC<SuperAdminSitesProps> = () => {
       console.warn('[Sites] Utilisation des données locales:', err);
     } finally {
       setIsSyncing(false);
+      setIsLoading(false);
     }
   };
 
@@ -661,6 +663,15 @@ export const SuperAdminSites: React.FC<SuperAdminSitesProps> = () => {
 
         {/* RIGHT COLUMN: PREVIEW OF SELECTED SITE (col-span-4) */}
         <div className="lg:col-span-5 xl:col-span-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-col gap-4">
+          {(isLoading || !activeSite) ? (
+            <div className="flex flex-col items-center justify-center h-64 gap-3 text-slate-400">
+              {isLoading ? (
+                <><RefreshCw className="w-8 h-8 animate-spin text-primary/50" /><p className="text-xs font-medium">Chargement des sites...</p></>
+              ) : (
+                <><Factory className="w-8 h-8 opacity-30" /><p className="text-xs font-medium">Sélectionnez un site</p></>
+              )}
+            </div>
+          ) : (<>
           {/* Photo banner */}
           <div className="relative h-32 w-full rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800">
             <img
@@ -916,6 +927,7 @@ export const SuperAdminSites: React.FC<SuperAdminSitesProps> = () => {
               </div>
             </div>
           )}
+          </>)}
         </div>
       </div>
 

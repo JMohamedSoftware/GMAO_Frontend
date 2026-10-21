@@ -17,6 +17,7 @@ import { SuperAdmin } from '@/features/superAdmin/dashboard/SuperAdminPage';
 import { EquipesPage } from '@/features/company/equipes/pages/EquipesPage';
 import { AccessGuard } from '@/shared/components/AccessGuard';
 import { PERMISSIONS } from '@/shared/permissions';
+import { ErrorBoundary } from '@/shared/components/ErrorBoundary';
 
 function AppContent() {
   const { currentUser, equipments, impersonatedTenantId } = useGmao();
@@ -207,7 +208,9 @@ function AppContent() {
       )}
 
       {currentScreen.startsWith('saas-') && (
-        <SuperAdmin activeTab={currentScreen.split('-')[1] as any} />
+        <ErrorBoundary fallbackTitle="Module Super Admin momentanément indisponible">
+          <SuperAdmin activeTab={currentScreen.split('-')[1] as any} />
+        </ErrorBoundary>
       )}
     </MainLayout>
   );
@@ -215,9 +218,11 @@ function AppContent() {
 
 function App() {
   return (
-    <IncidentModalProvider>
-      <AppContent />
-    </IncidentModalProvider>
+    <ErrorBoundary>
+      <IncidentModalProvider>
+        <AppContent />
+      </IncidentModalProvider>
+    </ErrorBoundary>
   );
 }
 

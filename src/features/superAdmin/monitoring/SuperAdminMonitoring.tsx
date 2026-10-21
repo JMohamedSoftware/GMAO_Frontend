@@ -66,6 +66,7 @@ export const SuperAdminMonitoring: React.FC = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [selectedCheckboxes, setSelectedCheckboxes] = useState<string[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Modals
   const [isAdjustLimitsModalOpen, setIsAdjustLimitsModalOpen] = useState(false);
@@ -178,6 +179,7 @@ export const SuperAdminMonitoring: React.FC = () => {
       console.warn('[Monitoring] Utilisation des données locales:', err);
     } finally {
       setIsSyncing(false);
+      setIsLoading(false);
     }
   };
 
@@ -803,7 +805,15 @@ export const SuperAdminMonitoring: React.FC = () => {
 
         {/* RIGHT COLUMN: INSPECTION DE L'ENTREPRISE (4 cols) */}
         <div className="xl:col-span-4 bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col gap-5">
-          {/* Header */}
+          {(isLoading || !selectedTenant) ? (
+            <div className="flex flex-col items-center justify-center h-64 gap-3 text-slate-400">
+              {isLoading ? (
+                <><RefreshCw className="w-8 h-8 animate-spin text-primary/50" /><p className="text-xs font-medium">Chargement...</p></>
+              ) : (
+                <><Building2 className="w-8 h-8 opacity-30" /><p className="text-xs font-medium">Sélectionnez une entreprise</p></>
+              )}
+            </div>
+          ) : (<>
           <div className="flex items-start gap-3.5">
             <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-2xl shadow-sm shrink-0">
               {selectedTenant.logo}
@@ -1059,6 +1069,7 @@ export const SuperAdminMonitoring: React.FC = () => {
               </button>
             </div>
           </div>
+          </>)}
         </div>
       </div>
 

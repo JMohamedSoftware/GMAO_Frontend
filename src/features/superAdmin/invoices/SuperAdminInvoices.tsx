@@ -155,6 +155,7 @@ export const SuperAdminInvoices: React.FC = () => {
   };
 
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const fetchInvoices = async (showNotification = false) => {
     setIsSyncing(true);
@@ -199,6 +200,7 @@ export const SuperAdminInvoices: React.FC = () => {
       console.warn('[Invoices] Utilisation des données locales:', err);
     } finally {
       setIsSyncing(false);
+      setIsLoading(false);
     }
   };
 
@@ -936,6 +938,15 @@ export const SuperAdminInvoices: React.FC = () => {
 
         {/* RIGHT COLUMN: DÉTAILS DE LA FACTURE (4 cols) */}
         <div className="xl:col-span-4 bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col gap-5">
+          {(isLoading || !selectedInvoice) ? (
+            <div className="flex flex-col items-center justify-center h-64 gap-3 text-slate-400">
+              {isLoading ? (
+                <><RefreshCw className="w-8 h-8 animate-spin text-primary/50" /><p className="text-xs font-medium">Chargement des factures...</p></>
+              ) : (
+                <><CreditCard className="w-8 h-8 opacity-30" /><p className="text-xs font-medium">Sélectionnez une facture</p></>
+              )}
+            </div>
+          ) : (<>
           {/* Header */}
           <div className="flex items-center justify-between">
             <h3 className="text-base font-black text-slate-800 dark:text-white">
@@ -1129,6 +1140,7 @@ export const SuperAdminInvoices: React.FC = () => {
               </button>
             </div>
           </div>
+          </>)}
         </div>
       </div>
 

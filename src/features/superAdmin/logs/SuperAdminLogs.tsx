@@ -991,6 +991,11 @@ export const SuperAdminLogs: React.FC = () => {
 
           {/* WIDGET 3: Détail de l'action */}
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col gap-4">
+            {!selectedLog ? (
+              <div className="flex flex-col items-center justify-center h-48 text-slate-400 text-xs font-medium">
+                Sélectionnez une entrée du journal
+              </div>
+            ) : (<>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-slate-700 dark:text-slate-300" />
@@ -1087,6 +1092,7 @@ export const SuperAdminLogs: React.FC = () => {
                 </span>
               </div>
             </div>
+            </>)}
           </div>
         </div>
       </div>
