@@ -24,45 +24,68 @@ function AppContent() {
   
   // Navigation State
   const [currentScreen, setCurrentScreen] = useState<string>(() => {
-    const params = new URLSearchParams(window.location.search);
-    const initialScreen = params.get('screen');
-    if (initialScreen) return initialScreen;
-
-    // If user is SuperAdmin and not impersonating, always start on Super Admin dashboard
+    let storedRole: string | undefined;
     try {
       const storedUser = localStorage.getItem('gmao_current_user');
-      const storedImpersonated = localStorage.getItem('gmao_impersonated_tenant_id');
+      const storedSession = localStorage.getItem('gmao_session');
       if (storedUser) {
-        const u = JSON.parse(storedUser);
-        if (u?.role === 'SuperAdmin' && (!storedImpersonated || storedImpersonated === 'null' || storedImpersonated === 'undefined')) {
-          return 'saas-dashboard';
-        }
+        storedRole = JSON.parse(storedUser)?.role;
+      } else if (storedSession) {
+        storedRole = JSON.parse(storedSession)?.user?.role;
       }
     } catch {}
+
+    const isSuperAdmin = storedRole === 'SuperAdmin';
+    const params = new URLSearchParams(window.location.search);
+    const initialScreen = params.get('screen');
+
+    // Security check: Only SuperAdmin can start on saas-* screens
+    if (initialScreen) {
+      if (initialScreen.startsWith('saas-')) {
+        return isSuperAdmin ? initialScreen : 'dashboard';
+      }
+      return initialScreen;
+    }
+
+    if (isSuperAdmin) {
+      const storedImpersonated = localStorage.getItem('gmao_impersonated_tenant_id');
+      if (!storedImpersonated || storedImpersonated === 'null' || storedImpersonated === 'undefined') {
+        return 'saas-dashboard';
+      }
+    }
 
     return 'dashboard';
   });
 
   useEffect(() => {
+    const isSuperAdmin = currentUser?.role === 'SuperAdmin';
     const params = new URLSearchParams(window.location.search);
     const screenParam = params.get('screen');
 
-    // If logged in as SuperAdmin and NOT simulating a tenant:
-    if (currentUser?.role === 'SuperAdmin' && !impersonatedTenantId) {
-      // If currently on company dashboard or no screen specified, route to Super Admin dashboard
+    // Case 1: SuperAdmin (and NOT simulating a tenant)
+    if (isSuperAdmin && !impersonatedTenantId) {
       if (!screenParam || screenParam === 'dashboard' || currentScreen === 'dashboard') {
         setCurrentScreen('saas-dashboard');
+      }
+    }
+    // Case 2: Regular company users (Administrateur, Technicien, etc.) MUST NEVER be on saas-* screens
+    else if (!isSuperAdmin) {
+      if (currentScreen.startsWith('saas-')) {
+        setCurrentScreen('dashboard');
       }
     }
   }, [currentUser, impersonatedTenantId, currentScreen]);
 
   // Sync currentScreen to URL so refresh works
   useEffect(() => {
+    const isSuperAdmin = currentUser?.role === 'SuperAdmin';
     const params = new URLSearchParams(window.location.search);
-    if (params.get('screen') !== currentScreen) {
-      const newUrl = (currentScreen === 'dashboard' && currentUser?.role !== 'SuperAdmin')
+    const safeScreen = (!isSuperAdmin && currentScreen.startsWith('saas-')) ? 'dashboard' : currentScreen;
+
+    if (params.get('screen') !== safeScreen) {
+      const newUrl = (safeScreen === 'dashboard' && !isSuperAdmin)
         ? window.location.pathname 
-        : `${window.location.pathname}?screen=${currentScreen}`;
+        : `${window.location.pathname}?screen=${safeScreen}`;
       window.history.replaceState(null, '', newUrl);
     }
   }, [currentScreen, currentUser]);
@@ -76,6 +99,10 @@ function AppContent() {
 
   // Custom Router navigation resolver
   const handleNavigate = (target: string) => {
+    if (target.startsWith('saas-') && currentUser?.role !== 'SuperAdmin') {
+      setCurrentScreen('dashboard');
+      return;
+    }
     if (target.startsWith('equipment-detail:')) {
       const eqId = target.split(':')[1];
       const eq = equipments.find(e => e.id === eqId);
@@ -103,12 +130,11 @@ function AppContent() {
   const handleLoginSuccess = () => {
     try {
       const storedUser = localStorage.getItem('gmao_current_user');
-      if (storedUser) {
-        const u = JSON.parse(storedUser);
-        if (u?.role === 'SuperAdmin') {
-          setCurrentScreen('saas-dashboard');
-          return;
-        }
+      const storedSession = localStorage.getItem('gmao_session');
+      const u = storedUser ? JSON.parse(storedUser) : (storedSession ? JSON.parse(storedSession)?.user : null);
+      if (u?.role === 'SuperAdmin') {
+        setCurrentScreen('saas-dashboard');
+        return;
       }
     } catch {}
     setCurrentScreen('dashboard');
@@ -207,7 +233,7 @@ function AppContent() {
         </AccessGuard>
       )}
 
-      {currentScreen.startsWith('saas-') && (
+      {currentScreen.startsWith('saas-') && currentUser?.role === 'SuperAdmin' && (
         <ErrorBoundary fallbackTitle="Module Super Admin momentanément indisponible">
           <SuperAdmin activeTab={currentScreen.split('-')[1] as any} />
         </ErrorBoundary>

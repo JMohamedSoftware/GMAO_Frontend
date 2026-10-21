@@ -97,6 +97,10 @@ export function useAuth() {
       }
     }
     clearSession();
+    try {
+      localStorage.removeItem('gmao_current_user');
+      localStorage.removeItem('gmao_impersonated_tenant_id');
+    } catch {}
     setState({ status: 'unauthenticated', session: null, error: null });
   }, [state.session]);
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useGmao } from '@/shared/hooks/useGmao';
-import { Bell, Search, User, Check, Trash2, Command, HelpCircle, ChevronDown } from 'lucide-react';
+import { useAuth } from '@/features/auth';
+import { Bell, Search, User, Check, Trash2, Command, HelpCircle, ChevronDown, LogOut, Shield } from 'lucide-react';
 
 interface NavbarProps {
   currentScreen: string;
@@ -13,10 +14,20 @@ export const Navbar: React.FC<NavbarProps> = ({ currentScreen, onNavigate, onOpe
     notifications,
     markNotificationAsRead,
     markAllNotificationsAsRead,
-    currentUser
+    currentUser,
+    logout
   } = useGmao();
+  const auth = useAuth();
 
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      await auth.logout();
+    } catch {}
+    logout();
+  };
 
   const getBreadcrumbs = () => {
     if (currentScreen.startsWith('saas-')) {
@@ -225,23 +236,53 @@ export const Navbar: React.FC<NavbarProps> = ({ currentScreen, onNavigate, onOpe
           )}
         </div>
 
-        {/* User profile quick status */}
+        {/* User profile quick status with dropdown */}
         {currentUser && (
-          <div className="flex items-center gap-2.5 pl-3 border-l border-slate-200 dark:border-slate-800/80">
-            <img
-              src={currentUser.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150"}
-              alt={currentUser.name}
-              className="w-8 h-8 rounded-full object-cover border border-slate-200 dark:border-slate-700 shadow-xs"
-            />
-            <div className="flex flex-col text-left hidden sm:flex">
-              <span className="text-xs font-black text-slate-850 dark:text-white leading-tight">
-                {currentUser.role === 'SuperAdmin' ? (currentUser.name || 'Ahmed Ben Ali') : currentUser.name}
-              </span>
-              <span className="text-[10px] text-slate-400 font-semibold leading-tight">
-                {currentUser.role === 'SuperAdmin' ? 'Super Administrateur' : currentUser.role}
-              </span>
-            </div>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
+          <div className="relative">
+            <button
+              onClick={() => {
+                setShowUserMenu(prev => !prev);
+                setShowNotifications(false);
+              }}
+              className="flex items-center gap-2.5 pl-3 border-l border-slate-200 dark:border-slate-800/80 hover:opacity-80 transition cursor-pointer"
+            >
+              <img
+                src={currentUser.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150"}
+                alt={currentUser.name}
+                className="w-8 h-8 rounded-full object-cover border border-slate-200 dark:border-slate-700 shadow-xs"
+              />
+              <div className="flex flex-col text-left hidden sm:flex">
+                <span className="text-xs font-black text-slate-850 dark:text-white leading-tight">
+                  {currentUser.role === 'SuperAdmin' ? (currentUser.name || 'Ahmed Ben Ali') : currentUser.name}
+                </span>
+                <span className="text-[10px] text-slate-400 font-semibold leading-tight">
+                  {currentUser.role === 'SuperAdmin' ? 'Super Administrateur' : currentUser.role}
+                </span>
+              </div>
+              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 hidden sm:block transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Profile Dropdown Menu */}
+            {showUserMenu && (
+              <div className="absolute right-0 top-12 w-56 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xl p-2.5 z-50 flex flex-col gap-2 animate-[fadeIn_0.15s_ease-out]">
+                <div className="px-2 py-1.5 border-b border-slate-100 dark:border-slate-800/80">
+                  <div className="text-xs font-black text-slate-800 dark:text-white">{currentUser.name}</div>
+                  <div className="text-[10px] text-slate-400 truncate">{currentUser.email || 'Utilisateur'}</div>
+                  <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-primary/10 text-primary dark:text-blue-400">
+                    <Shield className="w-2.5 h-2.5" />
+                    <span>{currentUser.role === 'SuperAdmin' ? 'Super Administrateur' : currentUser.role}</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleLogout}
+                  className="w-full p-2 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center gap-2 transition cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Se déconnecter</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
 

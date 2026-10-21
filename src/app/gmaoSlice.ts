@@ -256,8 +256,11 @@ export const gmaoSlice = createSlice({
       state.impersonatedTenantId = null;
       try {
         localStorage.removeItem('gmao_impersonated_tenant_id');
+        localStorage.removeItem('gmao_current_user');
+        localStorage.removeItem('gmao_session');
+        localStorage.removeItem('gmao_access_token');
+        localStorage.removeItem('gmao_refresh_token');
       } catch {}
-      localStorage.removeItem('gmao_current_user');
       localStorage.setItem('gmao_current_tenant_id', 'tenant-midi');
     },
     impersonateTenant: (state, action: PayloadAction<string | null>) => {

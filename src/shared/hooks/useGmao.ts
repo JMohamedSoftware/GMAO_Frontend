@@ -63,7 +63,17 @@ export const useGmao = () => {
       }));
       return true;
     },
-    logout: () => dispatch(actions.logout()),
+    logout: () => {
+      try {
+        localStorage.removeItem('gmao_impersonated_tenant_id');
+        localStorage.removeItem('gmao_current_user');
+        localStorage.removeItem('gmao_session');
+        localStorage.removeItem('gmao_access_token');
+        localStorage.removeItem('gmao_refresh_token');
+      } catch {}
+      dispatch(actions.logout());
+      window.location.href = window.location.pathname;
+    },
     toggleDarkMode: () => dispatch(actions.toggleDarkMode()),
     setSelectedCampaign: (camp: string) => dispatch(actions.setSelectedCampaign(camp)),
     updateRolePermission: (role: any, module: any, actionName: string, scope: any, isChecked: boolean) => 

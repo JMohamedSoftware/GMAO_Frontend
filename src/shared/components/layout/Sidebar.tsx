@@ -55,7 +55,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate }) =
   const auth = useAuth();
   const myUserId = auth.currentUser?.id ?? currentUser?.id;
 
-  const isSuperAdmin = currentUser?.role === 'SuperAdmin' || auth.currentUser?.role === 'SuperAdmin';
+  const effectiveRole = currentUser?.role || auth.currentUser?.role;
+  const isSuperAdmin = effectiveRole === 'SuperAdmin';
   const isImpersonating = isSuperAdmin && !!impersonatedTenantId && impersonatedTenantId !== 'null' && impersonatedTenantId !== 'undefined';
 
   const currentTenant = tenants.find(t => t.id === impersonatedTenantId);
@@ -110,6 +111,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate }) =
   });
 
   const pendingOts = myOts.filter(ot => ot.status === 'En attente' || ot.status === 'En cours').length;
+
+  const handleLogout = async () => {
+    try {
+      await auth.logout();
+    } catch {}
+    logout();
+  };
 
   return (
     <aside className="fixed left-4 top-4 w-32 lg:w-40 h-[calc(100vh-2rem)] glass-panel rounded-custom-xl border border-white/40 dark:border-slate-800/40 p-3 flex flex-col justify-between shadow-lg select-none z-30 overflow-y-auto custom-scrollbar">
@@ -251,7 +259,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate }) =
 
         {/* User Card - Icon Centric */}
         {currentUser && (
-          <div className="flex flex-col items-center justify-center w-full bg-white/30 dark:bg-slate-900/10 p-2 rounded-xl border border-white/50 dark:border-slate-800/50 gap-2 relative group">
+          <div className="flex flex-col items-center justify-center w-full bg-white/30 dark:bg-slate-900/10 p-2 rounded-xl border border-white/50 dark:border-slate-800/50 gap-1.5 relative group">
             <img 
               src={currentUser.avatar} 
               alt={currentUser.name} 
@@ -261,17 +269,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate }) =
               <h4 className="text-[9px] font-black text-slate-700 dark:text-slate-200 truncate max-w-full">
                 {currentUser.name}
               </h4>
+              <span className="text-[8px] text-slate-400 font-semibold block leading-tight">
+                {currentUser.role === 'SuperAdmin' ? 'Super Admin' : currentUser.role}
+              </span>
             </div>
-            {/* Logout button appears on hover */}
-            <button 
-              onClick={logout} 
+            {/* Direct visible logout button for easy one-click logout */}
+            <button
+              onClick={handleLogout}
               title="Se déconnecter"
-              className="absolute inset-0 bg-black/60 rounded-xl flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm"
+              className="w-full mt-0.5 py-1 px-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center justify-center gap-1 text-[8px] font-bold transition cursor-pointer"
             >
-              <div className="flex flex-col items-center gap-1">
-                <LogOut className="w-5 h-5" />
-                <span className="text-[8px] font-bold uppercase">Quitter</span>
-              </div>
+              <LogOut className="w-3 h-3" />
+              <span>Quitter</span>
             </button>
           </div>
         )}
