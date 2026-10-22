@@ -1,19 +1,22 @@
 import React, { useState } from 'react';
 import { useGmao } from '@/shared/hooks/useGmao';
-import { Sparkles, X, ArrowLeft, ArrowRight, Check, CheckCircle2, Hourglass } from 'lucide-react';
+import { Sparkles, X, ArrowLeft, ArrowRight, Check, CheckCircle2, Hourglass, AlertCircle } from 'lucide-react';
+import { superAdminApi } from '../api/superAdmin.api';
 
 interface CreateTenantWizardProps {
   show: boolean;
   onClose: () => void;
+  onTenantCreated?: (tenant: any) => void;
   plansConfig: { Basic: number, Premium: number, Enterprise: number };
 }
 
-export const CreateTenantWizard: React.FC<CreateTenantWizardProps> = ({ show, onClose, plansConfig }) => {
+export const CreateTenantWizard: React.FC<CreateTenantWizardProps> = ({ show, onClose, onTenantCreated, plansConfig }) => {
   const { registerTenant, approveTenant } = useGmao();
 
   const [currentStep, setCurrentStep] = useState(1);
   const [creationLoading, setCreationLoading] = useState(false);
   const [creationSuccess, setCreationSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Step 1: Corporate Registry
   const [companyName, setCompanyName] = useState('');
@@ -73,20 +76,80 @@ export const CreateTenantWizard: React.FC<CreateTenantWizardProps> = ({ show, on
 
   const handleWizardSubmit = async () => {
     setCreationLoading(true);
+    setErrorMessage(null);
     try {
-      await registerTenant({
-        id: companySlug,
-        name: companyName,
-        domain: `${companySlug}.platform.com`,
-        adminEmail: adminEmail,
+      const cleanSlug = (companySlug || companyName.toLowerCase().replace(/[^a-z0-9]/g, '-')).replace(/^-+|-+$/g, '') || `tenant-${Date.now()}`;
+      const tenantPayload: any = {
+        nom: companyName,
+        codeTenant: cleanSlug,
+        category: 'Agroalimentaire & Transformation',
+        managerNom: `${adminFirstName} ${adminLastName}`.trim() || undefined,
+        telephone: phone || undefined,
+        ville: city || 'Nabeul',
+        gouvernorat: country || 'Tunisie',
+        adresse: address || `${city}, ${country}`,
+        emailContact: adminEmail || undefined,
         subscriptionPlan: subPlan,
-        capacityTonsPerDay: 450
-      });
+        subscriptionStatus: 'Actif',
+        subscriptionAmount: plansConfig[subPlan] || (subPlan === 'Basic' ? 299 : subPlan === 'Premium' ? 599 : 1299),
+        maxSites: subPlan === 'Basic' ? 2 : subPlan === 'Premium' ? 5 : 20,
+        maxUsers: maxUsers || 20,
+        maxEquipements: maxEquipment || 50,
+        maxStorageGb: subPlan === 'Basic' ? 10 : subPlan === 'Premium' ? 50 : 500,
+        capacityTonsPerDay: 450,
+        isActive: true
+      };
+
+      // 1. Appeler l'API SuperAdmin pour persister en base PostgreSQL
+      let createdTenant: any = null;
+      try {
+        createdTenant = await superAdminApi.createTenant(tenantPayload);
+      } catch (apiErr: any) {
+        console.warn('Erreur appel superAdminApi.createTenant:', apiErr);
+      }
+
+      // 2. Si un compte admin a été renseigné, le créer dans la base
+      if (adminEmail) {
+        try {
+          await superAdminApi.createUser({
+            nom: adminLastName || companyName,
+            prenom: adminFirstName || 'Admin',
+            email: adminEmail,
+            telephone: phone,
+            roleId: 1, // Administrateur d'entreprise
+            societeId: createdTenant?.id || undefined,
+            isActive: true
+          });
+        } catch (uErr) {
+          console.warn('Avertissement création utilisateur admin:', uErr);
+        }
+      }
+
+      // 3. Synchroniser avec le store Redux de l'application
+      try {
+        await registerTenant({
+          id: cleanSlug,
+          name: companyName,
+          domain: `${cleanSlug}.platform.com`,
+          adminEmail: adminEmail,
+          subscriptionPlan: subPlan,
+          capacityTonsPerDay: 450
+        });
+      } catch (reduxErr) {
+        console.warn('Avertissement Redux registerTenant:', reduxErr);
+      }
+
+      // 4. Notifier la liste des entreprises pour rafraîchissement immédiat
+      if (onTenantCreated) {
+        onTenantCreated(createdTenant || tenantPayload);
+      }
+
       setCreationSuccess(true);
       setTimeout(() => {
         onClose();
         setCurrentStep(1);
         setCreationSuccess(false);
+        setErrorMessage(null);
         setCompanyName('');
         setLegalName('');
         setAddress('');
@@ -98,8 +161,9 @@ export const CreateTenantWizard: React.FC<CreateTenantWizardProps> = ({ show, on
         setAdminEmail('');
         setAdminPassword('');
       }, 1500);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error('Erreur finale lors de la création:', err);
+      setErrorMessage(err?.message || "Erreur lors de la création de l'entreprise sur le serveur.");
     } finally {
       setCreationLoading(false);
     }
@@ -376,6 +440,12 @@ export const CreateTenantWizard: React.FC<CreateTenantWizardProps> = ({ show, on
                 </div>
               ) : (
                 <>
+                  {errorMessage && (
+                    <div className="p-3 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-bold flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 dark:text-rose-400" />
+                      <span>{errorMessage}</span>
+                    </div>
+                  )}
                   <h4 className="font-extrabold text-slate-800 dark:text-white uppercase tracking-wider text-[10px]">Synthèse de Configuration</h4>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-150 dark:border-slate-800 rounded-xl">

@@ -44,6 +44,7 @@ interface SuperAdminTenantsProps {
   suspendTenant: (id: string) => void;
   impersonateTenant: (id: string) => void;
   onShowCreateWizard: () => void;
+  refreshTrigger?: number;
 }
 
 export const SuperAdminTenants: React.FC<SuperAdminTenantsProps> = ({
@@ -52,7 +53,8 @@ export const SuperAdminTenants: React.FC<SuperAdminTenantsProps> = ({
   approveTenant,
   suspendTenant,
   impersonateTenant,
-  onShowCreateWizard
+  onShowCreateWizard,
+  refreshTrigger = 0
 }) => {
   // State management
   const [companies, setCompanies] = useState<RealCompany[]>([]);
@@ -146,7 +148,7 @@ export const SuperAdminTenants: React.FC<SuperAdminTenantsProps> = ({
 
   useEffect(() => {
     fetchTenants();
-  }, []);
+  }, [refreshTrigger]);
 
   // Filter companies
   const filteredCompanies = useMemo(() => {

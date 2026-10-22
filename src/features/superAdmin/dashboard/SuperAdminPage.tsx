@@ -27,6 +27,7 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({ activeTab = 'dashboard' 
 
   const [showConfigSaved, setShowConfigSaved] = useState(false);
   const [showCreateWizard, setShowCreateWizard] = useState(false);
+  const [tenantsRefreshKey, setTenantsRefreshKey] = useState(0);
 
   // Filter requests vs active tenants
   const safeTenants = tenants || [];
@@ -98,6 +99,7 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({ activeTab = 'dashboard' 
             suspendTenant={suspendTenant}
             impersonateTenant={impersonateTenant}
             onShowCreateWizard={() => setShowCreateWizard(true)}
+            refreshTrigger={tenantsRefreshKey}
           />
         )}
 
@@ -126,6 +128,7 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({ activeTab = 'dashboard' 
       <CreateTenantWizard 
         show={showCreateWizard}
         onClose={() => setShowCreateWizard(false)}
+        onTenantCreated={() => setTenantsRefreshKey(k => k + 1)}
         plansConfig={plansConfig}
       />
     </div>
