@@ -33,17 +33,19 @@ export const Admin: React.FC = () => {
       try {
         const data = await usersApi.getUsers();
         // map backend user models to frontend UserAccount type expected by UI
-        const mappedUsers = data.map((u: any) => ({
-          id: u.id.toString(),
-          name: `${u.prenom} ${u.nom}`.trim(),
-          email: u.email,
-          role: u.role?.nom || 'Technicien',
-          department: 'Général',
-          status: u.isActive ? 'Actif' : 'Inactif',
-          avatar: u.avatar || 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=150&auto=format&fit=crop&q=80',
-          lastActive: 'À l\'instant',
-          createdAt: u.createdAt
-        }));
+        const mappedUsers = data
+          .filter((u: any) => u.role?.nom !== 'SuperAdmin' && u.roleId !== 7 && u.role !== 'SuperAdmin')
+          .map((u: any) => ({
+            id: u.id.toString(),
+            name: `${u.prenom} ${u.nom}`.trim(),
+            email: u.email,
+            role: u.role?.nom || 'Technicien',
+            department: 'Général',
+            status: u.isActive ? 'Actif' : 'Inactif',
+            avatar: u.avatar || 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=150&auto=format&fit=crop&q=80',
+            lastActive: 'À l\'instant',
+            createdAt: u.createdAt
+          }));
         setUsers(mappedUsers);
       } catch (err) {
         console.error('Failed to load users', err);

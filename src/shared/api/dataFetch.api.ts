@@ -233,16 +233,18 @@ const mapRoleIdToName = (roleId: number): string => {
 
 export const fetchUsers = async (): Promise<UserAccount[]> => {
     const response = await axios.get(`${API_URL}/Users`, getAuthHeaders());
-    return response.data.map((u: any) => ({
-        id: u.id?.toString(),
-        name: `${u.prenom} ${u.nom}`.trim(),
-        email: u.email,
-        role: u.role?.nom || mapRoleIdToName(u.roleId),
-        status: u.isActive !== false ? 'Actif' : 'Inactif',
-        avatar: u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(`${u.prenom}+${u.nom}`)}&background=e11d48&color=fff&size=150`,
-        phone: u.telephone,
-        createdAt: u.createdAt
-    }));
+    return response.data
+        .filter((u: any) => u.role?.nom !== 'SuperAdmin' && u.roleId !== 7)
+        .map((u: any) => ({
+            id: u.id?.toString(),
+            name: `${u.prenom} ${u.nom}`.trim(),
+            email: u.email,
+            role: u.role?.nom || mapRoleIdToName(u.roleId),
+            status: u.isActive !== false ? 'Actif' : 'Inactif',
+            avatar: u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(`${u.prenom}+${u.nom}`)}&background=e11d48&color=fff&size=150`,
+            phone: u.telephone,
+            createdAt: u.createdAt
+        }));
 };
 
 
