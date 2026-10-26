@@ -161,6 +161,7 @@ export interface SuperAdminUserDto {
   prenom: string;
   fullName: string;
   email: string;
+  password?: string;
   telephone?: string;
   roleId: number;
   roleNom: string;
@@ -257,14 +258,16 @@ async function safeApiCall<T>(url: string, options?: RequestInit, fallback?: T):
     });
 
     if (!res.ok) {
-      console.warn(`[SuperAdmin API] Request to ${url} returned ${res.status}`);
+      const errData = await res.json().catch(() => ({}));
+      const errMsg = errData?.message || `Erreur API (${res.status})`;
+      console.warn(`[SuperAdmin API] Request to ${url} returned ${res.status}:`, errMsg);
       if (fallback !== undefined) return fallback;
-      throw new Error(`Erreur API (${res.status})`);
+      throw new Error(errMsg);
     }
 
     return await res.json();
-  } catch (err) {
-    console.warn(`[SuperAdmin API] Call to ${url} failed, using local/cached state:`, err);
+  } catch (err: any) {
+    console.warn(`[SuperAdmin API] Call to ${url} failed:`, err);
     if (fallback !== undefined) return fallback;
     throw err;
   }
@@ -285,6 +288,12 @@ export const superAdminApi = {
     safeApiCall<TenantDto>('/superadmin/tenants', {
       method: 'POST',
       body: JSON.stringify(tenant)
+    }),
+
+  createTenantWithAdmin: (payload: any) =>
+    safeApiCall<{ tenant: TenantDto; admin: any; message: string }>('/superadmin/tenants-with-admin', {
+      method: 'POST',
+      body: JSON.stringify(payload)
     }),
 
   updateTenant: (id: number, tenant: Partial<TenantDto>) =>

@@ -79,8 +79,8 @@ export const CreateTenantWizard: React.FC<CreateTenantWizardProps> = ({ show, on
     setErrorMessage(null);
     try {
       const cleanSlug = (companySlug || companyName.toLowerCase().replace(/[^a-z0-9]/g, '-')).replace(/^-+|-+$/g, '') || `tenant-${Date.now()}`;
-      const tenantPayload: any = {
-        nom: companyName,
+      const payload: any = {
+        nom: companyName.trim(),
         codeTenant: cleanSlug,
         category: 'Agroalimentaire & Transformation',
         managerNom: `${adminFirstName} ${adminLastName}`.trim() || undefined,
@@ -88,7 +88,7 @@ export const CreateTenantWizard: React.FC<CreateTenantWizardProps> = ({ show, on
         ville: city || 'Nabeul',
         gouvernorat: country || 'Tunisie',
         adresse: address || `${city}, ${country}`,
-        emailContact: adminEmail || undefined,
+        emailContact: adminEmail?.trim().toLowerCase() || undefined,
         subscriptionPlan: subPlan,
         subscriptionStatus: 'Actif',
         subscriptionAmount: plansConfig[subPlan] || (subPlan === 'Basic' ? 299 : subPlan === 'Premium' ? 599 : 1299),
@@ -97,41 +97,26 @@ export const CreateTenantWizard: React.FC<CreateTenantWizardProps> = ({ show, on
         maxEquipements: maxEquipment || 50,
         maxStorageGb: subPlan === 'Basic' ? 10 : subPlan === 'Premium' ? 50 : 500,
         capacityTonsPerDay: 450,
-        isActive: true
+        isActive: true,
+        // Admin
+        adminNom: adminLastName?.trim() || companyName.trim(),
+        adminPrenom: adminFirstName?.trim() || 'Admin',
+        adminEmail: adminEmail?.trim().toLowerCase(),
+        adminPassword: adminPassword || 'Gmao2026!',
+        adminTelephone: phone || undefined
       };
 
-      // 1. Appeler l'API SuperAdmin pour persister en base PostgreSQL
-      let createdTenant: any = null;
-      try {
-        createdTenant = await superAdminApi.createTenant(tenantPayload);
-      } catch (apiErr: any) {
-        console.warn('Erreur appel superAdminApi.createTenant:', apiErr);
-      }
+      // 1. Appeler l'API SuperAdmin pour persister atomiquement en base PostgreSQL
+      const response = await superAdminApi.createTenantWithAdmin(payload);
+      const createdTenant = response?.tenant || payload;
 
-      // 2. Si un compte admin a été renseigné, le créer dans la base
-      if (adminEmail) {
-        try {
-          await superAdminApi.createUser({
-            nom: adminLastName || companyName,
-            prenom: adminFirstName || 'Admin',
-            email: adminEmail,
-            telephone: phone,
-            roleId: 1, // Administrateur d'entreprise
-            societeId: createdTenant?.id || undefined,
-            isActive: true
-          });
-        } catch (uErr) {
-          console.warn('Avertissement création utilisateur admin:', uErr);
-        }
-      }
-
-      // 3. Synchroniser avec le store Redux de l'application
+      // 2. Synchroniser avec le store Redux de l'application
       try {
         await registerTenant({
-          id: cleanSlug,
+          id: createdTenant.codeTenant || cleanSlug,
           name: companyName,
           domain: `${cleanSlug}.platform.com`,
-          adminEmail: adminEmail,
+          adminEmail: adminEmail?.trim().toLowerCase(),
           subscriptionPlan: subPlan,
           capacityTonsPerDay: 450
         });
@@ -139,9 +124,9 @@ export const CreateTenantWizard: React.FC<CreateTenantWizardProps> = ({ show, on
         console.warn('Avertissement Redux registerTenant:', reduxErr);
       }
 
-      // 4. Notifier la liste des entreprises pour rafraîchissement immédiat
+      // 3. Notifier la liste des entreprises pour rafraîchissement immédiat
       if (onTenantCreated) {
-        onTenantCreated(createdTenant || tenantPayload);
+        onTenantCreated(createdTenant);
       }
 
       setCreationSuccess(true);
@@ -162,8 +147,8 @@ export const CreateTenantWizard: React.FC<CreateTenantWizardProps> = ({ show, on
         setAdminPassword('');
       }, 1500);
     } catch (err: any) {
-      console.error('Erreur finale lors de la création:', err);
-      setErrorMessage(err?.message || "Erreur lors de la création de l'entreprise sur le serveur.");
+      console.error('Erreur lors de la création de l\'entreprise:', err);
+      setErrorMessage(err?.message || "Erreur lors de la création de l'entreprise et de son administrateur.");
     } finally {
       setCreationLoading(false);
     }

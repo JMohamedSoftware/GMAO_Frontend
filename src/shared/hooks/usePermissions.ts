@@ -12,17 +12,32 @@ export function usePermissions() {
   const role = authUser?.role ?? currentUser?.role ?? ROLES.TECHNICIEN;
   
   /**
+   * Role checkers — convenience shortcuts
+   */
+  const normalizedRole = role?.toLowerCase().trim();
+  const isAdmin = normalizedRole === ROLES.ADMINISTRATEUR.toLowerCase() 
+               || normalizedRole === ROLES.SUPER_ADMIN.toLowerCase()
+               || normalizedRole === 'admin entreprise'
+               || normalizedRole === 'admin';
+  const isResponsable = normalizedRole === ROLES.RESPONSABLE.toLowerCase();
+  const isChefEquipe = normalizedRole === ROLES.CHEF_EQUIPE.toLowerCase();
+  const isTechnicien = !isAdmin && normalizedRole === ROLES.TECHNICIEN.toLowerCase();
+  const isProduction = normalizedRole === ROLES.PRODUCTION.toLowerCase();
+
+  /**
    * Can the current user perform a specific action?
    * @param permission The base permission to check
    * @param resourceOwnerIds Optional array of user IDs that own the resource (e.g. technicienId, responsableId)
    * @param resourceEquipeIds Optional array of team IDs that own the resource
    */
   const can = (permission: Permission | string, resourceOwnerIds?: (number | null | undefined)[], resourceEquipeIds?: (number | null | undefined)[]): boolean => {
+    // Admin always has full access to company resources and settings
+    if (isAdmin) return true;
+
     // If dynamic permissions are loaded from backend, use them!
     const userPermissions = authUser?.permissions || currentUser?.permissions;
     
     if (userPermissions && userPermissions.length > 0) {
-      if (role === ROLES.SUPER_ADMIN || role === ROLES.ADMINISTRATEUR) return true; 
       return hasScopedPermission(
         userPermissions, 
         permission, 
@@ -36,15 +51,6 @@ export function usePermissions() {
     // Fallback to static mapping if dynamic permissions are missing
     return canGuard(role, permission as Permission);
   };
-
-  /**
-   * Role checkers — convenience shortcuts
-   */
-  const isAdmin = role?.toLowerCase().trim() === ROLES.ADMINISTRATEUR.toLowerCase() || role?.toLowerCase().trim() === ROLES.SUPER_ADMIN.toLowerCase();
-  const isResponsable = role?.toLowerCase().trim() === ROLES.RESPONSABLE.toLowerCase();
-  const isChefEquipe = role?.toLowerCase().trim() === ROLES.CHEF_EQUIPE.toLowerCase();
-  const isTechnicien = role?.toLowerCase().trim() === ROLES.TECHNICIEN.toLowerCase();
-  const isProduction = role?.toLowerCase().trim() === ROLES.PRODUCTION.toLowerCase();
   
   /** Admins + Responsable only */
   const isManagerLevel = isAdmin || isResponsable;

@@ -71,12 +71,13 @@ export const Admin: React.FC = () => {
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserAccount | null>(null);
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
-  const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'Technicien', phone: '', department: '', status: 'Actif', avatar: '' });
+  const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'Administrateur', phone: '', department: '', status: 'Actif', avatar: '' });
   const [availableRoles, setAvailableRoles] = useState<{id: number, nom: string}[]>([]);
 
   React.useEffect(() => {
     apiClient.get('/api/Settings/Roles').then(res => {
-      setAvailableRoles(res.data.filter((r: any) => !['Administrateur', 'SuperAdmin'].includes(r.nom)));
+      // Include all enterprise roles (Administrateur, Responsable, Chef d'équipe, Technicien, Production), exclude only SuperAdmin
+      setAvailableRoles(res.data.filter((r: any) => r.nom !== 'SuperAdmin'));
     }).catch(() => {});
   }, []);
 
@@ -88,6 +89,7 @@ export const Admin: React.FC = () => {
     try {
       // Map role to backend RoleId
       const roleMapping: Record<string, number> = {
+        'Administrateur': 1,
         'Responsable Maintenance': 2,
         'Chef d\'équipe': 3,
         'Technicien': 4,
@@ -98,7 +100,7 @@ export const Admin: React.FC = () => {
       const prenom = parts[0] || 'Prénom';
       const nom = parts.slice(1).join(' ') || 'Nom';
       
-      const roleId = roleMapping[newUser.role] || 4; // Default to Technicien
+      const roleId = roleMapping[newUser.role] || availableRoles.find(r => r.nom === newUser.role)?.id || 1;
 
       const createdUser = await usersApi.createUser({
         user: {
@@ -107,7 +109,6 @@ export const Admin: React.FC = () => {
           email: newUser.email,
           telephone: newUser.phone || '',
           roleId,
-          societeId: 1,
           isActive: newUser.status === 'Actif',
           avatar: newUser.avatar || undefined,
         },

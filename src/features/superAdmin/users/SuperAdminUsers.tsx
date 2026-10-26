@@ -97,6 +97,7 @@ export const SuperAdminUsers: React.FC = () => {
   const [newUserForm, setNewUserForm] = useState({
     name: '',
     email: '',
+    password: '',
     phone: '',
     company: 'Usine Tomates POMODORO',
     site: 'Usine Principale',
@@ -212,67 +213,60 @@ export const SuperAdminUsers: React.FC = () => {
   };
 
   // Add user submission
-  const handleCreateUser = (e: React.FormEvent) => {
+  const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newUserForm.name || !newUserForm.email) {
       alert('Veuillez remplir au moins le nom et l’email.');
       return;
     }
 
-    const created: UserItem = {
-      id: `usr-${Date.now()}`,
-      name: newUserForm.name,
-      email: newUserForm.email,
-      phone: newUserForm.phone || '+216 20 000 000',
-      company: newUserForm.company,
-      site: newUserForm.site,
-      role: newUserForm.role,
-      roleColor:
-        newUserForm.role === 'Admin Entreprise'
-          ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200'
-          : newUserForm.role === 'Responsable'
-          ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200'
-          : newUserForm.role === 'Super Admin'
-          ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200'
-          : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200',
-      status: newUserForm.status,
-      statusColor:
-        newUserForm.status === 'Actif'
-          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400'
-          : newUserForm.status === 'En attente'
-          ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400'
-          : 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400',
-      lastLogin: '-',
-      registrationDate: new Date().toLocaleDateString('fr-FR'),
-      jobTitle: newUserForm.jobTitle,
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-      permissions: ['Gestion équipements', 'Maintenance (OT)'],
-      authorizedSites: [{ name: newUserForm.site, status: 'Actif' }],
-      recentActivities: [
-        {
-          id: `act-${Date.now()}`,
-          action: 'Création du compte',
-          date: new Date().toLocaleDateString('fr-FR') + ' 12:00',
-          type: 'user',
-          iconBg: 'bg-emerald-100 text-emerald-600'
-        }
-      ]
+    const roleMapping: Record<string, number> = {
+      'Admin Entreprise': 1,
+      'Responsable': 2,
+      'Technicien': 4,
+      'Super Admin': 7
     };
 
-    setUsersList(prev => [created, ...prev]);
-    setSelectedUserId(created.id);
-    setIsAddUserModalOpen(false);
-    setNewUserForm({
-      name: '',
-      email: '',
-      phone: '',
-      company: 'Usine Tomates POMODORO',
-      site: 'Usine Principale',
-      role: 'Technicien',
-      jobTitle: 'Technicien Maintenance',
-      status: 'Actif'
-    });
-    showToast(`Utilisateur "${created.name}" créé avec succès !`);
+    const parts = newUserForm.name.trim().split(' ');
+    const prenom = parts[0] || 'Prénom';
+    const nom = parts.slice(1).join(' ') || 'Nom';
+    const roleId = roleMapping[newUserForm.role] || 1;
+
+    try {
+      // Find matching tenant ID
+      const tenantsData = await superAdminApi.getTenants().catch(() => []);
+      const matchedTenant = tenantsData?.find(t => t.nom?.toLowerCase() === newUserForm.company?.toLowerCase());
+      const societeId = matchedTenant?.id || undefined;
+
+      await superAdminApi.createUser({
+        nom,
+        prenom,
+        email: newUserForm.email.trim().toLowerCase(),
+        password: newUserForm.password || 'Gmao2026!',
+        telephone: newUserForm.phone || '+216 20 000 000',
+        roleId,
+        societeId,
+        isActive: newUserForm.status === 'Actif'
+      });
+
+      await fetchUsers(true);
+      setIsAddUserModalOpen(false);
+      setNewUserForm({
+        name: '',
+        email: '',
+        password: '',
+        phone: '',
+        company: 'Usine Tomates POMODORO',
+        site: 'Usine Principale',
+        role: 'Technicien',
+        jobTitle: 'Technicien Maintenance',
+        status: 'Actif'
+      });
+      showToast(`Utilisateur "${newUserForm.name}" créé avec succès !`);
+    } catch (err: any) {
+      console.error('Erreur création utilisateur:', err);
+      alert(err.message || 'Erreur lors de la création de l’utilisateur');
+    }
   };
 
   // Edit user submission
@@ -1389,6 +1383,19 @@ export const SuperAdminUsers: React.FC = () => {
                     placeholder="m.zouari@entreprise.tn"
                     value={newUserForm.email}
                     onChange={e => setNewUserForm({ ...newUserForm, email: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Mot de passe
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="Par défaut: Gmao2026!"
+                    value={newUserForm.password}
+                    onChange={e => setNewUserForm({ ...newUserForm, password: e.target.value })}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
                 </div>

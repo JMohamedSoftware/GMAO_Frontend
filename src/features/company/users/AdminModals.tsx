@@ -114,7 +114,15 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
                     {availableRoles.map(r => (
                       <option key={r.id} value={r.nom}>{r.nom}</option>
                     ))}
-                    {availableRoles.length === 0 && <option value="Technicien">Technicien</option>}
+                    {availableRoles.length === 0 && (
+                      <>
+                        <option value="Administrateur">Administrateur</option>
+                        <option value="Responsable Maintenance">Responsable Maintenance</option>
+                        <option value="Chef d'équipe">Chef d'équipe</option>
+                        <option value="Technicien">Technicien</option>
+                        <option value="Production">Responsable Production</option>
+                      </>
+                    )}
                   </select>
                 </div>
                 <div className="flex flex-col gap-1.5">
