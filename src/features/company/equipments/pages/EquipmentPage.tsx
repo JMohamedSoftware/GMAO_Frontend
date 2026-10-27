@@ -77,8 +77,8 @@ export const Equipment: React.FC<EquipmentProps> = ({
 
   // 2. Build Filtered Equipment List
   const filteredEquipments = useMemo(() => {
-    // Ne pas afficher les équipements tant qu'on n'a pas sélectionné un dossier ou fait une recherche
-    if (!selectedGeoNode && !search) {
+    // Si des localisations existent, exiger une sélection ou recherche; sinon afficher les équipements du tenant
+    if (geoTree.length > 0 && !selectedGeoNode && !search) {
       return [];
     }
 

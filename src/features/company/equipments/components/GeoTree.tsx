@@ -103,7 +103,15 @@ export const GeoTree: React.FC<GeoTreeProps> = ({
 
 
       <div className="p-2 overflow-y-auto flex-1 custom-scrollbar flex flex-col gap-0.5">
-        {renderNodes(geoTree)}
+        {geoTree.length === 0 ? (
+          <div className="p-4 text-center text-xs text-slate-400">
+            <MapPin className="w-6 h-6 mx-auto mb-2 text-slate-300 dark:text-slate-600" />
+            <p className="font-semibold text-slate-500 dark:text-slate-400">Aucune localisation</p>
+            <p className="mt-1 text-[11px] text-slate-400">Configurez vos sites dans Paramètres &gt; Localisations.</p>
+          </div>
+        ) : (
+          renderNodes(geoTree)
+        )}
       </div>
     </div>
   );
