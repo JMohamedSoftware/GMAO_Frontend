@@ -1,6 +1,6 @@
 import { useAppSelector, useAppDispatch } from '@/app/hooks';
 import * as actions from '@/app/gmaoSlice';
-import { createIncidentAsync, updateIncidentStatusAsync, updateWorkOrderStatusAsync, fetchTenantsAsync, createTenantAsync, updateTenantAsync, createEquipmentAsync, updateEquipmentAsync, createPartAsync, updatePartAsync, createMovementAsync, createEquipeAsync, updateEquipeAsync, deleteEquipeAsync } from '@/app/gmaoSlice';
+import { createIncidentAsync, updateIncidentStatusAsync, updateWorkOrderStatusAsync, fetchTenantsAsync, createTenantAsync, updateTenantAsync, createEquipmentAsync, updateEquipmentAsync, createPartAsync, updatePartAsync, createMovementAsync, createEquipeAsync, updateEquipeAsync, deleteEquipeAsync, createSupplierAsync, updateSupplierAsync, deleteSupplierAsync } from '@/app/gmaoSlice';
 import { AppRole } from '@/shared/permissions';
 import { Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount, User, Tenant, Equipe } from '@/shared/types/gmao';
 import { useEffect } from 'react';
@@ -174,7 +174,18 @@ export const useGmao = () => {
         await dispatch(updatePartAsync(updated));
       }
     },
-    addSupplier: (sup: Supplier) => dispatch(actions.addSupplier(sup)),
+    addSupplier: async (sup: Supplier) => {
+      const res = await dispatch(createSupplierAsync(sup));
+      return res.payload;
+    },
+    updateSupplier: async (id: string, sup: Partial<Supplier>) => {
+      const res = await dispatch(updateSupplierAsync({ id, supplier: sup }));
+      return res.payload;
+    },
+    deleteSupplier: async (id: string) => {
+      const res = await dispatch(deleteSupplierAsync(id));
+      return res.payload;
+    },
     addNotification: (notif: Omit<Notification, 'id' | 'date' | 'read'>) => dispatch(actions.addNotification(notif)),
     markNotificationAsRead: (id: string) => dispatch(actions.markNotificationAsRead(id)),
     markAllNotificationsAsRead: () => dispatch(actions.markAllNotificationsAsRead()),

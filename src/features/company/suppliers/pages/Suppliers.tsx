@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useGmao } from '@/shared/hooks/useGmao';
 import { Supplier } from '@/shared/types/gmao';
 import { usePermissions } from '@/shared/hooks/usePermissions';
@@ -17,11 +17,13 @@ import {
   X,
   ShieldCheck,
   CheckCircle,
-  User
+  User,
+  Trash2,
+  Loader2
 } from 'lucide-react';
 
 export const Suppliers: React.FC = () => {
-  const { suppliers, addSupplier } = useGmao();
+  const { suppliers, addSupplier, deleteSupplier } = useGmao();
   const { can } = usePermissions();
   const [search, setSearch] = useState('');
 
@@ -35,46 +37,69 @@ export const Suppliers: React.FC = () => {
   const [newContractTitle, setNewContractTitle] = useState('');
   const [newContractCost, setNewContractCost] = useState(15000);
   const [newRating, setNewRating] = useState(4.5);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const filteredSuppliers = suppliers.filter(s => 
-    s.name.toLowerCase().includes(search.toLowerCase()) ||
-    s.contact.toLowerCase().includes(search.toLowerCase()) ||
-    s.email.toLowerCase().includes(search.toLowerCase())
+    (s.name || '').toLowerCase().includes(search.toLowerCase()) ||
+    (s.contact || '').toLowerCase().includes(search.toLowerCase()) ||
+    (s.email || '').toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleCreateSupplier = (e: React.FormEvent) => {
+  const handleCreateSupplier = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newName || !newContact) return;
+    if (!newName.trim() || !newContact.trim()) return;
 
-    const newSup: Supplier = {
-      id: `SUP-${String(suppliers.length + 1).padStart(3, '0')}`,
-      name: newName,
-      contact: newContact,
-      phone: newPhone,
-      email: newEmail,
-      address: newAddress,
-      contracts: newContractTitle ? [
-        {
-          title: newContractTitle,
-          startDate: new Date().toISOString().split('T')[0],
-          endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          status: 'Actif',
-          cost: newContractCost
-        }
-      ] : [],
-      rating: newRating
-    };
+    setIsSubmitting(true);
+    setErrorMsg('');
 
-    addSupplier(newSup);
+    try {
+      const newSup: Supplier = {
+        id: `SUP-${String(suppliers.length + 1).padStart(3, '0')}`,
+        name: newName.trim(),
+        contact: newContact.trim(),
+        phone: newPhone.trim(),
+        email: newEmail.trim(),
+        address: newAddress.trim(),
+        contracts: newContractTitle.trim() ? [
+          {
+            title: newContractTitle.trim(),
+            startDate: new Date().toISOString().split('T')[0],
+            endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            status: 'Actif',
+            cost: newContractCost
+          }
+        ] : [],
+        rating: newRating
+      };
 
-    // Reset
-    setNewName('');
-    setNewContact('');
-    setNewPhone('');
-    setNewEmail('');
-    setNewAddress('');
-    setNewContractTitle('');
-    setShowAddModal(false);
+      await addSupplier(newSup);
+
+      // Reset
+      setNewName('');
+      setNewContact('');
+      setNewPhone('');
+      setNewEmail('');
+      setNewAddress('');
+      setNewContractTitle('');
+      setShowAddModal(false);
+    } catch (err: any) {
+      console.error('Erreur lors de la création du fournisseur:', err);
+      setErrorMsg(err.response?.data?.message || err.message || 'Erreur lors de l\'enregistrement du fournisseur.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteSupplier = async (id: string, name: string) => {
+    if (window.confirm(`Êtes-vous sûr de vouloir supprimer le fournisseur "${name}" ?`)) {
+      try {
+        await deleteSupplier(id);
+      } catch (err: any) {
+        console.error('Erreur lors de la suppression du fournisseur:', err);
+        alert(err.response?.data?.message || err.message || 'Erreur lors de la suppression.');
+      }
+    }
   };
 
   const getRatingStars = (rating: number) => {
@@ -92,10 +117,12 @@ export const Suppliers: React.FC = () => {
     return stars;
   };
 
-  // Mock KPIs
-  const totalContracts = suppliers.reduce((acc, sup) => acc + sup.contracts.length, 0);
-  const totalCost = suppliers.reduce((acc, sup) => acc + sup.contracts.reduce((sum, c) => sum + c.cost, 0), 0);
-  const avgRating = (suppliers.reduce((acc, sup) => acc + sup.rating, 0) / suppliers.length).toFixed(1);
+  // KPIs
+  const totalContracts = suppliers.reduce((acc, sup) => acc + (sup.contracts?.length || 0), 0);
+  const totalCost = suppliers.reduce((acc, sup) => acc + (sup.contracts?.reduce((sum, c) => sum + (c.cost || 0), 0) || 0), 0);
+  const avgRating = suppliers.length > 0 
+    ? (suppliers.reduce((acc, sup) => acc + (sup.rating || 5), 0) / suppliers.length).toFixed(1)
+    : '5.0';
 
   return (
     <div className="flex flex-col gap-6">
@@ -195,98 +222,134 @@ export const Suppliers: React.FC = () => {
       </div>
 
       {/* Grid List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {filteredSuppliers.map(sup => (
-          <div 
-            key={sup.id}
-            className="p-5 rounded-custom-md border border-white/50 dark:border-slate-850/40 bg-white/60 dark:bg-slate-900/20 shadow-sm neumorphic-card flex flex-col justify-between gap-5 hover-lift"
-          >
-            <div>
-              {/* Card Title */}
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-slate-100 dark:bg-slate-900 rounded-custom-sm text-slate-650 dark:text-slate-350">
-                    <Truck className="w-5 h-5" />
+      {filteredSuppliers.length === 0 ? (
+        <div className="flex flex-col items-center justify-center p-12 text-center bg-white/40 dark:bg-slate-900/40 rounded-2xl border border-slate-200/60 dark:border-slate-800/60">
+          <Truck className="w-12 h-12 text-slate-350 dark:text-slate-600 mb-3" />
+          <h3 className="font-bold text-slate-700 dark:text-slate-300 text-sm">Aucun fournisseur trouvé</h3>
+          <p className="text-xs text-slate-450 mt-1 max-w-sm">
+            {search ? "Aucun résultat ne correspond à votre recherche." : "Vous n'avez pas encore enregistré de prestataires ou de fabricants d'équipements pour cette entreprise."}
+          </p>
+          {can(PERMISSIONS.SUPPLIER_CREATE) && !search && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="mt-4 flex items-center gap-1.5 px-4 py-2 bg-primary text-white font-bold text-xs rounded-lg shadow hover-lift"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nouveau Fournisseur</span>
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {filteredSuppliers.map(sup => (
+            <div 
+              key={sup.id}
+              className="p-5 rounded-custom-md border border-white/50 dark:border-slate-850/40 bg-white/60 dark:bg-slate-900/20 shadow-sm neumorphic-card flex flex-col justify-between gap-5 hover-lift"
+            >
+              <div>
+                {/* Card Title */}
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-slate-100 dark:bg-slate-900 rounded-custom-sm text-slate-650 dark:text-slate-350">
+                      <Truck className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-150">
+                        {sup.name}
+                      </h3>
+                      <span className="text-[9px] font-mono text-slate-400">{sup.id}</span>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-150">
-                      {sup.name}
-                    </h3>
-                    <span className="text-[9px] font-mono text-slate-400">{sup.id}</span>
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-1.5 bg-slate-100/50 dark:bg-slate-900/40 px-2.5 py-1 rounded-full border border-slate-200/40">
-                  <div className="flex gap-0.5">{getRatingStars(sup.rating)}</div>
-                  <span className="text-[10px] font-extrabold text-slate-600 dark:text-slate-350">{sup.rating}</span>
-                </div>
-              </div>
-
-              {/* Contacts info details */}
-              <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 flex flex-col gap-2 bg-slate-50/50 dark:bg-slate-900/10 p-3 rounded-xl border border-slate-100 dark:border-slate-850/60">
-                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-slate-400 shrink-0" />
-                    <span>Responsable: <span className="font-bold text-slate-800 dark:text-slate-200">{sup.contact}</span></span>
+                    <div className="flex items-center gap-1.5 bg-slate-100/50 dark:bg-slate-900/40 px-2.5 py-1 rounded-full border border-slate-200/40">
+                      <div className="flex gap-0.5">{getRatingStars(sup.rating || 5)}</div>
+                      <span className="text-[10px] font-extrabold text-slate-600 dark:text-slate-350">{sup.rating || 5}</span>
+                    </div>
+                    {can(PERMISSIONS.SUPPLIER_DELETE) && (
+                      <button
+                        onClick={() => handleDeleteSupplier(sup.id, sup.name)}
+                        className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors"
+                        title="Supprimer ce fournisseur"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
-                  {/* Mock Stats metric */}
-                  <span className="text-[10px] bg-indigo-500/10 text-indigo-500 px-2 py-0.5 rounded-full font-bold">
-                    {Math.floor(Math.random() * 40) + 5} OTs Sous-traités
-                  </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-slate-400 shrink-0" />
-                  <a href={`tel:${sup.phone}`} className="hover:text-primary transition-colors">{sup.phone}</a>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-slate-400 shrink-0" />
-                  <a href={`mailto:${sup.email}`} className="hover:text-primary transition-colors">{sup.email}</a>
-                </div>
-                <div className="flex items-start gap-2">
-                  <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                  <span className="leading-snug">{sup.address}</span>
+
+                {/* Contacts info details */}
+                <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 flex flex-col gap-2 bg-slate-50/50 dark:bg-slate-900/10 p-3 rounded-xl border border-slate-100 dark:border-slate-850/60">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>Responsable: <span className="font-bold text-slate-800 dark:text-slate-200">{sup.contact}</span></span>
+                    </div>
+                    {/* Mock Stats metric */}
+                    <span className="text-[10px] bg-indigo-500/10 text-indigo-500 px-2 py-0.5 rounded-full font-bold">
+                      {Math.floor(Math.random() * 40) + 5} OTs Sous-traités
+                    </span>
+                  </div>
+                  {sup.phone && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-slate-400 shrink-0" />
+                      <a href={`tel:${sup.phone}`} className="hover:text-primary transition-colors">{sup.phone}</a>
+                    </div>
+                  )}
+                  {sup.email && (
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-slate-400 shrink-0" />
+                      <a href={`mailto:${sup.email}`} className="hover:text-primary transition-colors">{sup.email}</a>
+                    </div>
+                  )}
+                  {sup.address && (
+                    <div className="flex items-start gap-2">
+                      <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                      <span className="leading-snug">{sup.address}</span>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
 
-            {/* Active Contracts block */}
-            <div className="border-t border-slate-150 dark:border-slate-850 pt-3">
-              <h4 className="text-[10px] font-bold text-slate-450 uppercase tracking-wider mb-2">
-                Contrats de Maintenance Actifs
-              </h4>
-              
-              {sup.contracts.length === 0 ? (
-                <div className="text-[10px] text-slate-400 py-1.5">Aucun contrat de maintenance en cours</div>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {sup.contracts.map((c, idx) => (
-                    <div key={idx} className="flex justify-between items-center text-xs p-3 rounded-lg bg-primary/5 border border-primary/10">
-                      <div className="flex items-center gap-2 overflow-hidden mr-3">
-                        <FileText className="w-4.5 h-4.5 text-primary shrink-0" />
-                        <div className="overflow-hidden">
-                          <span className="font-bold text-slate-700 dark:text-slate-300 block truncate">{c.title}</span>
-                          <span className="text-[9px] text-slate-400 flex items-center gap-1.5 mt-0.5">
-                            <Calendar className="w-3.5 h-3.5" />
-                            Échéance: {c.endDate}
+              {/* Active Contracts block */}
+              <div className="border-t border-slate-150 dark:border-slate-850 pt-3">
+                <h4 className="text-[10px] font-bold text-slate-450 uppercase tracking-wider mb-2">
+                  Contrats de Maintenance Actifs
+                </h4>
+                
+                {(!sup.contracts || sup.contracts.length === 0) ? (
+                  <div className="text-[10px] text-slate-400 py-1.5">Aucun contrat de maintenance en cours</div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {sup.contracts.map((c, idx) => (
+                      <div key={idx} className="flex justify-between items-center text-xs p-3 rounded-lg bg-primary/5 border border-primary/10">
+                        <div className="flex items-center gap-2 overflow-hidden mr-3">
+                          <FileText className="w-4.5 h-4.5 text-primary shrink-0" />
+                          <div className="overflow-hidden">
+                            <span className="font-bold text-slate-700 dark:text-slate-300 block truncate">{c.title}</span>
+                            <span className="text-[9px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+                              <Calendar className="w-3.5 h-3.5" />
+                              Échéance: {c.endDate}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <span className="font-extrabold text-slate-800 dark:text-slate-200 block">
+                            {c.cost.toLocaleString()} DT
                           </span>
+                          <span className="text-[9px] font-bold text-emerald-500">{c.status}</span>
                         </div>
                       </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
-                      <div className="text-right shrink-0">
-                        <span className="font-extrabold text-slate-800 dark:text-slate-200 block">
-                          {c.cost.toLocaleString()} DT
-                        </span>
-                        <span className="text-[9px] font-bold text-emerald-500">{c.status}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
-
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Add Supplier Modal */}
       {showAddModal && (
@@ -390,19 +453,28 @@ export const Suppliers: React.FC = () => {
                 </div>
               </div>
 
+              {errorMsg && (
+                <div className="p-2.5 rounded bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs">
+                  {errorMsg}
+                </div>
+              )}
+
               <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-slate-150 dark:border-slate-800/80">
                 <button
                   type="button"
+                  disabled={isSubmitting}
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 border border-slate-200 text-slate-650 hover:bg-slate-100 rounded font-bold"
+                  className="px-4 py-2 border border-slate-200 text-slate-650 hover:bg-slate-100 rounded font-bold disabled:opacity-50"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-primary hover:bg-primary/95 text-white rounded font-bold shadow-md shadow-primary/10"
+                  disabled={isSubmitting}
+                  className="px-5 py-2 bg-primary hover:bg-primary/95 text-white rounded font-bold shadow-md shadow-primary/10 flex items-center gap-2 disabled:opacity-50"
                 >
-                  Enregistrer Partenaire
+                  {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <span>{isSubmitting ? 'Enregistrement en cours...' : 'Enregistrer Partenaire'}</span>
                 </button>
               </div>
             </form>

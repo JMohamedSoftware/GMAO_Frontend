@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { Tenant, User, Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount, Equipe } from '@/shared/types/gmao';
 import { AppRole } from '@/shared/permissions';
-import { fetchEquipments, fetchSuppliers, fetchParts, fetchIncidents, fetchWorkOrders, fetchCampaigns, fetchTechnicians, fetchUsers, fetchTenants, createTenantApi, updateTenantApi, createIncidentApi, patchIncidentStatusApi, CreateIncidentPayload, createWorkOrderApi, CreateWorkOrderPayload, patchWorkOrderStatusApi, updateEquipmentStatusApi, createEquipmentApi, updateEquipmentApi, createPartApi, updatePartApi, createMovementApi, fetchMovements, fetchEquipes, createEquipeApi, updateEquipeApi, deleteEquipeApi } from '@/shared/api/dataFetch.api';
+import { fetchEquipments, fetchSuppliers, fetchParts, fetchIncidents, fetchWorkOrders, fetchCampaigns, fetchTechnicians, fetchUsers, fetchTenants, createTenantApi, updateTenantApi, createIncidentApi, patchIncidentStatusApi, CreateIncidentPayload, createWorkOrderApi, CreateWorkOrderPayload, patchWorkOrderStatusApi, updateEquipmentStatusApi, createEquipmentApi, updateEquipmentApi, createPartApi, updatePartApi, createMovementApi, fetchMovements, fetchEquipes, createEquipeApi, updateEquipeApi, deleteEquipeApi, createSupplierApi, updateSupplierApi, deleteSupplierApi } from '@/shared/api/dataFetch.api';
 
 interface GmaoState {
   tenants: Tenant[];
@@ -856,6 +856,32 @@ export const gmaoSlice = createSlice({
       }
     });
 
+    // ─── Suppliers actions ────────────────────────────────────────────────────
+    builder.addCase(createSupplierAsync.fulfilled, (state, action) => {
+      const tenant = state.tenants.find(t => t.id === state.currentTenantId);
+      if (tenant) {
+        if (!tenant.suppliers) tenant.suppliers = [];
+        tenant.suppliers.unshift(action.payload);
+      }
+    });
+
+    builder.addCase(updateSupplierAsync.fulfilled, (state, action) => {
+      const tenant = state.tenants.find(t => t.id === state.currentTenantId);
+      if (tenant && tenant.suppliers) {
+        const idx = tenant.suppliers.findIndex(s => s.id === action.payload.id);
+        if (idx !== -1) {
+          tenant.suppliers[idx] = { ...tenant.suppliers[idx], ...action.payload };
+        }
+      }
+    });
+
+    builder.addCase(deleteSupplierAsync.fulfilled, (state, action) => {
+      const tenant = state.tenants.find(t => t.id === state.currentTenantId);
+      if (tenant && tenant.suppliers) {
+        tenant.suppliers = tenant.suppliers.filter(s => s.id !== action.payload);
+      }
+    });
+
   }
 });
 
@@ -888,6 +914,28 @@ export const deleteEquipeAsync = createAsyncThunk(
   'gmao/deleteEquipe',
   async (id: string) => {
     await deleteEquipeApi(id);
+    return id;
+  }
+);
+
+export const createSupplierAsync = createAsyncThunk(
+  'gmao/createSupplier',
+  async (payload: Supplier) => {
+    return await createSupplierApi(payload);
+  }
+);
+
+export const updateSupplierAsync = createAsyncThunk(
+  'gmao/updateSupplier',
+  async (payload: { id: string; supplier: Partial<Supplier> }) => {
+    return await updateSupplierApi(payload.id, payload.supplier);
+  }
+);
+
+export const deleteSupplierAsync = createAsyncThunk(
+  'gmao/deleteSupplier',
+  async (id: string) => {
+    await deleteSupplierApi(id);
     return id;
   }
 );

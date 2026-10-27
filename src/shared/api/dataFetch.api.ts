@@ -66,6 +66,57 @@ export const fetchSuppliers = async (): Promise<Supplier[]> => {
     }));
 };
 
+export const createSupplierApi = async (supplier: Supplier): Promise<Supplier> => {
+    const response = await axios.post(`${API_URL}/Fournisseurs`, {
+        nom: supplier.name,
+        contact: supplier.contact,
+        email: supplier.email,
+        telephone: supplier.phone,
+        adresse: supplier.address,
+        code: supplier.id?.startsWith('SUP-') ? supplier.id : undefined,
+        isActive: true
+    }, getAuthHeaders());
+    const s = response.data;
+    return {
+        id: s.id?.toString(),
+        name: s.nom,
+        contact: s.contact || '',
+        email: s.email || '',
+        phone: s.telephone || '',
+        address: s.adresse || '',
+        rating: supplier.rating || 5,
+        contracts: supplier.contracts || []
+    };
+};
+
+export const updateSupplierApi = async (id: string, supplier: Partial<Supplier>): Promise<Supplier> => {
+    const response = await axios.put(`${API_URL}/Fournisseurs/${id}`, {
+        id: Number(id),
+        nom: supplier.name,
+        contact: supplier.contact,
+        email: supplier.email,
+        telephone: supplier.phone,
+        adresse: supplier.address,
+        isActive: true
+    }, getAuthHeaders());
+    const s = response.data;
+    return {
+        id: s.id?.toString() || id,
+        name: s.nom || supplier.name || '',
+        contact: s.contact || supplier.contact || '',
+        email: s.email || supplier.email || '',
+        phone: s.telephone || supplier.phone || '',
+        address: s.adresse || supplier.address || '',
+        rating: supplier.rating || 5,
+        contracts: supplier.contracts || []
+    };
+};
+
+export const deleteSupplierApi = async (id: string): Promise<string> => {
+    await axios.delete(`${API_URL}/Fournisseurs/${id}`, getAuthHeaders());
+    return id;
+};
+
 let cachedCategories: { id: number, nom: string }[] | null = null;
 
 export const fetchPieceCategoriesApi = async () => {
