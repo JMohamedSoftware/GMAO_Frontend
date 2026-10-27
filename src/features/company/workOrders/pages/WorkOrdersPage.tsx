@@ -127,8 +127,10 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
   // 2. Filter orders for the list view (applies UI filters)
   const filteredOts = myOts.filter(ot => {
     const eq = equipments.find(e => e.id === ot.equipmentId);
-    const matchesSearch = ot.id.toLowerCase().includes(search.toLowerCase()) ||
+    const matchesSearch = (ot.numeroOT && ot.numeroOT.toLowerCase().includes(search.toLowerCase())) ||
+                          ot.id.toLowerCase().includes(search.toLowerCase()) ||
                           ot.title.toLowerCase().includes(search.toLowerCase()) ||
+                          (ot.description && ot.description.toLowerCase().includes(search.toLowerCase())) ||
                           (eq && eq.name.toLowerCase().includes(search.toLowerCase()));
     const matchesType = filterType === 'All' || ot.type === filterType;
     const matchesStatus = filterStatus === 'All' || ot.status === filterStatus;
@@ -371,7 +373,7 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
                           onClick={() => setSelectedOtId(ot.id)}
                           className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/50 cursor-pointer transition-colors ${isSelected ? 'bg-primary/5 dark:bg-primary/10' : ''}`}
                         >
-                          <td className="px-2 py-2.5 font-bold text-slate-800 dark:text-slate-200">{ot.id}</td>
+                          <td className="px-2 py-2.5 font-bold text-slate-800 dark:text-slate-200">{ot.numeroOT || ot.id}</td>
                           <td className="px-2 py-2.5 text-center">
                             <span className="text-[10px] font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 dark:text-slate-400 px-2 py-1 rounded-md">
                               {ot.type}

@@ -446,9 +446,9 @@ const otPriorityToInt = (priority: string): number => {
 /** POST /api/OrdresTravail — creates a new OT and auto-transitions the linked incident */
 export const createWorkOrderApi = async (payload: CreateWorkOrderPayload): Promise<WorkOrder> => {
     const now = new Date().toISOString();
-    // Generate a sequential-looking number (backend uses auto-increment ID)
+    // Leave numeroOT empty so backend generates the clean sequential OT-YYYY-001 per company
     const body = {
-        numeroOT: `OT-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`,
+        numeroOT: '',
         demandeId: payload.incidentId ? parseInt(payload.incidentId, 10) : null,
         equipementId: parseInt(payload.equipmentId, 10),
         responsableId: payload.responsableId || 1,
@@ -459,8 +459,8 @@ export const createWorkOrderApi = async (payload: CreateWorkOrderPayload): Promi
         dateCreation: now,
         dateDebutPrevue: null,
         dateFinPrevue: null,
-        description: payload.description,
-        instructions: null,
+        description: payload.title || payload.description,
+        instructions: payload.description || null,
         coutMainOeuvre: null,
         coutPieces: null,
         coutSousTraitance: null,
@@ -470,9 +470,10 @@ export const createWorkOrderApi = async (payload: CreateWorkOrderPayload): Promi
     const w = response.data;
     return {
         id: w.id?.toString(),
+        numeroOT: w.numeroOT || `OT-${w.id}`,
         equipmentId: w.equipementId?.toString() || payload.equipmentId,
-        title: w.numeroOT || payload.title,
-        description: w.description || payload.description,
+        title: payload.title || w.description || w.numeroOT || 'Ordre de Travail',
+        description: payload.description || w.instructions || w.description || '',
         type: payload.type,
         priority: payload.priority,
         status: 'Brouillon',
@@ -554,10 +555,11 @@ export const fetchWorkOrders = async (): Promise<WorkOrder[]> => {
 
         return {
             id: w.id?.toString(),
+            numeroOT: w.numeroOT || `OT-${w.id}`,
             incidentId: w.demandeId != null ? w.demandeId.toString() : undefined,
             equipmentId: w.equipementId?.toString() || '',
-            title: w.numeroOT || '',
-            description: w.description || '',
+            title: w.description || w.numeroOT || `OT-${w.id}`,
+            description: w.instructions || w.description || '',
             type: w.typeMaintenance === 2 ? 'Préventif' : w.typeMaintenance === 4 ? 'Amélioratif' : 'Correctif',
             priority: w.priorite === 1 ? 'Faible' : w.priorite === 2 ? 'Moyenne' : w.priorite === 3 ? 'Haute' : 'Critique',
             status: mappedStatus,

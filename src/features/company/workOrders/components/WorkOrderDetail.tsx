@@ -252,7 +252,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
         <div className="mt-4 flex items-center justify-between gap-4 flex-wrap bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800">
           <div className="text-xs text-slate-500 font-bold shrink-0 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
-            {activeOt.id} · {activeOt.type}
+            {activeOt.numeroOT || activeOt.id} · {activeOt.type}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             {/* Soumettre (Brouillon → En attente) */}

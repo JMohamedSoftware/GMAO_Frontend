@@ -65,6 +65,7 @@ export interface PartUsage {
 
 export interface WorkOrder {
   id: string; 
+  numeroOT?: string;
   incidentId?: string;    // ← ID of the linked DemandeIntervention (demandeId from backend)
   equipmentId: string;
   title: string;
