@@ -11,7 +11,7 @@ export const apiClient = axios.create({
   },
 });
 
-// Request interceptor to attach the JWT token
+// Request interceptor to attach the JWT token & active tenant
 apiClient.interceptors.request.use(
   (config) => {
     // We assume the token is stored in localStorage
@@ -20,6 +20,12 @@ apiClient.interceptors.request.use(
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    const activeTenantId = localStorage.getItem('gmao_impersonated_tenant_id') || localStorage.getItem('gmao_current_tenant_id');
+    if (activeTenantId && activeTenantId !== 'null' && activeTenantId !== 'undefined' && config.headers) {
+      config.headers['X-Tenant-Id'] = activeTenantId;
+    }
+
     return config;
   },
   (error) => {

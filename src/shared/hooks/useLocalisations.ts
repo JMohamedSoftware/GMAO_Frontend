@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Localisation } from '../types/gmao';
 import { localisationsApi } from '../api/localisations.api';
+import { useAppSelector } from '@/app/hooks';
 
 export const useLocalisations = () => {
   const [localisations, setLocalisations] = useState<Localisation[]>([]);
@@ -8,7 +9,11 @@ export const useLocalisations = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchLocalisations = async () => {
+  const impersonatedTenantId = useAppSelector(s => s.gmao.impersonatedTenantId);
+  const currentTenantId = useAppSelector(s => s.gmao.currentTenantId);
+  const activeTenantId = impersonatedTenantId || currentTenantId;
+
+  const fetchLocalisations = useCallback(async () => {
     try {
       setLoading(true);
       const [allNodes, treeNodes] = await Promise.all([
@@ -23,11 +28,11 @@ export const useLocalisations = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchLocalisations();
-  }, []);
+  }, [activeTenantId, fetchLocalisations]);
 
   const createLocalisation = async (data: Partial<Localisation>) => {
     try {
