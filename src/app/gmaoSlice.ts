@@ -236,7 +236,7 @@ export const gmaoSlice = createSlice({
   name: 'gmao',
   initialState,
   reducers: {
-    login: (state, action: PayloadAction<{ user: User, tenantId: string | null }>) => {
+    login: (state, action: PayloadAction<{ user: User, tenantId: string | null, tenantName?: string }>) => {
       state.currentUser = action.payload.user;
       state.currentTenantId = action.payload.tenantId;
       state.impersonatedTenantId = null;
@@ -246,6 +246,32 @@ export const gmaoSlice = createSlice({
       localStorage.setItem('gmao_current_user', JSON.stringify(action.payload.user));
       if (action.payload.tenantId) {
         localStorage.setItem('gmao_current_tenant_id', action.payload.tenantId);
+        const resolvedName = action.payload.tenantName || action.payload.user.tenantName || action.payload.user.company || 'Société';
+        let existingTenant = state.tenants.find(t => t.id === action.payload.tenantId);
+        if (!existingTenant) {
+          state.tenants.push({
+            id: action.payload.tenantId,
+            name: resolvedName,
+            domain: '',
+            status: 'Active',
+            subscriptionPlan: 'Enterprise',
+            createdAt: new Date().toISOString(),
+            adminEmail: action.payload.user.email,
+            capacityTonsPerDay: 450,
+            equipments: [],
+            workOrders: [],
+            incidents: [],
+            technicians: [],
+            parts: [],
+            suppliers: [],
+            campaigns: [],
+            equipes: [],
+            users: [],
+            movementLogs: []
+          });
+        } else if (resolvedName && resolvedName !== 'Société') {
+          existingTenant.name = resolvedName;
+        }
       } else {
         localStorage.removeItem('gmao_current_tenant_id');
       }
@@ -571,7 +597,7 @@ export const gmaoSlice = createSlice({
       if (!tenant && state.currentTenantId) {
         tenant = {
           id: state.currentTenantId,
-          name: 'Société',
+          name: state.currentUser?.tenantName || state.currentUser?.company || 'Société',
           domain: '',
           status: 'Active',
           subscriptionPlan: 'Enterprise',
@@ -590,19 +616,22 @@ export const gmaoSlice = createSlice({
           movementLogs: []
         };
         state.tenants.push(tenant);
+      } else if (tenant && (state.currentUser?.tenantName || state.currentUser?.company)) {
+        tenant.name = state.currentUser?.tenantName || state.currentUser?.company || tenant.name;
       }
+
       if (tenant) {
-        if (action.payload.equipments?.length) tenant.equipments = action.payload.equipments;
-        if (!tenant.suppliers?.length) tenant.suppliers = action.payload.suppliers;
+        // Correctly set equipments array (even if empty []) so mock data does not linger
+        tenant.equipments = action.payload.equipments || [];
+        tenant.suppliers = action.payload.suppliers || [];
         // Always refresh parts (stock may have changed after consuming parts)
-        tenant.parts = action.payload.parts;
-        if (!tenant.incidents?.length) tenant.incidents = action.payload.incidents;
-        if (!tenant.workOrders?.length) tenant.workOrders = action.payload.workOrders;
-        if (!tenant.campaigns?.length) tenant.campaigns = action.payload.campaigns;
-        if (!tenant.technicians?.length) tenant.technicians = action.payload.technicians;
-        if (!tenant.users?.length) tenant.users = action.payload.users;
-        if (!tenant.equipes?.length && action.payload.equipes) tenant.equipes = action.payload.equipes;
-        // Always sync movementLogs from backend so new movements are reflected after refresh
+        tenant.parts = action.payload.parts || [];
+        tenant.incidents = action.payload.incidents || [];
+        tenant.workOrders = action.payload.workOrders || [];
+        tenant.campaigns = action.payload.campaigns || [];
+        tenant.technicians = action.payload.technicians || [];
+        tenant.users = action.payload.users || [];
+        tenant.equipes = action.payload.equipes || [];
         if (action.payload.movements) tenant.movementLogs = action.payload.movements;
 
         // Always recompute partsUsed from movementLogs for each OT

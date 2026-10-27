@@ -11,9 +11,10 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   activeView,
   setActiveView,
 }) => {
-  const { selectedCampaign, tenants, currentTenantId } = useGmao();
+  const { selectedCampaign, tenants, currentTenantId, currentUser } = useGmao();
   const currentTenant = tenants.find(t => t.id === currentTenantId);
-  const badgeLabel = currentTenant?.name || (selectedCampaign ? `Campagne ${selectedCampaign}` : 'Site Industriel');
+  const companyName = currentUser?.tenantName || currentUser?.company || currentTenant?.name || (selectedCampaign ? `Campagne ${selectedCampaign}` : 'Site Industriel');
+  const badgeLabel = companyName;
 
   const todayFormatted = new Intl.DateTimeFormat('fr-FR', {
     day: 'numeric',

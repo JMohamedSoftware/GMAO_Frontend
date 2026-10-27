@@ -179,6 +179,8 @@ export interface User {
   role: 'SuperAdmin' | 'Administrateur' | 'Responsable Maintenance' | 'Chef d\'équipe' | 'Technicien' | 'Responsable Production';
   avatar: string;
   tenantId?: string;
+  tenantName?: string;
+  company?: string;
   permissions?: string[];
 }
 

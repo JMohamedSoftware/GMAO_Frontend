@@ -26,7 +26,15 @@ export const Login: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         try {
           const session = JSON.parse(sessionStr);
           if (session.user) {
-            reduxLogin(session.user.email, '', session.user.tenantId || undefined, session.user.role, session.user.name, session.user.id?.toString());
+            reduxLogin(
+              session.user.email,
+              '',
+              session.user.tenantId || undefined,
+              session.user.role,
+              session.user.name,
+              session.user.id?.toString(),
+              session.user.tenantName || session.user.company
+            );
           }
         } catch {}
       }
@@ -43,7 +51,15 @@ export const Login: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       if (sessionStr) {
         try {
           const session = JSON.parse(sessionStr);
-          reduxLogin(credentials.email, credentials.password, session.user?.tenantId || undefined, session.user?.role as any, session.user?.name, session.user?.id?.toString());
+          reduxLogin(
+            credentials.email,
+            credentials.password,
+            session.user?.tenantId || undefined,
+            session.user?.role as any,
+            session.user?.name,
+            session.user?.id?.toString(),
+            session.user?.tenantName || session.user?.company
+          );
         } catch {
           reduxLogin(credentials.email, credentials.password, undefined);
         }

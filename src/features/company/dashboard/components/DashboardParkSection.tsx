@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { Equipment, Incident, WorkOrder, Localisation } from '@/shared/types/gmao';
 import { useLocalisations } from '@/shared/hooks/useLocalisations';
+import { useGmao } from '@/shared/hooks/useGmao';
 import machineDefaultImg from '@/shared/assets/images/machine_default.jpg';
 
 interface DashboardParkSectionProps {
@@ -236,6 +237,11 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
   const [col3Tab, setCol3Tab] = useState<'di' | 'ot'>('di');
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
+  const { currentUser, currentTenantId, tenants } = useGmao();
+  const currentTenant = tenants.find(t => t.id === currentTenantId);
+  const companyName = currentUser?.tenantName || currentUser?.company || currentTenant?.name || 'Votre Entreprise';
+  const isPomodoro = currentTenantId === 'tenant-midi' || (currentTenant?.name || '').toLowerCase().includes('pomodoro');
+
   // Dynamic tree from real localisations API
   const { tree: geoTree, loading: locsLoading } = useLocalisations();
 
@@ -251,35 +257,13 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
     });
   };
 
-  // Fallback equipment conforming fully to Equipment interface
-  const defaultFallback: Equipment = {
-    id: 'LTR-01',
-    name: 'Laveuse à tambour rotatif LTR-01',
-    category: 'Lavage Tomate',
-    subFamily: 'Lavage',
-    brand: 'FMC FoodTech',
-    model: 'LTR-2000',
-    serialNumber: 'SN-2024-LTR01',
-    commissionDate: '2024-03-15',
-    criticality: 'Haute',
-    status: 'En service',
-    healthIndex: 88,
-    hoursCount: 1420,
-    cycleCount: 850,
-    lastMaintenance: '2026-07-27',
-    nextMaintenance: '2026-09-29',
-    documents: [],
-    photos: [],
-    sensors: [],
-    spareParts: []
-  };
-
-  // Active machine to show in preview card
-  const activeMachine: Equipment = selectedEq || equipments[0] || defaultFallback;
+  // Active machine to show in preview card (null if equipment list is empty)
+  const activeMachine: Equipment | null = selectedEq || (equipments.length > 0 ? equipments[0] : null);
 
   // Build hierarchical dynamic tree
   const dynamicTreeNodes = useMemo<TreeNodeData[]>(() => {
-    if (geoTree && geoTree.length > 0) {
+    // Only use the seeded Pomodoro localisations if the tenant is Pomodoro
+    if (isPomodoro && geoTree && geoTree.length > 0) {
       const assignedEqIds = new Set<string>();
 
       const buildLocNode = (loc: Localisation, lvl: number): TreeNodeData => {
@@ -339,13 +323,15 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
       return roots;
     }
 
-    // Dynamic grouping by equipment category if no localisations in DB
+    // Dynamic grouping by equipment category for custom / new tenants
     const catMap = new Map<string, Equipment[]>();
     equipments.forEach(eq => {
       const cat = eq.category?.trim() || eq.subFamily?.trim() || 'Équipements généraux';
       if (!catMap.has(cat)) catMap.set(cat, []);
       catMap.get(cat)!.push(eq);
     });
+
+    const rootSiteName = `Site Principal - ${companyName}`;
 
     if (catMap.size > 0) {
       const catNodes: TreeNodeData[] = Array.from(catMap.entries()).map(([catName, eqs], idx) => ({
@@ -358,8 +344,8 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
       }));
 
       return [{
-        id: 'virtual-root',
-        name: 'Usine Tomate / Parc Global',
+        id: 'company-site-root',
+        name: rootSiteName,
         type: 'root',
         level: 0,
         equipments: [],
@@ -367,16 +353,16 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
       }];
     }
 
-    // Default fallback node if no equipments yet
+    // Default clean site node for newly created company
     return [{
-      id: 'default-root',
-      name: 'Usine Tomate / Ligne Principale',
+      id: 'company-site-root',
+      name: rootSiteName,
       type: 'root',
       level: 0,
-      equipments: [defaultFallback],
+      equipments: [],
       subNodes: []
     }];
-  }, [geoTree, equipments]);
+  }, [isPomodoro, geoTree, equipments, companyName]);
 
   // Expand all level 0 and level 1 nodes by default
   useEffect(() => {
@@ -450,32 +436,36 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
 
   // Dynamic stats for active machine
   const machineWorkOrders = useMemo(() => {
+    if (!activeMachine) return [];
     return workOrders.filter(w => w.equipmentId === activeMachine.id);
-  }, [workOrders, activeMachine.id]);
+  }, [workOrders, activeMachine?.id]);
 
   const machineIncidents = useMemo(() => {
+    if (!activeMachine) return [];
     return incidents.filter(i => i.equipmentId === activeMachine.id);
-  }, [incidents, activeMachine.id]);
+  }, [incidents, activeMachine?.id]);
 
   const machineCompletedOts = useMemo(() => {
     return machineWorkOrders.filter(w => w.status === 'Terminé' || w.status === 'Clôturé');
   }, [machineWorkOrders]);
 
-  const machineDispo = activeMachine.status === 'En panne' ? 0 : (activeMachine.healthIndex || 98);
+  const machineDispo = activeMachine ? (activeMachine.status === 'En panne' ? 0 : (activeMachine.healthIndex || 98)) : 0;
 
   const machineMtbf = useMemo(() => {
+    if (!activeMachine) return 0;
     const failures = machineIncidents.length + machineWorkOrders.filter(w => w.type === 'Correctif').length;
     const hours = activeMachine.hoursCount || 1000;
     return failures > 0 ? Math.round(hours / failures) : hours;
-  }, [machineIncidents, machineWorkOrders, activeMachine.hoursCount]);
+  }, [machineIncidents, machineWorkOrders, activeMachine?.hoursCount]);
 
   const machineMttr = useMemo(() => {
+    if (!activeMachine) return '0.0';
     if (machineCompletedOts.length > 0) {
       const totalMinutes = machineCompletedOts.reduce((sum, o) => sum + (o.durationMinutes || 90), 0);
       return (totalMinutes / (machineCompletedOts.length * 60)).toFixed(1);
     }
     return activeMachine.status === 'En panne' ? '2.0' : '0.0';
-  }, [machineCompletedOts, activeMachine.status]);
+  }, [machineCompletedOts, activeMachine?.status]);
 
   // Demandes d'intervention calculations (Section 6)
   const diATraiter = incidents.filter(i => i.status === 'Nouveau').length;
@@ -558,7 +548,7 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
                   level={0}
                   expandedNodes={expandedNodes}
                   onToggle={toggleNode}
-                  selectedEqId={activeMachine.id}
+                  selectedEqId={activeMachine ? activeMachine.id : undefined}
                   onSelectEquipment={(eq) => setSelectedEq(eq)}
                   treeSearch={treeSearch}
                   getStatusBadge={getStatusBadge}
@@ -580,128 +570,151 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
         </div>
       </div>
 
-      {/* COLUMN 2: Machine Preview Card (4 cols matching Image 2 Center) */}
+      {/* COLUMN 2: Machine Preview Card (or Empty State) */}
       <div className="lg:col-span-4 bg-white dark:bg-slate-850 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-        <div>
-          {/* Machine Photo with Status Badge */}
-          <div className="aspect-[16/10] w-full rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 relative mb-3 border border-slate-100 dark:border-slate-800">
-            <img
-              src={(activeMachine as any).photos?.[0] || (activeMachine as any).photo || machineDefaultImg}
-              alt={activeMachine.name}
-              className="w-full h-full object-cover"
-            />
-            <span
-              className={`absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm ${
-                activeMachine.status === 'En service'
-                  ? 'bg-emerald-500 text-white'
-                  : activeMachine.status === 'En maintenance'
-                  ? 'bg-amber-500 text-white'
-                  : 'bg-rose-500 text-white animate-pulse'
-              }`}
-            >
-              {activeMachine.status === 'En service' ? 'En service' : activeMachine.status === 'En maintenance' ? 'En maintenance' : 'Hors service'}
-            </span>
-
-            {/* Campagne Badge */}
-            <span className="absolute bottom-2.5 left-2.5 px-2 py-0.5 rounded-md text-[9px] font-extrabold bg-slate-900/80 text-white backdrop-blur-sm">
-              Campagne 2026
-            </span>
-          </div>
-
-          {/* Machine Header */}
-          <div className="mb-3">
-            <h4 className="text-base font-black text-slate-800 dark:text-white leading-tight">
-              {activeMachine.name}
-            </h4>
-            <p className="text-xs text-slate-400 font-semibold mt-0.5">
-              {activeMachine.category || 'Lavage Tomate'} • {activeMachine.id}
-            </p>
-          </div>
-
-          {/* Radial Health Index Donut */}
-          <div className="flex items-center gap-4 p-3 bg-slate-50/80 dark:bg-slate-900/40 rounded-xl border border-slate-100 dark:border-slate-800 mb-3">
-            <div className="relative w-14 h-14 shrink-0 flex items-center justify-center">
-              <svg viewBox="0 0 36 36" className="w-14 h-14 -rotate-90">
-                <path
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  fill="none"
-                  stroke="#E2E8F0"
-                  strokeWidth="3.5"
-                  className="dark:stroke-slate-800"
+        {activeMachine ? (
+          <>
+            <div>
+              {/* Machine Photo with Status Badge */}
+              <div className="aspect-[16/10] w-full rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 relative mb-3 border border-slate-100 dark:border-slate-800">
+                <img
+                  src={(activeMachine as any).photos?.[0] || (activeMachine as any).photo || machineDefaultImg}
+                  alt={activeMachine.name}
+                  className="w-full h-full object-cover"
                 />
-                <path
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  fill="none"
-                  stroke={activeMachine.status === 'En panne' ? '#EF4444' : activeMachine.status === 'En maintenance' ? '#F59E0B' : '#10B981'}
-                  strokeWidth="3.5"
-                  strokeDasharray={`${activeMachine.healthIndex || (activeMachine.status === 'En panne' ? 25 : 88)}, 100`}
-                />
-              </svg>
-              <div className="absolute text-center">
-                <span className="text-xs font-black text-slate-800 dark:text-white leading-none">
-                  {activeMachine.healthIndex || (activeMachine.status === 'En panne' ? 25 : 88)}%
+                <span
+                  className={`absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm ${
+                    activeMachine.status === 'En service'
+                      ? 'bg-emerald-500 text-white'
+                      : activeMachine.status === 'En maintenance'
+                      ? 'bg-amber-500 text-white'
+                      : 'bg-rose-500 text-white animate-pulse'
+                  }`}
+                >
+                  {activeMachine.status === 'En service' ? 'En service' : activeMachine.status === 'En maintenance' ? 'En maintenance' : 'Hors service'}
+                </span>
+
+                {/* Campagne Badge */}
+                <span className="absolute bottom-2.5 left-2.5 px-2 py-0.5 rounded-md text-[9px] font-extrabold bg-slate-900/80 text-white backdrop-blur-sm">
+                  Campagne 2026
                 </span>
               </div>
-            </div>
-            <div>
-              <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider block">
-                Indice Santé Machine
-              </span>
-              <span className="text-sm font-black text-slate-800 dark:text-white">
-                {activeMachine.hoursCount ? `${activeMachine.hoursCount} h` : '1 420 h'}
-              </span>
-              <span className="text-[10px] text-slate-400 font-medium block">
-                Heures de fonctionnement
-              </span>
-            </div>
-          </div>
 
-          {/* Technical Specs Grid with MTBF & MTTR (Cahier des Charges) */}
-          <div className="grid grid-cols-2 gap-2 text-xs mb-1">
-            <div className="p-2 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
-              <span className="text-[9px] uppercase font-bold text-slate-400 block">Criticité</span>
-              <span className={`font-bold text-xs ${
-                activeMachine.criticality === 'Critique' || activeMachine.criticality === 'Haute'
-                  ? 'text-rose-600 dark:text-rose-400'
-                  : activeMachine.criticality === 'Moyenne'
-                  ? 'text-amber-600 dark:text-amber-400'
-                  : 'text-emerald-600 dark:text-emerald-400'
-              }`}>
-                {activeMachine.criticality || 'Moyenne'}
-              </span>
-            </div>
-            <div className="p-2 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
-              <span className="text-[9px] uppercase font-bold text-slate-400 block">Disponibilité</span>
-              <span className="font-bold text-emerald-600 dark:text-emerald-400 text-xs">
-                {machineDispo}%
-              </span>
-            </div>
-            <div className="p-2 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
-              <span className="text-[9px] uppercase font-bold text-slate-400 block">MTBF machine</span>
-              <span className="font-bold text-indigo-600 dark:text-indigo-400 text-xs">
-                {machineMtbf} h
-              </span>
-            </div>
-            <div className="p-2 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
-              <span className="text-[9px] uppercase font-bold text-slate-400 block">MTTR moyen</span>
-              <span className="font-bold text-cyan-600 dark:text-cyan-400 text-xs">
-                {machineMttr} h
-              </span>
-            </div>
-          </div>
-        </div>
+              {/* Machine Header */}
+              <div className="mb-3">
+                <h4 className="text-base font-black text-slate-800 dark:text-white leading-tight">
+                  {activeMachine.name}
+                </h4>
+                <p className="text-xs text-slate-400 font-semibold mt-0.5">
+                  {activeMachine.category || 'Équipement'} • {activeMachine.id}
+                </p>
+              </div>
 
-        {/* View Details Button */}
-        <button
-          onClick={() => {
-            onSelectEquipment(activeMachine);
-            onNavigate('equipment');
-          }}
-          className="w-full mt-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
-        >
-          <ExternalLink className="w-3.5 h-3.5" />
-          Accéder à la fiche machine
-        </button>
+              {/* Radial Health Index Donut */}
+              <div className="flex items-center gap-4 p-3 bg-slate-50/80 dark:bg-slate-900/40 rounded-xl border border-slate-100 dark:border-slate-800 mb-3">
+                <div className="relative w-14 h-14 shrink-0 flex items-center justify-center">
+                  <svg viewBox="0 0 36 36" className="w-14 h-14 -rotate-90">
+                    <path
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke="#E2E8F0"
+                      strokeWidth="3.5"
+                      className="dark:stroke-slate-800"
+                    />
+                    <path
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke={activeMachine.status === 'En panne' ? '#EF4444' : activeMachine.status === 'En maintenance' ? '#F59E0B' : '#10B981'}
+                      strokeWidth="3.5"
+                      strokeDasharray={`${activeMachine.healthIndex || (activeMachine.status === 'En panne' ? 25 : 88)}, 100`}
+                    />
+                  </svg>
+                  <div className="absolute text-center">
+                    <span className="text-xs font-black text-slate-800 dark:text-white leading-none">
+                      {activeMachine.healthIndex || (activeMachine.status === 'En panne' ? 25 : 88)}%
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider block">
+                    Indice Santé Machine
+                  </span>
+                  <span className="text-sm font-black text-slate-800 dark:text-white">
+                    {activeMachine.hoursCount ? `${activeMachine.hoursCount} h` : '—'}
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-medium block">
+                    Heures de fonctionnement
+                  </span>
+                </div>
+              </div>
+
+              {/* Technical Specs Grid with MTBF & MTTR */}
+              <div className="grid grid-cols-2 gap-2 text-xs mb-1">
+                <div className="p-2 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
+                  <span className="text-[9px] uppercase font-bold text-slate-400 block">Criticité</span>
+                  <span className={`font-bold text-xs ${
+                    activeMachine.criticality === 'Critique' || activeMachine.criticality === 'Haute'
+                      ? 'text-rose-600 dark:text-rose-400'
+                      : activeMachine.criticality === 'Moyenne'
+                      ? 'text-amber-600 dark:text-amber-400'
+                      : 'text-emerald-600 dark:text-emerald-400'
+                  }`}>
+                    {activeMachine.criticality || 'Moyenne'}
+                  </span>
+                </div>
+                <div className="p-2 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
+                  <span className="text-[9px] uppercase font-bold text-slate-400 block">Disponibilité</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400 text-xs">
+                    {machineDispo}%
+                  </span>
+                </div>
+                <div className="p-2 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
+                  <span className="text-[9px] uppercase font-bold text-slate-400 block">MTBF machine</span>
+                  <span className="font-bold text-indigo-600 dark:text-indigo-400 text-xs">
+                    {machineMtbf} h
+                  </span>
+                </div>
+                <div className="p-2 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
+                  <span className="text-[9px] uppercase font-bold text-slate-400 block">MTTR moyen</span>
+                  <span className="font-bold text-cyan-600 dark:text-cyan-400 text-xs">
+                    {machineMttr} h
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* View Details Button */}
+            <button
+              onClick={() => {
+                onSelectEquipment(activeMachine);
+                onNavigate('equipment');
+              }}
+              className="w-full mt-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              Accéder à la fiche machine
+            </button>
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center text-center p-6 my-auto min-h-[380px]">
+            <div className="w-16 h-16 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-4 shadow-sm border border-blue-100 dark:border-blue-900/40">
+              <Factory className="w-8 h-8" />
+            </div>
+            <h4 className="text-base font-black text-slate-800 dark:text-white mb-1.5">
+              Parc machines vide
+            </h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mb-6 leading-relaxed">
+              Bienvenue sur votre espace GMAO. Aucun équipement n'est encore enregistré pour <span className="font-bold text-slate-700 dark:text-slate-300">{companyName}</span>.
+            </p>
+            <button
+              onClick={() => onNavigate('equipment')}
+              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              Ajouter votre premier équipement
+            </button>
+          </div>
+        )}
       </div>
 
       {/* COLUMN 3: Demandes d'intervention (DI) & Ordres de Travail (OT) (Section 6 & 7) */}

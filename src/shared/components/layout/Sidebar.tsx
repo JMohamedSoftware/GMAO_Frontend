@@ -132,9 +132,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate }) =
             />
             <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
           </div>
-          <div className="text-center mt-1 hidden sm:block">
-            <h1 className="font-black text-sm tracking-tight text-slate-800 dark:text-white leading-none">
-              POMODORO
+          <div className="text-center mt-1 hidden sm:block px-1">
+            <h1 
+              className="font-black text-xs tracking-tight text-slate-800 dark:text-white leading-tight line-clamp-2 max-w-[120px]"
+              title={currentUser?.tenantName || currentUser?.company || currentTenant?.name || 'POMODORO'}
+            >
+              {currentUser?.tenantName || currentUser?.company || currentTenant?.name || 'POMODORO'}
             </h1>
           </div>
         </div>

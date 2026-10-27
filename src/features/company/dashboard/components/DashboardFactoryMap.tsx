@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Maximize2, MapPin, ArrowRight, Gauge, Activity } from 'lucide-react';
+import { Maximize2, MapPin, ArrowRight, Gauge, Activity, Plus } from 'lucide-react';
 import factoryPlanImg from '@/shared/assets/images/factory_plan.jpg';
 import machineDefaultImg from '@/shared/assets/images/machine_default.jpg';
 import { Equipment } from '@/shared/types/gmao';
+import { useGmao } from '@/shared/hooks/useGmao';
 
 interface DashboardFactoryMapProps {
   equipments: Equipment[];
@@ -16,6 +17,11 @@ export const DashboardFactoryMap: React.FC<DashboardFactoryMapProps> = ({
   onNavigate
 }) => {
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
+
+  const { currentUser, currentTenantId, tenants } = useGmao();
+  const currentTenant = tenants.find(t => t.id === currentTenantId);
+  const companyName = currentUser?.tenantName || currentUser?.company || currentTenant?.name || 'Votre Entreprise';
+  const isPomodoro = currentTenantId === 'tenant-midi' || (currentTenant?.name || '').toLowerCase().includes('pomodoro');
 
   const zones = React.useMemo(() => {
     const baseZones = [
@@ -78,10 +84,10 @@ export const DashboardFactoryMap: React.FC<DashboardFactoryMapProps> = ({
             </div>
             <div>
               <h3 className="text-sm font-black text-slate-800 dark:text-white leading-tight">
-                Plan de l'usine & Ligne de Transformation
+                Plan de l'usine & Zones d'exploitation
               </h3>
               <p className="text-[11px] text-slate-400 font-medium">
-                Surveillance synoptique interactive des zones et flux de tomate
+                Surveillance synoptique interactive — {companyName}
               </p>
             </div>
           </div>
@@ -93,7 +99,7 @@ export const DashboardFactoryMap: React.FC<DashboardFactoryMapProps> = ({
             </span>
             <button
               onClick={() => onNavigate('equipment')}
-              className="flex items-center gap-1 px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-blue-600 rounded-lg text-xs font-bold border border-slate-200 dark:border-slate-700 transition-colors shadow-sm cursor-pointer"
+              className="flex items-center gap-1 px-3 py-1.5 bg-white dark:bg-slate-850 text-slate-600 dark:text-slate-300 hover:text-blue-600 rounded-lg text-xs font-bold border border-slate-200 dark:border-slate-700 transition-colors shadow-sm cursor-pointer"
             >
               <Maximize2 className="w-3.5 h-3.5" />
               Vue complète
@@ -101,15 +107,35 @@ export const DashboardFactoryMap: React.FC<DashboardFactoryMapProps> = ({
           </div>
         </div>
 
-        {/* Visual Map with Hotspots */}
-        <div className="relative w-full aspect-[21/9] min-h-[300px] max-h-[460px] bg-slate-950 overflow-hidden group">
-          <img
-            src={factoryPlanImg}
-            alt="Plan Usine Pomodoro"
-            className="w-full h-full object-cover opacity-90 transition-transform duration-700 group-hover:scale-[1.01]"
-          />
-          {/* Subtle gradient vignette */}
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-slate-950/20 pointer-events-none" />
+        {/* Visual Map with Hotspots or Empty State */}
+        {!isPomodoro && equipments.length === 0 ? (
+          <div className="relative w-full aspect-[21/9] min-h-[300px] max-h-[460px] bg-slate-900 border border-slate-800 flex flex-col items-center justify-center p-8 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center mb-3 border border-blue-500/20">
+              <MapPin className="w-7 h-7" />
+            </div>
+            <h4 className="text-base font-bold text-white mb-1">
+              Plan synoptique en attente
+            </h4>
+            <p className="text-xs text-slate-400 max-w-md mb-5 leading-relaxed">
+              Aucun équipement n'est encore cartographié pour <span className="text-blue-300 font-semibold">{companyName}</span>. Enregistrez vos machines et leurs zones pour activer la supervision synoptique interactive.
+            </p>
+            <button
+              onClick={() => onNavigate('equipment')}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Ajouter vos premiers équipements
+            </button>
+          </div>
+        ) : (
+          <div className="relative w-full aspect-[21/9] min-h-[300px] max-h-[460px] bg-slate-950 overflow-hidden group">
+            <img
+              src={factoryPlanImg}
+              alt="Plan Usine"
+              className="w-full h-full object-cover opacity-90 transition-transform duration-700 group-hover:scale-[1.01]"
+            />
+            {/* Subtle gradient vignette */}
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-slate-950/20 pointer-events-none" />
 
           {/* Interactive Hotspots */}
           {zones.map(zone => {
@@ -160,6 +186,7 @@ export const DashboardFactoryMap: React.FC<DashboardFactoryMapProps> = ({
             );
           })}
         </div>
+      )}
       </div>
 
       {/* Main Equipments Carousel / Grid Strip (Image 3 Bottom) */}
