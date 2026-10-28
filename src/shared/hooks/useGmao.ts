@@ -126,6 +126,13 @@ export const useGmao = () => {
         return;
       }
       const result = await dispatch(updateWorkOrderStatusAsync({ id, status, fullOt, updates }));
+      if (updateWorkOrderStatusAsync.rejected.match(result)) {
+        const msg = result.error?.message || 'Erreur inconnue';
+        console.error(`[OT] Échec du changement de statut (${fullOt.numeroOT || id} → ${status}):`, result.error);
+        window.alert(`Impossible de passer l'OT ${fullOt.numeroOT || id} en « ${status} ».\n${msg}`);
+        // Resync with the server so the UI reflects the real state
+        dispatch(fetchTenantDataAsync());
+      }
       return result;
     },
     addPartMovement: async (ref: string, qty: number, type: 'in' | 'out', otId?: string) => {

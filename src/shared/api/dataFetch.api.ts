@@ -524,13 +524,25 @@ export const patchWorkOrderStatusApi = async (
         ? parseInt(merged.chefEquipeId, 10)
         : (merged.assignedBy ? parseInt(merged.assignedBy, 10) : 1);
 
+    // Resolve a numeric backend id (Redux id may be an "OT-…" string for locally created OTs)
+    const numericId = /^\d+$/.test(String(id)) ? parseInt(id, 10) : NaN;
+    if (isNaN(numericId)) {
+        throw new Error(`OT ${id} n'est pas encore synchronisé avec le serveur (id non numérique).`);
+    }
+
+    const toInt = (v: any) => {
+        const n = parseInt(v, 10);
+        return isNaN(n) ? null : n;
+    };
+
     const body = {
-        id: parseInt(id, 10),
-        numeroOT: merged.title || `OT-${id}`,
-        demandeId: merged.incidentId ? parseInt(merged.incidentId, 10) : null,
-        equipementId: parseInt(merged.equipmentId, 10),
-        responsableId,
-        technicienId: merged.technicianId ? parseInt(merged.technicianId, 10) : null,
+        id: numericId,
+        // NumeroOT is an immutable identifier on the backend — always send the real one
+        numeroOT: merged.numeroOT || `OT-${numericId}`,
+        demandeId: merged.incidentId ? toInt(merged.incidentId) : null,
+        equipementId: toInt(merged.equipmentId) ?? 0,
+        responsableId: toInt(responsableId) ?? 0,
+        technicienId: merged.technicianId ? toInt(merged.technicianId) : null,
         priorite: otPriorityToInt(merged.priority),
         typeMaintenance: typeToInt(merged.type),
         statut: statutOt,
@@ -539,15 +551,16 @@ export const patchWorkOrderStatusApi = async (
         dateFinPrevue: null,
         dateDebutReelle: merged.startDate || null,
         dateFinReelle: merged.endDate || null,
-        description: merged.description,
-        instructions: merged.solution || null,
+        // fetchWorkOrders maps: title <- description, description <- instructions
+        description: merged.title || merged.description || null,
+        instructions: merged.solution || merged.description || null,
         coutMainOeuvre: null,
         coutPieces: merged.externalCost || null,
         coutSousTraitance: null,
         campagneId: null,
     };
     
-    await axios.put(`${API_URL}/OrdresTravail/${id}`, body, getAuthHeaders());
+    await axios.put(`${API_URL}/OrdresTravail/${numericId}`, body, getAuthHeaders());
 };
 
 export const fetchWorkOrders = async (): Promise<WorkOrder[]> => {

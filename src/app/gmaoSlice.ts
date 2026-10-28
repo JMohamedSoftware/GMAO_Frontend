@@ -194,13 +194,25 @@ export const createWorkOrderAsync = createAsyncThunk(
 export const updateWorkOrderStatusAsync = createAsyncThunk(
   'gmao/updateWorkOrderStatus',
   async (payload: { id: string; status: WorkOrder['status']; fullOt: WorkOrder; updates?: Partial<WorkOrder> }) => {
-    await patchWorkOrderStatusApi(payload.id, payload.status, payload.fullOt, payload.updates);
+    try {
+      await patchWorkOrderStatusApi(payload.id, payload.status, payload.fullOt, payload.updates);
+    } catch (err: any) {
+      const serverMsg = err?.response?.data
+        ? (typeof err.response.data === 'string' ? err.response.data : (err.response.data.title || err.response.data.message || JSON.stringify(err.response.data)))
+        : err?.message;
+      const code = err?.response?.status ? `HTTP ${err.response.status} – ` : '';
+      throw new Error(`${code}${serverMsg || 'Erreur réseau'}`);
+    }
     
-    // Update equipment status if OT starts or ends
-    if (payload.status === 'En cours') {
-      await updateEquipmentStatusApi(payload.fullOt.equipmentId, 'En maintenance');
-    } else if (payload.status === 'Terminé' || payload.status === 'Clôturé') {
-      await updateEquipmentStatusApi(payload.fullOt.equipmentId, 'En service');
+    // Equipment status is already synced by the backend; this is a best-effort refresh
+    try {
+      if (payload.status === 'En cours') {
+        await updateEquipmentStatusApi(payload.fullOt.equipmentId, 'En maintenance');
+      } else if (payload.status === 'Terminé' || payload.status === 'Clôturé') {
+        await updateEquipmentStatusApi(payload.fullOt.equipmentId, 'En service');
+      }
+    } catch (e) {
+      console.warn('[OT] Mise à jour statut équipement ignorée:', e);
     }
 
     return { id: payload.id, status: payload.status, updates: payload.updates, equipmentId: payload.fullOt.equipmentId };
