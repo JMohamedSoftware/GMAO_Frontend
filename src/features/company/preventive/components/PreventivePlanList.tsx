@@ -145,7 +145,7 @@ export const PreventivePlanList: React.FC<PreventivePlanListProps> = ({
                       ? `Tous les ${plan.frequence} ${plan.uniteMesure || 'jours'}`
                       : plan.typeDeclenchement === 2
                         ? `Toutes les ${plan.frequence} ${plan.uniteMesure || 'heures'}`
-                        : `Saisonnier`
+                        : `Saisonnier (${['Printemps', 'Été', 'Automne', 'Hiver'].includes(plan.uniteMesure || '') ? plan.uniteMesure : (plan.description?.match(/Saison:\s*(Printemps|Été|Ete|Automne|Hiver)/i)?.[1] || 'Printemps')})`
                     }
                   </span>
                 </span>

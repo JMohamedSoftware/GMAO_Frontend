@@ -59,11 +59,37 @@ export const PreventiveModal: React.FC<PreventiveModalProps> = ({
   useEffect(() => {
     if (editingPlan) {
       setTitre(editingPlan.titre);
-      setDescription(editingPlan.description || '');
+
+      // Parse season and clean description
+      let rawDesc = editingPlan.description || '';
+      let detectedSaison: 'Printemps' | 'Été' | 'Automne' | 'Hiver' = 'Printemps';
+
+      // 1. Detect from uniteMesure if set
+      const u = (editingPlan.uniteMesure || '').trim().toLowerCase();
+      if (u.includes('été') || u.includes('ete')) detectedSaison = 'Été';
+      else if (u.includes('automne')) detectedSaison = 'Automne';
+      else if (u.includes('hiver')) detectedSaison = 'Hiver';
+      else if (u.includes('printemps')) detectedSaison = 'Printemps';
+
+      // 2. Detect from description if formatted as "Saison: ..."
+      const match = rawDesc.match(/Saison:\s*(Printemps|Été|Ete|Automne|Hiver)/i);
+      if (match) {
+        const s = match[1].toLowerCase();
+        if (s.startsWith('ét') || s.startsWith('et')) detectedSaison = 'Été';
+        else if (s.startsWith('aut')) detectedSaison = 'Automne';
+        else if (s.startsWith('hiv')) detectedSaison = 'Hiver';
+        else if (s.startsWith('prin')) detectedSaison = 'Printemps';
+
+        // Strip prefix so user doesn't see repeated "Saison: ..." in textarea
+        rawDesc = rawDesc.replace(/^Saison:\s*[^—\n]+(—\s*)?/i, '').trim();
+      }
+
+      setSaison(detectedSaison);
+      setDescription(rawDesc);
       setEquipementId(editingPlan.equipementId);
       setTypeDeclenchement(editingPlan.typeDeclenchement);
       setFrequence(editingPlan.frequence);
-      setUniteMesure(editingPlan.uniteMesure || 'jours');
+      setUniteMesure(editingPlan.uniteMesure || (editingPlan.typeDeclenchement === 3 ? detectedSaison : 'jours'));
       setDerniereDate(editingPlan.derniereDate || '');
       setProchaineDate(editingPlan.prochaineDate || '');
       setTaches(editingPlan.taches.length > 0
@@ -79,8 +105,8 @@ export const PreventiveModal: React.FC<PreventiveModalProps> = ({
   useEffect(() => {
     if (typeDeclenchement === 2) setUniteMesure('heures');
     else if (typeDeclenchement === 1) setUniteMesure('jours');
-    // Saisonnier: unit not relevant
-  }, [typeDeclenchement]);
+    else if (typeDeclenchement === 3) setUniteMesure(saison);
+  }, [typeDeclenchement, saison]);
 
   // Auto-compute prochaine date when derniereDate or frequence changes
   useEffect(() => {
@@ -113,12 +139,12 @@ export const PreventiveModal: React.FC<PreventiveModalProps> = ({
       await onSave({
         titre,
         description: typeDeclenchement === 3
-          ? `Saison: ${saison}${description ? ' — ' + description : ''}`
+          ? `Saison: ${saison}${description.trim() ? ' — ' + description.trim() : ''}`
           : description || undefined,
         equipementId: equipementId as number,
         typeDeclenchement,
         frequence: typeDeclenchement === 3 ? 1 : frequence,
-        uniteMesure: typeDeclenchement === 3 ? 'saisonnier' : uniteMesure,
+        uniteMesure: typeDeclenchement === 3 ? saison : uniteMesure,
         derniereDate: derniereDate || undefined,
         prochaineDate,
         actif: true,
@@ -381,7 +407,11 @@ export const PreventiveModal: React.FC<PreventiveModalProps> = ({
                     ]).map(s => (
                       <button
                         key={s.val}
-                        onClick={() => setSaison(s.val)}
+                        type="button"
+                        onClick={() => {
+                          setSaison(s.val);
+                          setUniteMesure(s.val);
+                        }}
                         className={`flex items-center gap-2 px-3 py-2.5 border rounded-xl text-sm font-bold transition cursor-pointer ${
                           saison === s.val
                             ? 'bg-purple-500 text-white border-purple-500 ring-2 ring-offset-1 ring-purple-300'
