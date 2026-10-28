@@ -182,7 +182,11 @@ export const createWorkOrderAsync = createAsyncThunk(
   'gmao/createWorkOrder',
   async (payload: CreateWorkOrderPayload & { incidentId?: string }) => {
     const workOrder = await createWorkOrderApi(payload);
-    return { workOrder, incidentId: payload.incidentId };
+    // If it's a corrective work order or high/critical priority, update equipment status to En panne
+    if (payload.type === 'Correctif' || payload.priority === 'Critique' || payload.priority === 'Haute') {
+      await updateEquipmentStatusApi(payload.equipmentId, 'En panne');
+    }
+    return { workOrder, incidentId: payload.incidentId, equipmentId: payload.equipmentId, type: payload.type };
   }
 );
 
@@ -199,7 +203,7 @@ export const updateWorkOrderStatusAsync = createAsyncThunk(
       await updateEquipmentStatusApi(payload.fullOt.equipmentId, 'En service');
     }
 
-    return { id: payload.id, status: payload.status, updates: payload.updates };
+    return { id: payload.id, status: payload.status, updates: payload.updates, equipmentId: payload.fullOt.equipmentId };
   }
 );
 
@@ -465,12 +469,12 @@ export const gmaoSlice = createSlice({
             });
           }
 
-          if (ot.status === 'En cours' && !ot.startDate) {
-            ot.startDate = new Date().toISOString();
+          if (ot.status === 'En cours') {
+            if (!ot.startDate) ot.startDate = new Date().toISOString();
             const eq = tenant.equipments.find(e => e.id === ot.equipmentId);
             if (eq) eq.status = 'En maintenance';
-          } else if (ot.status === 'Terminé' && !ot.endDate) {
-            ot.endDate = new Date().toISOString();
+          } else if (ot.status === 'Terminé' || ot.status === 'Clôturé') {
+            if (!ot.endDate) ot.endDate = new Date().toISOString();
             const eq = tenant.equipments.find(e => e.id === ot.equipmentId);
             if (eq) { eq.status = 'En service'; eq.healthIndex = 95; }
           }
@@ -737,6 +741,15 @@ export const gmaoSlice = createSlice({
             targetUserId: action.payload.workOrder.technicianId,
           });
         }
+        // If it's a corrective work order, mark equipment as "En panne" in local state
+        if (action.payload.type === 'Correctif' || action.payload.workOrder.type === 'Correctif') {
+          const eqId = action.payload.equipmentId || action.payload.workOrder.equipmentId;
+          const eq = tenant.equipments.find(e => e.id === eqId);
+          if (eq) {
+            eq.status = 'En panne';
+            eq.healthIndex = 30;
+          }
+        }
       }
     });
 
@@ -777,12 +790,12 @@ export const gmaoSlice = createSlice({
             });
           }
 
-          if (ot.status === 'En cours' && !ot.startDate) {
-            ot.startDate = new Date().toISOString();
+          if (ot.status === 'En cours') {
+            if (!ot.startDate) ot.startDate = new Date().toISOString();
             const eq = tenant.equipments.find(e => e.id === ot.equipmentId);
             if (eq) eq.status = 'En maintenance';
-          } else if (ot.status === 'Terminé' && !ot.endDate) {
-            ot.endDate = new Date().toISOString();
+          } else if (ot.status === 'Terminé' || ot.status === 'Clôturé') {
+            if (!ot.endDate) ot.endDate = new Date().toISOString();
             const eq = tenant.equipments.find(e => e.id === ot.equipmentId);
             if (eq) { eq.status = 'En service'; eq.healthIndex = 95; }
           }
