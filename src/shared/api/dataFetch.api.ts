@@ -464,9 +464,8 @@ export const createWorkOrderApi = async (payload: CreateWorkOrderPayload): Promi
     const activeTenantNumeric = activeTenantId && /^\d+$/.test(activeTenantId) ? parseInt(activeTenantId, 10) : null;
 
     // Leave numeroOT empty so backend generates the clean sequential OT-YYYY-S{soc}-001 per company
-    const body = {
+    const body: Record<string, any> = {
         numeroOT: '',
-        societeId: activeTenantNumeric,
         demandeId: payload.incidentId ? parseInt(payload.incidentId, 10) : null,
         equipementId: parseInt(payload.equipmentId, 10),
         responsableId: payload.responsableId || currentUserId || 1,
@@ -484,6 +483,9 @@ export const createWorkOrderApi = async (payload: CreateWorkOrderPayload): Promi
         coutSousTraitance: null,
         campagneId: null,
     };
+    if (activeTenantNumeric && activeTenantNumeric > 0) {
+        body.societeId = activeTenantNumeric;
+    }
 
     try {
         const response = await axios.post(`${API_URL}/OrdresTravail`, body, getAuthHeaders());
@@ -508,10 +510,23 @@ export const createWorkOrderApi = async (payload: CreateWorkOrderPayload): Promi
             campaign: '',
         };
     } catch (err: any) {
-        const serverMsg = err?.response?.data
-            ? (typeof err.response.data === 'string' ? err.response.data : (err.response.data.error || err.response.data.title || err.response.data.message || JSON.stringify(err.response.data)))
-            : err?.message;
-        throw new Error(serverMsg || 'Erreur lors de la création de l’ordre de travail');
+        let serverMsg = '';
+        const resData = err?.response?.data;
+        if (resData) {
+            if (typeof resData === 'string') {
+                serverMsg = resData;
+            } else if (resData.errors && typeof resData.errors === 'object') {
+                const errList = Object.values(resData.errors).flat();
+                serverMsg = errList.join(' — ');
+            } else if (resData.error) {
+                serverMsg = resData.error;
+            } else if (resData.title && resData.title !== 'One or more validation errors occurred.') {
+                serverMsg = resData.title;
+            } else if (resData.message) {
+                serverMsg = resData.message;
+            }
+        }
+        throw new Error(serverMsg || err?.message || 'Erreur lors de la création de l’ordre de travail');
     }
 };
 
