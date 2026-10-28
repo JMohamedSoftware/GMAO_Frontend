@@ -262,8 +262,8 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
 
   // Build hierarchical dynamic tree
   const dynamicTreeNodes = useMemo<TreeNodeData[]>(() => {
-    // Only use the seeded Pomodoro localisations if the tenant is Pomodoro
-    if (isPomodoro && geoTree && geoTree.length > 0) {
+    // Build hierarchical dynamic tree from real localisations for ALL tenants
+    if (geoTree && geoTree.length > 0) {
       const assignedEqIds = new Set<string>();
 
       const buildLocNode = (loc: Localisation, lvl: number): TreeNodeData => {
@@ -279,15 +279,12 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
             assignedEqIds.add(e.id);
             return true;
           }
-          // Intelligent match by name/category if localisationId is missing and not root Usine
-          if (!e.localisationId && loc.nom.toLowerCase() !== 'usine') {
-            const locName = loc.nom.toLowerCase();
-            const eqName = (e.name || '').toLowerCase();
-            const eqCat = (e.category || '').toLowerCase();
-            if (eqCat.includes(locName) || eqName.includes(locName)) {
-              assignedEqIds.add(e.id);
-              return true;
-            }
+          // Match by localisation name (case-insensitive)
+          const locName = (loc.nom || '').trim().toLowerCase();
+          const eqLocName = (e.localisation?.nom || (e as any).localisationNom || e.location || '').trim().toLowerCase();
+          if (locName && eqLocName && (locName === eqLocName || eqLocName.includes(locName) || locName.includes(eqLocName))) {
+            assignedEqIds.add(e.id);
+            return true;
           }
           return false;
         });
@@ -323,21 +320,21 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
       return roots;
     }
 
-    // Dynamic grouping by equipment category for custom / new tenants
-    const catMap = new Map<string, Equipment[]>();
+    // Dynamic grouping by equipment Location / Atelier (NOT category/family!)
+    const locMap = new Map<string, Equipment[]>();
     equipments.forEach(eq => {
-      const cat = eq.category?.trim() || eq.subFamily?.trim() || 'Équipements généraux';
-      if (!catMap.has(cat)) catMap.set(cat, []);
-      catMap.get(cat)!.push(eq);
+      const locName = eq.localisation?.nom || (eq as any).localisationNom || eq.location?.trim() || 'usine';
+      if (!locMap.has(locName)) locMap.set(locName, []);
+      locMap.get(locName)!.push(eq);
     });
 
     const rootSiteName = `Site Principal - ${companyName}`;
 
-    if (catMap.size > 0) {
-      const catNodes: TreeNodeData[] = Array.from(catMap.entries()).map(([catName, eqs], idx) => ({
-        id: `cat-${idx}-${catName}`,
-        name: catName,
-        type: 'category',
+    if (locMap.size > 0) {
+      const locNodes: TreeNodeData[] = Array.from(locMap.entries()).map(([locName, eqs], idx) => ({
+        id: `loc-fallback-${idx}-${locName}`,
+        name: locName,
+        type: 'localisation',
         level: 1,
         equipments: eqs,
         subNodes: []
@@ -349,7 +346,7 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
         type: 'root',
         level: 0,
         equipments: [],
-        subNodes: catNodes
+        subNodes: locNodes
       }];
     }
 
@@ -362,7 +359,7 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
       equipments: [],
       subNodes: []
     }];
-  }, [isPomodoro, geoTree, equipments, companyName]);
+  }, [geoTree, equipments, companyName]);
 
   // Expand all level 0 and level 1 nodes by default
   useEffect(() => {
@@ -419,10 +416,11 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
           </span>
         );
       case 'En panne':
+      case 'Hors service':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-100 animate-pulse">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/30 animate-pulse">
             <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-            En panne
+            {status}
           </span>
         );
       default:
@@ -583,15 +581,15 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
                   className="w-full h-full object-cover"
                 />
                 <span
-                  className={`absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm ${
+                  className={`absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-md ${
                     activeMachine.status === 'En service'
-                      ? 'bg-emerald-500 text-white'
+                      ? 'bg-emerald-600 text-white'
                       : activeMachine.status === 'En maintenance'
-                      ? 'bg-amber-500 text-white'
-                      : 'bg-rose-500 text-white animate-pulse'
+                      ? 'bg-amber-600 text-white'
+                      : 'bg-rose-600 text-white shadow-rose-500/40 animate-pulse'
                   }`}
                 >
-                  {activeMachine.status === 'En service' ? 'En service' : activeMachine.status === 'En maintenance' ? 'En maintenance' : 'Hors service'}
+                  {activeMachine.status === 'En service' ? 'En service' : activeMachine.status === 'En maintenance' ? 'En maintenance' : activeMachine.status === 'En panne' ? 'En panne' : 'Hors service'}
                 </span>
 
                 {/* Campagne Badge */}
@@ -605,8 +603,9 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
                 <h4 className="text-base font-black text-slate-800 dark:text-white leading-tight">
                   {activeMachine.name}
                 </h4>
-                <p className="text-xs text-slate-400 font-semibold mt-0.5">
-                  {activeMachine.category || 'Équipement'} • {activeMachine.id}
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
+                  {activeMachine.localisation?.nom || (activeMachine as any).localisationNom || 'usine'}
+                  {activeMachine.code && activeMachine.code !== activeMachine.name ? ` • Code : ${activeMachine.code}` : ''}
                 </p>
               </div>
 

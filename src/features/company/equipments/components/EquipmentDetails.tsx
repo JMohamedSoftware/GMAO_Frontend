@@ -278,7 +278,7 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
               <div className="flex-1 flex flex-col">
                 <div className="flex justify-between items-start mb-2">
                   <div>
-                    <span className="text-slate-500 font-bold text-sm">{activeEquipment?.id}</span>
+                    <span className="text-slate-400 font-bold text-xs uppercase tracking-wider">{activeEquipment?.code ? `Code : ${activeEquipment.code}` : ''}</span>
                     <h2 className="text-xl font-black text-slate-800 dark:text-white mt-1">{activeEquipment?.name}</h2>
                   </div>
                   <div className="flex items-center gap-2">
@@ -292,8 +292,21 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                 </div>
                 
                 <div className="mt-2 mb-6">
-                  <span className={`inline-flex items-center px-3 py-1 text-xs font-bold rounded-md ${activeEquipment?.status === 'En panne' ? 'bg-rose-100 text-rose-700' : activeEquipment?.status === 'En maintenance' ? 'bg-amber-100 text-amber-700' : activeEquipment?.status === 'Hors service' ? 'bg-slate-100 text-slate-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                    <ShieldCheck className="w-3.5 h-3.5 mr-1" /> {activeEquipment?.status || 'En service'}
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full border shadow-sm ${
+                    activeEquipment?.status === 'En service'
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
+                      : activeEquipment?.status === 'En maintenance'
+                      ? 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
+                      : 'bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800 animate-pulse'
+                  }`}>
+                    {activeEquipment?.status === 'En service' ? (
+                      <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                    ) : activeEquipment?.status === 'En maintenance' ? (
+                      <Wrench className="w-3.5 h-3.5 text-amber-600" />
+                    ) : (
+                      <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                    )}
+                    {activeEquipment?.status || 'En service'}
                   </span>
                 </div>
                 

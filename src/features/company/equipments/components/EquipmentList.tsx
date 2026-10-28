@@ -83,6 +83,7 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({
           >
             <option value="Tous">Tous statuts</option>
             <option value="En service">En service</option>
+            <option value="En panne">En panne</option>
             <option value="Hors service">Hors service</option>
             <option value="En maintenance">En maintenance</option>
           </select>
@@ -117,17 +118,17 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({
               {/* Content */}
               <div className="flex-1 min-w-0 flex flex-col gap-1">
                 <div className="flex justify-between items-start gap-2">
-                  <span className="text-xs font-bold text-primary truncate">{eq.id}</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate">{eq.code || 'Équipement'}</span>
                   {/* Status Badge */}
                   <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 shrink-0 ${
                     eq.status === 'En service' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' :
                     eq.status === 'En maintenance' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' :
-                    eq.status === 'Hors service' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' :
+                    (eq.status === 'En panne' || eq.status === 'Hors service') ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-800' :
                     'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'
                   }`}>
-                    {eq.status === 'En service' && <CheckCircle className="w-3 h-3" />}
-                    {eq.status === 'En maintenance' && <Wrench className="w-3 h-3" />}
-                    {eq.status === 'Hors service' && <AlertTriangle className="w-3 h-3" />}
+                    {eq.status === 'En service' && <CheckCircle className="w-3 h-3 text-emerald-600" />}
+                    {eq.status === 'En maintenance' && <Wrench className="w-3 h-3 text-amber-600" />}
+                    {(eq.status === 'En panne' || eq.status === 'Hors service') && <AlertTriangle className="w-3 h-3 text-rose-600 animate-pulse" />}
                     {eq.status}
                   </div>
                 </div>
