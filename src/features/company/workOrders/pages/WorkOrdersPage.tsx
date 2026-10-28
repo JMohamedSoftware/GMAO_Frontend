@@ -163,7 +163,8 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
       setShowCreateModal(false);
       if (prefilledIncident) onClearPrefilledIncident();
     } catch (err: any) {
-      setSubmitError(err?.message || 'Erreur lors de la création. Réessayez.');
+      const msg = err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Erreur lors de la création. Réessayez.';
+      setSubmitError(msg);
     } finally {
       setIsSubmitting(false);
     }

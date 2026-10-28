@@ -457,12 +457,19 @@ const otPriorityToInt = (priority: string): number => {
 /** POST /api/OrdresTravail — creates a new OT and auto-transitions the linked incident */
 export const createWorkOrderApi = async (payload: CreateWorkOrderPayload): Promise<WorkOrder> => {
     const now = new Date().toISOString();
-    // Leave numeroOT empty so backend generates the clean sequential OT-YYYY-001 per company
+    const userStr = localStorage.getItem('gmao_current_user');
+    const userObj = userStr ? JSON.parse(userStr) : null;
+    const currentUserId = userObj?.id ? parseInt(userObj.id, 10) : 1;
+    const activeTenantId = localStorage.getItem('gmao_impersonated_tenant_id') || localStorage.getItem('gmao_current_tenant_id');
+    const activeTenantNumeric = activeTenantId && /^\d+$/.test(activeTenantId) ? parseInt(activeTenantId, 10) : null;
+
+    // Leave numeroOT empty so backend generates the clean sequential OT-YYYY-S{soc}-001 per company
     const body = {
         numeroOT: '',
+        societeId: activeTenantNumeric,
         demandeId: payload.incidentId ? parseInt(payload.incidentId, 10) : null,
         equipementId: parseInt(payload.equipmentId, 10),
-        responsableId: payload.responsableId || 1,
+        responsableId: payload.responsableId || currentUserId || 1,
         technicienId: payload.technicianId ? parseInt(payload.technicianId, 10) : null,
         priorite: otPriorityToInt(payload.priority),
         typeMaintenance: typeToInt(payload.type),
@@ -477,27 +484,35 @@ export const createWorkOrderApi = async (payload: CreateWorkOrderPayload): Promi
         coutSousTraitance: null,
         campagneId: null,
     };
-    const response = await axios.post(`${API_URL}/OrdresTravail`, body, getAuthHeaders());
-    const w = response.data;
-    return {
-        id: w.id?.toString(),
-        numeroOT: w.numeroOT || `OT-${w.id}`,
-        equipmentId: w.equipementId?.toString() || payload.equipmentId,
-        title: payload.title || w.description || w.numeroOT || 'Ordre de Travail',
-        description: payload.description || w.instructions || w.description || '',
-        type: payload.type,
-        priority: payload.priority,
-        status: 'Brouillon',
-        createdDate: w.dateCreation || now,
-        startDate: undefined,
-        endDate: undefined,
-        technicianId: w.technicienId?.toString() || undefined,
-        assignedBy: w.responsableId?.toString() || '1',
-        durationMinutes: 0,
-        partsUsed: [],
-        externalCost: 0,
-        campaign: '',
-    };
+
+    try {
+        const response = await axios.post(`${API_URL}/OrdresTravail`, body, getAuthHeaders());
+        const w = response.data;
+        return {
+            id: w.id?.toString(),
+            numeroOT: w.numeroOT || `OT-${w.id}`,
+            equipmentId: w.equipementId?.toString() || payload.equipmentId,
+            title: payload.title || w.description || w.numeroOT || 'Ordre de Travail',
+            description: payload.description || w.instructions || w.description || '',
+            type: payload.type,
+            priority: payload.priority,
+            status: 'Brouillon',
+            createdDate: w.dateCreation || now,
+            startDate: undefined,
+            endDate: undefined,
+            technicianId: w.technicienId?.toString() || undefined,
+            assignedBy: w.responsableId?.toString() || '1',
+            durationMinutes: 0,
+            partsUsed: [],
+            externalCost: 0,
+            campaign: '',
+        };
+    } catch (err: any) {
+        const serverMsg = err?.response?.data
+            ? (typeof err.response.data === 'string' ? err.response.data : (err.response.data.error || err.response.data.title || err.response.data.message || JSON.stringify(err.response.data)))
+            : err?.message;
+        throw new Error(serverMsg || 'Erreur lors de la création de l’ordre de travail');
+    }
 };
 
 export const patchWorkOrderStatusApi = async (
