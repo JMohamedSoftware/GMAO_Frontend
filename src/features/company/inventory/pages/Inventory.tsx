@@ -145,9 +145,9 @@ export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
   const executeMovement = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!movePartRef) return;
-    const success = await addPartMovement(movePartRef, moveQty, moveType, undefined);
+    const success = await addPartMovement(movePartRef, moveQty, moveType, moveReason || undefined);
     if (success) {
-      // Stock movement is now fully handled in Redux (both stock change and log)
+      // Stock movement is now fully handled in Redux and Backend
       setShowMoveModal(false);
     } else {
       alert("Erreur: Quantité en stock insuffisante pour effectuer cette sortie.");
@@ -158,13 +158,13 @@ export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
 
   const handleAddNewPart = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newRef || !newName || !newSupId) return;
+    if (!newRef || !newName) return;
     const newPart: SparePart = {
       id: editPartId,
       ref: newRef.toUpperCase(),
       name: newName,
       category: newCat,
-      supplierId: newSupId,
+      supplierId: newSupId || (suppliers.length > 0 ? suppliers[0].id : ''),
       stockCurrent: newStock,
       stockMin: newMin,
       stockMax: newMax,

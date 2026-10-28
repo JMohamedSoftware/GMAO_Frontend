@@ -168,6 +168,7 @@ export const useGmao = () => {
       return true;
     },
     updatePart: async (updated: SparePart) => {
+      dispatch(actions.updatePart(updated));
       if (!updated.id) {
         await dispatch(createPartAsync(updated));
       } else {

@@ -828,8 +828,13 @@ export const gmaoSlice = createSlice({
     // Parts actions
     builder.addCase(createPartAsync.fulfilled, (state, action) => {
       const tenant = state.tenants.find(t => t.id === state.currentTenantId);
-      if (tenant) {
-        tenant.parts.unshift(action.payload);
+      if (tenant && action.payload) {
+        const existingIdx = tenant.parts.findIndex(p => p.ref === action.payload.ref || (action.payload.id && p.id === action.payload.id));
+        if (existingIdx !== -1) {
+          tenant.parts[existingIdx] = action.payload;
+        } else {
+          tenant.parts.unshift(action.payload);
+        }
       }
     });
 
