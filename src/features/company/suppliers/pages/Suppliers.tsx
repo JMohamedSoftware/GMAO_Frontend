@@ -55,7 +55,7 @@ export const Suppliers: React.FC = () => {
 
     try {
       const newSup: Supplier = {
-        id: `SUP-${String(suppliers.length + 1).padStart(3, '0')}`,
+        id: '',
         name: newName.trim(),
         contact: newContact.trim(),
         phone: newPhone.trim(),

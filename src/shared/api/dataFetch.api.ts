@@ -7,11 +7,14 @@ export const BASE_URL = rawUrl.replace(/\/api\/?$/, '');
 
 const getAuthHeaders = () => {
     const token = localStorage.getItem('gmao_access_token');
-    return {
-        headers: {
-            Authorization: `Bearer ${token}`
-        }
+    const activeTenantId = localStorage.getItem('gmao_impersonated_tenant_id') || localStorage.getItem('gmao_current_tenant_id');
+    const headers: Record<string, string> = {
+        Authorization: `Bearer ${token}`
     };
+    if (activeTenantId && activeTenantId !== 'null' && activeTenantId !== 'undefined') {
+        headers['X-Tenant-Id'] = activeTenantId;
+    }
+    return { headers };
 };
 
 export const fetchEquipments = async (): Promise<Equipment[]> => {
@@ -73,7 +76,7 @@ export const createSupplierApi = async (supplier: Supplier): Promise<Supplier> =
         email: supplier.email,
         telephone: supplier.phone,
         adresse: supplier.address,
-        code: supplier.id?.startsWith('SUP-') ? supplier.id : undefined,
+        code: supplier.id && !supplier.id.startsWith('SUP-') ? supplier.id : undefined,
         isActive: true
     }, getAuthHeaders());
     const s = response.data;
