@@ -31,11 +31,22 @@ export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreate
   const [urgency, setUrgency] = useState<Incident['urgency']>('Moyenne');
   const [photo, setPhoto] = useState('');
 
-  // Enrich incidents: inject workOrderId and technicianId from the OT that links back to this incident
+  // Enrich incidents: inject workOrderId, technicianId, and auto-transition to Clos when the linked OT is finished
   const enrichedIncidents = incidents.map(inc => {
-    const linkedOt = workOrders.find(ot => ot.incidentId === inc.id);
+    const linkedOt = workOrders.find(ot => ot.incidentId?.toString() === inc.id?.toString());
+    const isOtClosed = linkedOt && (
+      linkedOt.status === 'Terminé' || 
+      linkedOt.status === 'Clôturé' || 
+      (linkedOt as any).statut === 5 || 
+      (linkedOt as any).statut === 6
+    );
     return linkedOt 
-      ? { ...inc, workOrderId: linkedOt.id, technicianId: linkedOt.technicianId?.toString() } 
+      ? { 
+          ...inc, 
+          workOrderId: linkedOt.id, 
+          technicianId: linkedOt.technicianId?.toString(),
+          status: (isOtClosed ? 'Clos' : inc.status) as Incident['status']
+        } 
       : inc;
   });
 

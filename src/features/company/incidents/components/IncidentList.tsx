@@ -88,23 +88,26 @@ export const IncidentList: React.FC<IncidentListProps> = ({
                       <div className="flex justify-between items-start z-10 mb-1">
                         <span className="text-[9px] font-bold text-slate-400 font-mono leading-none flex items-center gap-1.5">
                           <AlertCircle className="w-3 h-3 text-rose-400" />
-                          {inc.id}
+                          Déclaration n° {inc.id}
                         </span>
                       </div>
 
                       <div className="z-10">
                         <h4 className="font-bold text-xs text-slate-750 dark:text-slate-250 leading-tight">
-                          {eq ? eq.name : inc.equipmentId}
+                          {eq ? eq.name : `Machine #${inc.equipmentId}`}
                         </h4>
-                        <span className="text-[9px] text-slate-400 block mt-0.5 font-mono">{inc.equipmentId}</span>
+                        <span className="text-[9px] text-slate-400 block mt-0.5 font-medium">
+                          {eq?.code && eq.code !== eq.name ? `Code : ${eq.code} ` : ''}
+                          {eq?.localisation?.nom || (eq as any)?.localisationNom ? `• ${eq?.localisation?.nom || (eq as any)?.localisationNom}` : ''}
+                        </span>
                         
                         <div className="flex gap-1.5 mt-2 flex-wrap">
                           <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded border ${getUrgencyColor(inc.urgency)}`}>
-                            Urgence: {inc.urgency}
+                            Urgence : {inc.urgency}
                           </span>
                           {inc.priority && (
                             <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-purple-200 bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:border-purple-900/30 dark:text-purple-400">
-                              Priorité: {inc.priority}
+                              Priorité : {inc.priority}
                             </span>
                           )}
                         </div>
@@ -128,19 +131,19 @@ export const IncidentList: React.FC<IncidentListProps> = ({
                         <div className="flex items-center gap-2">
                           <User className="w-3.5 h-3.5 text-slate-400" />
                           <span className={`text-[10px] font-semibold ${inc.technicianId ? 'text-slate-700 dark:text-slate-300' : 'text-slate-400 italic'}`}>
-                            Tech: {affectedTechName}
+                            Technicien : {affectedTechName}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Clock className="w-3.5 h-3.5 text-slate-400" />
                           <span className="text-[10px] text-slate-500 font-semibold">
-                            Déclaré: {timeElapsedStr}
+                            Signalé : {timeElapsedStr}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <img src={avatarUrl} alt="Avatar" className="w-4 h-4 rounded-full ring-1 ring-slate-200 dark:ring-slate-700" />
                           <span className="text-[9px] font-bold text-slate-600 dark:text-slate-400 leading-none">
-                            Par: {reporterName}
+                            Déclaré par : {reporterName}
                           </span>
                         </div>
                       </div>
@@ -201,13 +204,17 @@ export const IncidentList: React.FC<IncidentListProps> = ({
                           </div>
                         )}
 
-                        {inc.status === 'Transformé en OT' && (
+                        {(inc.status === 'Transformé en OT' || inc.status === 'Clos') && inc.workOrderId && (
                           <button
-                            onClick={() => inc.workOrderId && onNavigate(`workorder-detail:${inc.workOrderId}`)}
-                            className="w-full py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-350 dark:hover:bg-slate-700 transition text-[9px] font-bold flex items-center justify-center gap-1 border border-slate-200/50 dark:border-slate-800 cursor-pointer"
+                            onClick={() => onNavigate(`workorder-detail:${inc.workOrderId}`)}
+                            className={`w-full py-1 rounded transition text-[9px] font-bold flex items-center justify-center gap-1 border cursor-pointer ${
+                              inc.status === 'Clos'
+                                ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/30'
+                                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-350 dark:hover:bg-slate-700 border-slate-200/50 dark:border-slate-800'
+                            }`}
                           >
                             <FileText className="w-3 h-3" />
-                            <span>Voir OT ({inc.workOrderId})</span>
+                            <span>{inc.status === 'Clos' ? `Voir l'OT clôturé (#${inc.workOrderId})` : `Voir l'OT (#${inc.workOrderId})`}</span>
                           </button>
                         )}
                       </div>

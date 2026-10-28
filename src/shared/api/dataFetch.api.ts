@@ -329,6 +329,7 @@ const intToStatus = (n: number): Incident['status'] => {
         case 2:  return 'Validé';
         case 3:  return 'Rejeté';
         case 4:  return 'Transformé en OT';
+        case 5:  return 'Clos';
         default: return 'Nouveau';
     }
 };
@@ -349,6 +350,7 @@ const statusToInt = (status: string): number => {
         case 'Validé':            return 2;
         case 'Rejeté':            return 3;
         case 'Transformé en OT':  return 4;
+        case 'Clos':              return 5;
         default:                  return 1; // 'Nouveau' / 'EnAttente'
     }
 };

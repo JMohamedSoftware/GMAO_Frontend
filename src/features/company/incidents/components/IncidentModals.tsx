@@ -56,7 +56,7 @@ export const IncidentModals: React.FC<IncidentModalsProps> = ({
                 >
                   <option value="">Choisir la machine...</option>
                   {equipments.map(e => (
-                    <option key={e.id} value={e.id}>{e.name} ({e.id}) • {e.localisation?.nom || 'Non spécifié'}</option>
+                    <option key={e.id} value={e.id}>{e.name} {e.code && e.code !== e.name ? `[Code: ${e.code}]` : ''} • {e.localisation?.nom || (e as any).localisationNom || 'Atelier principal'}</option>
                   ))}
                 </select>
               </div>
