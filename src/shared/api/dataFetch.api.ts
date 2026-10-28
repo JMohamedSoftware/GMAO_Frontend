@@ -33,8 +33,8 @@ export const fetchEquipments = async (): Promise<Equipment[]> => {
         commissionDate: e.dateMiseEnService || new Date().toISOString(),
         localisationId: e.localisationId,
         localisation: e.localisationNom ? { id: e.localisationId, nom: e.localisationNom } : undefined,
-        criticality: e.criticite === 1 ? 'Faible' : e.criticite === 2 ? 'Moyenne' : e.criticite === 3 ? 'Haute' : 'Critique',
-        status: e.etat === 1 ? 'En service' : e.etat === 2 ? 'En panne' : e.etat === 3 ? 'En maintenance' : 'Hors service',
+        criticality: normalizeEquipmentCriticality(e.criticite),
+        status: normalizeEquipmentStatus(e.etat),
         healthIndex: 100,
         lastMaintenance: e.updatedAt || new Date().toISOString(),
         nextMaintenance: new Date().toISOString(),
@@ -732,26 +732,46 @@ export const updateTenantApi = async (dbId: number, tenantData: any): Promise<an
 
 // ── Equipment API ──────────────────────────────────────────────────────────────
 
-const mapCriticiteToInt = (c: string) => {
-    switch(c) {
-        case 'Faible': return 1;
-        case 'Moyenne': return 2;
-        case 'Haute': return 3;
-        case 'Critique': return 4;
-        default: return 2;
-    }
-}
+export const normalizeEquipmentStatus = (etat: any): Equipment['status'] => {
+    if (etat === null || etat === undefined) return 'En service';
+    const str = String(etat).trim().toLowerCase().replace(/[\s_-]/g, '');
+    if (str === '1' || str === '0' || str === 'enservice' || str === 'enattente') return 'En service';
+    if (str === '2' || str === 'enpanne') return 'En panne';
+    if (str === '3' || str === 'enmaintenance') return 'En maintenance';
+    if (str === '4' || str === 'horsservice') return 'Hors service';
+    return 'En service';
+};
 
-const mapEtatToInt = (e: string) => {
-    switch(e) {
-        case 'En service': return 1;
-        case 'En panne': return 2;
-        case 'En maintenance': return 3;
-        case 'Hors service': return 4;
-        case 'En attente': return 5;
-        default: return 1;
-    }
-}
+export const normalizeEquipmentCriticality = (crit: any): Equipment['criticality'] => {
+    if (crit === null || crit === undefined) return 'Moyenne';
+    const str = String(crit).trim().toLowerCase().replace(/[\s_-]/g, '');
+    if (str === '1' || str === 'faible' || str === 'low') return 'Faible';
+    if (str === '2' || str === 'moyenne' || str === 'medium') return 'Moyenne';
+    if (str === '3' || str === 'haute' || str === 'high') return 'Haute';
+    if (str === '4' || str === 'critique' || str === 'critical') return 'Critique';
+    return 'Moyenne';
+};
+
+export const mapCriticiteToInt = (c: any): number => {
+    if (c === null || c === undefined) return 2;
+    const str = String(c).trim().toLowerCase().replace(/[\s_-]/g, '');
+    if (str === '1' || str === 'faible' || str === 'low') return 1;
+    if (str === '2' || str === 'moyenne' || str === 'medium') return 2;
+    if (str === '3' || str === 'haute' || str === 'high') return 3;
+    if (str === '4' || str === 'critique' || str === 'critical') return 4;
+    return 2;
+};
+
+export const mapEtatToInt = (e: any): number => {
+    if (e === null || e === undefined) return 1;
+    const str = String(e).trim().toLowerCase().replace(/[\s_-]/g, '');
+    if (str === '1' || str === 'enservice' || str === '0') return 1;
+    if (str === '2' || str === 'enpanne') return 2;
+    if (str === '3' || str === 'enmaintenance') return 3;
+    if (str === '4' || str === 'horsservice') return 4;
+    if (str === '5' || str === 'enattente') return 5;
+    return 1;
+};
 
 export const updateEquipmentStatusApi = async (equipmentId: string, newStatus: Equipment['status']): Promise<void> => {
     try {
@@ -821,8 +841,8 @@ export const createEquipmentApi = async (equipment: Partial<Equipment>): Promise
             supplierId: equipment.supplierId || '',
             localisationId: equipment.localisationId,
             commissionDate: resEntity.dateMiseEnService || resEntity.DateMiseEnService || new Date().toISOString(),
-            criticality: equipment.criticality || 'Moyenne',
-            status: equipment.status || 'En service',
+            criticality: normalizeEquipmentCriticality(resEntity.criticite || equipment.criticality),
+            status: normalizeEquipmentStatus(resEntity.etat || equipment.status),
             healthIndex: 100,
             lastMaintenance: '',
             nextMaintenance: '',

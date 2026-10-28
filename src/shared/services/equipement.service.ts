@@ -1,5 +1,6 @@
 import { apiClient } from './apiClient';
 import { Equipment } from '../types/gmao';
+import { normalizeEquipmentCriticality, normalizeEquipmentStatus } from '../api/dataFetch.api';
 
 export const equipementService = {
   getAll: async (): Promise<Equipment[]> => {
@@ -19,8 +20,8 @@ export const equipementService = {
       endOfWarranty: dto.dateFinGarantie?.toString(),
       commissionDate: dto.dateMiseEnService?.toString() || new Date().toISOString(),
       localisationId: dto.localisationId,
-      criticality: dto.criticite,
-      status: dto.etat,
+      criticality: normalizeEquipmentCriticality(dto.criticite),
+      status: normalizeEquipmentStatus(dto.etat),
       healthIndex: 100, // Not available in basic backend DTO
       lastMaintenance: new Date().toISOString(), // Fallback
       nextMaintenance: new Date().toISOString(), // Fallback
@@ -50,8 +51,8 @@ export const equipementService = {
       endOfWarranty: dto.dateFinGarantie?.toString(),
       commissionDate: dto.dateMiseEnService?.toString() || new Date().toISOString(),
       localisationId: dto.localisationId,
-      criticality: dto.criticite,
-      status: dto.etat,
+      criticality: normalizeEquipmentCriticality(dto.criticite),
+      status: normalizeEquipmentStatus(dto.etat),
       healthIndex: 100,
       lastMaintenance: new Date().toISOString(),
       nextMaintenance: new Date().toISOString(),
