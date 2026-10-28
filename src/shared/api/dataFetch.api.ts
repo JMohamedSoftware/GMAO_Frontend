@@ -172,18 +172,21 @@ export const fetchParts = async (): Promise<SparePart[]> => {
 
 export const createPartApi = async (part: SparePart): Promise<any> => {
     const catId = await getCategoryIdByName(part.category);
-    const tenantId = Number(localStorage.getItem('gmao_impersonated_tenant_id') || localStorage.getItem('gmao_current_tenant_id') || 1);
+    const rawTenant = localStorage.getItem('gmao_impersonated_tenant_id') || localStorage.getItem('gmao_current_tenant_id');
+    const parsed = Number(rawTenant);
+    const tenantId = !isNaN(parsed) && parsed > 0 ? parsed : 1;
+
     const payload = {
         reference: part.ref,
         designation: part.name,
         famillePieceId: catId,
         fournisseurId: part.supplierId && !isNaN(parseInt(part.supplierId)) ? parseInt(part.supplierId) : null,
-        stockActuel: part.stockCurrent,
-        stockMinimum: part.stockMin,
-        stockMaximum: part.stockMax,
-        prixUnitaire: part.unitPrice,
-        emplacement: part.location,
-        photoUrl: part.photo,
+        stockActuel: Number(part.stockCurrent) || 0,
+        stockMinimum: Number(part.stockMin) || 0,
+        stockMaximum: Number(part.stockMax) || 100,
+        prixUnitaire: Number(part.unitPrice) || 0,
+        emplacement: part.location || '',
+        photoUrl: part.photo || null,
         societeId: tenantId
     };
     const response = await axios.post(`${API_URL}/Pieces`, payload, getAuthHeaders());
@@ -192,19 +195,22 @@ export const createPartApi = async (part: SparePart): Promise<any> => {
 
 export const updatePartApi = async (id: string, part: SparePart): Promise<any> => {
     const catId = await getCategoryIdByName(part.category);
-    const tenantId = Number(localStorage.getItem('gmao_impersonated_tenant_id') || localStorage.getItem('gmao_current_tenant_id') || 1);
+    const rawTenant = localStorage.getItem('gmao_impersonated_tenant_id') || localStorage.getItem('gmao_current_tenant_id');
+    const parsed = Number(rawTenant);
+    const tenantId = !isNaN(parsed) && parsed > 0 ? parsed : 1;
+
     const payload = {
         id: parseInt(id),
         reference: part.ref,
         designation: part.name,
         famillePieceId: catId,
         fournisseurId: part.supplierId && !isNaN(parseInt(part.supplierId)) ? parseInt(part.supplierId) : null,
-        stockActuel: part.stockCurrent,
-        stockMinimum: part.stockMin,
-        stockMaximum: part.stockMax,
-        prixUnitaire: part.unitPrice,
-        emplacement: part.location,
-        photoUrl: part.photo,
+        stockActuel: Number(part.stockCurrent) || 0,
+        stockMinimum: Number(part.stockMin) || 0,
+        stockMaximum: Number(part.stockMax) || 100,
+        prixUnitaire: Number(part.unitPrice) || 0,
+        emplacement: part.location || '',
+        photoUrl: part.photo || null,
         societeId: tenantId
     };
     const response = await axios.put(`${API_URL}/Pieces/${id}`, payload, getAuthHeaders());
