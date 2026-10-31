@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings2, Wrench, Save, Edit, Plus, Info, History, Calendar, Link as LinkIcon, FileText, ClipboardList, ShieldCheck, Building2, Tag, Layers, MapPin, AlertTriangle, Upload, Download, Trash2, Eye, Loader2, X } from 'lucide-react';
+import { Settings2, Wrench, Save, Edit, Plus, Info, History, Calendar, Link as LinkIcon, FileText, ClipboardList, ShieldCheck, Building2, Tag, Layers, MapPin, AlertTriangle, Upload, Download, Trash2, Eye, Loader2, X, CheckCircle } from 'lucide-react';
 import { usePermissions } from '@/shared/hooks/usePermissions';
 import { PERMISSIONS } from '@/shared/permissions';
 import { Equipment as EquipmentType, Localisation, WorkOrder, Incident } from '@/shared/types/gmao';

@@ -28,6 +28,8 @@ export interface Localisation {
 
 export interface Equipment {
   id: string; 
+  code?: string;
+  location?: string;
   parentId?: string;
   name: string;
   category: string;

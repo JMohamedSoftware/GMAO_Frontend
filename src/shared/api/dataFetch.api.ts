@@ -21,7 +21,9 @@ export const fetchEquipments = async (): Promise<Equipment[]> => {
     const response = await axios.get(`${API_URL}/Equipement`, getAuthHeaders());
     return response.data.map((e: any) => ({
         id: e.id?.toString(),
+        code: e.code || '',
         name: e.designation,
+        location: e.localisationNom || '',
         category: e.familleNom || 'Autre',
         subFamily: e.familleNom || 'Autre',
         brand: e.marque || '',
@@ -884,6 +886,8 @@ export const createEquipmentApi = async (equipment: Partial<Equipment>): Promise
         const resEntity = response.data;
         return {
             id: resEntity.id?.toString(),
+            code: resEntity.code || entity.code,
+            location: equipment.location || resEntity.localisationNom || '',
             parentId: equipment.parentId,
             name: resEntity.designation || resEntity.Designation,
             category: equipment.category || 'Général',
@@ -911,6 +915,8 @@ export const createEquipmentApi = async (equipment: Partial<Equipment>): Promise
         // Fallback mock
         return {
             id: entity.code,
+            code: entity.code,
+            location: equipment.location || '',
             parentId: equipment.parentId,
             name: entity.designation,
             category: equipment.category || 'Général',
