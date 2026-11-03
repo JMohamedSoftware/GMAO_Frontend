@@ -68,7 +68,7 @@ export const IncidentList: React.FC<IncidentListProps> = ({
                     : (diffHours > 0 ? `Il y a ${diffHours} h (${exactDate})` : `À l'instant (${exactDate})`);
 
                   const reporterUser = users.find(u => u.id?.toString() === inc.reportedBy?.toString());
-                  const reporterName = reporterUser ? reporterUser.name : (inc.reportedBy || 'Production');
+                  const reporterName = reporterUser ? reporterUser.name : (inc.reportedBy && !/^\d+$/.test(inc.reportedBy) ? inc.reportedBy : 'Responsable / Admin');
                   
                   // Avatar based on user or fallback
                   const avatarUrl = reporterUser?.avatar || 
@@ -216,7 +216,10 @@ export const IncidentList: React.FC<IncidentListProps> = ({
                             }`}
                           >
                             <FileText className="w-3 h-3" />
-                            <span>{inc.status === 'Clos' ? `Voir l'OT clôturé (#${inc.workOrderId})` : `Voir l'OT (#${inc.workOrderId})`}</span>
+                            <span>{(() => {
+                              const num = (inc as any).workOrderNumero || (inc.workOrderId?.startsWith('OT-') ? inc.workOrderId : `OT-${inc.workOrderId}`);
+                              return inc.status === 'Clos' ? `Voir l'OT clôturé (${num})` : `Voir l'OT (${num})`;
+                            })()}</span>
                           </button>
                         )}
                       </div>

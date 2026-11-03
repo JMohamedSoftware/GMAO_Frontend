@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useGmao } from '@/shared/hooks/useGmao';
 import { Incident } from '@/shared/types/gmao';
+import { otDisplayNum } from '@/shared/utils/displayNumbers';
 import { usePermissions } from '@/shared/hooks/usePermissions';
 import { Plus, Search, RefreshCw } from 'lucide-react';
 
@@ -31,7 +32,7 @@ export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreate
   const [urgency, setUrgency] = useState<Incident['urgency']>('Moyenne');
   const [photo, setPhoto] = useState('');
 
-  // Enrich incidents: inject workOrderId, technicianId, and auto-transition to Clos when the linked OT is finished
+  // Enrich incidents: inject workOrderId, workOrderNumero, technicianId, and auto-transition to Clos when the linked OT is finished
   const enrichedIncidents = incidents.map(inc => {
     const linkedOt = workOrders.find(ot => ot.incidentId?.toString() === inc.id?.toString());
     const isOtClosed = linkedOt && (
@@ -40,10 +41,12 @@ export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreate
       (linkedOt as any).statut === 5 || 
       (linkedOt as any).statut === 6
     );
+    const otNumero = linkedOt ? otDisplayNum(linkedOt, workOrders) : undefined;
     return linkedOt 
       ? { 
           ...inc, 
           workOrderId: linkedOt.id, 
+          workOrderNumero: otNumero,
           technicianId: linkedOt.technicianId?.toString(),
           status: (isOtClosed ? 'Clos' : inc.status) as Incident['status']
         } 
