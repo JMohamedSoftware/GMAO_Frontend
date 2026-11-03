@@ -5,7 +5,7 @@ import {
   CheckCircle, FileCheck, Settings2, Clock,
   File, Image as ImageIcon, FileBadge2,
   SendHorizontal, UserPlus, PenLine, Plus, Trash2,
-  Loader2, Package, ListTodo
+  Loader2, Package, ListTodo, Lock, AlertTriangle
 } from 'lucide-react';
 import { WorkOrder, Equipment, Technician, SparePart } from '@/shared/types/gmao';
 import { usePermissions } from '@/shared/hooks/usePermissions';
@@ -117,8 +117,11 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
     }
   }, [activeOt?.id, storageKey]);
 
+  const isTasksLocked = activeOt?.status === 'Terminé' || activeOt?.status === 'Clôturé';
+  const [showIncompleteTasksModal, setShowIncompleteTasksModal] = useState(false);
+
   const toggleTask = (index: number) => {
-    if (!storageKey) return;
+    if (!storageKey || isTasksLocked) return;
     setCheckedTaskIndices(prev => {
       const next = prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index];
       try {
@@ -126,6 +129,21 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
       } catch {}
       return next;
     });
+  };
+
+  const handleFinishClick = () => {
+    if (!activeOt) return;
+    if (otTasks.length > 0 && checkedTaskIndices.length < otTasks.length) {
+      setShowIncompleteTasksModal(true);
+      return;
+    }
+    updateWorkOrderStatus(activeOt.id, 'Terminé');
+  };
+
+  const handleConfirmFinishIncomplete = () => {
+    if (!activeOt) return;
+    setShowIncompleteTasksModal(false);
+    updateWorkOrderStatus(activeOt.id, 'Terminé');
   };
 
   // ── Rapport d'intervention (edit mode) ──
@@ -393,8 +411,8 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
             )}
             {canFinish && (
               <button
-                onClick={() => updateWorkOrderStatus(activeOt.id, 'Terminé')}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded text-xs font-bold shadow-sm transition-colors"
+                onClick={handleFinishClick}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded text-xs font-bold shadow-sm transition-colors cursor-pointer"
               >
                 <CheckCircle className="w-3.5 h-3.5" /> Terminer
               </button>
@@ -570,11 +588,15 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
                       )}
                     </div>
                   </div>
-                  {checkedTaskIndices.length === otTasks.length && (
+                  {isTasksLocked ? (
+                    <span className="text-[11px] font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-full flex items-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5 text-slate-400" /> Verrouillé ({activeOt.status})
+                    </span>
+                  ) : checkedTaskIndices.length === otTasks.length ? (
                     <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 px-2.5 py-1 rounded-full flex items-center gap-1">
                       <Check className="w-3.5 h-3.5 stroke-[3]" /> Toutes validées
                     </span>
-                  )}
+                  ) : null}
                 </div>
 
                 <div className="flex flex-col gap-2">
@@ -583,11 +605,13 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
                     return (
                       <div
                         key={idx}
-                        onClick={() => toggleTask(idx)}
-                        className={`flex items-start gap-3 p-3 rounded-lg border transition-all cursor-pointer select-none ${
+                        onClick={() => !isTasksLocked && toggleTask(idx)}
+                        className={`flex items-start gap-3 p-3 rounded-lg border transition-all select-none ${
+                          isTasksLocked ? 'cursor-default opacity-85' : 'cursor-pointer hover:border-teal-400/50'
+                        } ${
                           isDone
                             ? 'bg-emerald-50/70 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-800/60'
-                            : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/80 hover:border-teal-400/50'
+                            : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/80'
                         }`}
                       >
                         <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 mt-0.5 border transition-colors ${
@@ -1109,6 +1133,62 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
                 Confirmer l'affectation
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── MODAL TÂCHES INCOMPLÈTES AVANT TERMINER ─── */}
+      {showIncompleteTasksModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-[fadeIn_0.15s_ease-out]">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full border border-slate-200 dark:border-slate-800 p-6 flex flex-col gap-4 animate-[scaleUp_0.15s_ease-out]">
+            
+            {/* Header */}
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex items-center justify-center shrink-0 text-amber-600 dark:text-amber-400">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-extrabold text-slate-800 dark:text-white leading-snug">
+                  Tâches non complétées
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Vous n'avez validé que <strong className="text-amber-600 dark:text-amber-400">{checkedTaskIndices.length} sur {otTasks.length}</strong> tâches prévues dans ce plan de maintenance.
+                </p>
+              </div>
+            </div>
+
+            {/* List of uncompleted tasks */}
+            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 border border-slate-200/80 dark:border-slate-700/80 flex flex-col gap-2 max-h-44 overflow-y-auto custom-scrollbar">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tâches restantes à valider :</p>
+              {otTasks.map((t, i) => !checkedTaskIndices.includes(i) && (
+                <div key={i} className="flex items-start gap-2 text-xs text-slate-700 dark:text-slate-300">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
+                  <span className="flex-1 font-medium">{t.description}</span>
+                  {t.obligatoire && (
+                    <span className="text-[9px] font-bold text-rose-500 bg-rose-50 dark:bg-rose-950/30 px-1.5 py-0.5 rounded border border-rose-200 shrink-0">
+                      Obligatoire
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Actions: 2 choices */}
+            <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
+              <button
+                onClick={() => setShowIncompleteTasksModal(false)}
+                className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-sm transition cursor-pointer text-center"
+              >
+                Compléter les tâches
+              </button>
+              <button
+                onClick={handleConfirmFinishIncomplete}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer text-center"
+              >
+                <CheckCircle className="w-3.5 h-3.5" /> Terminer quand même
+              </button>
+            </div>
+
           </div>
         </div>
       )}
