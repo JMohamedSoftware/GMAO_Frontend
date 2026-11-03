@@ -2,10 +2,12 @@ import React from 'react';
 import { Incident, Equipment, UserAccount } from '@/shared/types/gmao';
 import { AlertCircle, User, Clock, Check, X, ArrowRight, FileText, Loader2 } from 'lucide-react';
 import { PERMISSIONS } from '@/shared/permissions';
+import { incidentDisplayNum } from '@/shared/utils/displayNumbers';
 
 interface IncidentListProps {
   columns: { id: Incident['status']; label: string; color: string }[];
   getColumnIncidents: (status: Incident['status']) => Incident[];
+  allIncidents: Incident[];
   equipments: Equipment[];
   getUrgencyColor: (urgency: Incident['urgency']) => string;
   can: (permission: any) => boolean;
@@ -19,7 +21,7 @@ interface IncidentListProps {
 }
 
 export const IncidentList: React.FC<IncidentListProps> = ({
-  columns, getColumnIncidents, equipments, getUrgencyColor, can,
+  columns, getColumnIncidents, allIncidents, equipments, getUrgencyColor, can,
   isProduction, isTechnicien, updateIncidentStatus, updatingIds,
   onOpenCreateOtWithIncident, onNavigate, users
 }) => {
@@ -50,7 +52,7 @@ export const IncidentList: React.FC<IncidentListProps> = ({
                   Aucune panne
                 </div>
               ) : (
-                colIncidents.map(inc => {
+                colIncidents.map((inc, incIdx) => {
                   const eq = equipments.find(e => e.id === inc.equipmentId);
                   
                   // Calcul du temps écoulé fictif
@@ -88,7 +90,7 @@ export const IncidentList: React.FC<IncidentListProps> = ({
                       <div className="flex justify-between items-start z-10 mb-1">
                         <span className="text-[9px] font-bold text-slate-400 font-mono leading-none flex items-center gap-1.5">
                           <AlertCircle className="w-3 h-3 text-rose-400" />
-                          Déclaration n° {inc.id}
+                          Déclaration n° {incidentDisplayNum(inc, allIncidents)}
                         </span>
                       </div>
 

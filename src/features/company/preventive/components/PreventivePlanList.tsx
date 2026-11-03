@@ -2,6 +2,8 @@ import React from 'react';
 import { Calendar as CalendarIcon, RefreshCw, Plus, Clock, Zap, Layers, Info } from 'lucide-react';
 import type { PlanPreventif } from '../types/preventive.types';
 import { PERMISSIONS } from '@/shared/permissions';
+import { planDisplayNum } from '@/shared/utils/displayNumbers';
+
 
 interface PreventivePlanListProps {
   plans: PlanPreventif[];
@@ -126,7 +128,7 @@ export const PreventivePlanList: React.FC<PreventivePlanListProps> = ({
               </div>
 
               <p className="text-[11px] font-bold text-slate-700 dark:text-slate-200 leading-tight mb-1.5 line-clamp-2">
-                {plan.titre}
+                {planDisplayNum(plan, plans)} {plan.titre}
               </p>
 
               {/* Equipment */}

@@ -27,6 +27,7 @@ import {
 import { Equipment, Incident, WorkOrder, Localisation } from '@/shared/types/gmao';
 import { useLocalisations } from '@/shared/hooks/useLocalisations';
 import { useGmao } from '@/shared/hooks/useGmao';
+import { incidentDisplayNum, otDisplayNum, equipmentDisplayCode } from '@/shared/utils/displayNumbers';
 import machineDefaultImg from '@/shared/assets/images/machine_default.jpg';
 
 interface DashboardParkSectionProps {
@@ -820,7 +821,7 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
                         <div className="overflow-hidden pr-2">
                           <div className="flex items-center gap-2 mb-0.5">
                             <span className="font-mono text-[9px] font-bold text-slate-400">
-                              {di.id}
+                            {incidentDisplayNum(di, incidents)}
                             </span>
                             <span className="text-[9px] text-slate-400">
                               {new Date((di as any).createdAt || (di as any).date || Date.now()).toLocaleDateString('fr-FR')}
@@ -902,7 +903,7 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
                       <div className="overflow-hidden pr-2">
                         <div className="flex items-center gap-2 mb-0.5">
                           <span className="font-mono text-[9px] font-bold text-slate-400">
-                            {ot.id}
+                            {otDisplayNum(ot, workOrders)}
                           </span>
                           <span className="text-[9px] text-slate-400">
                             {new Date((ot as any).createdAt || (ot as any).date || Date.now()).toLocaleDateString('fr-FR')}

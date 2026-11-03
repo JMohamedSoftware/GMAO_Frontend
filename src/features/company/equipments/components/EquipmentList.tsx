@@ -2,6 +2,8 @@ import React from 'react';
 import { Search, Filter, Settings2, Package, CheckCircle, AlertTriangle, AlertCircle, Wrench, MoreHorizontal } from 'lucide-react';
 import { Equipment as EquipmentType, Localisation } from '@/shared/types/gmao';
 import { useGmao } from '@/shared/hooks/useGmao';
+import { equipmentDisplayCode } from '@/shared/utils/displayNumbers';
+
 
 interface EquipmentListProps {
   equipments: EquipmentType[];

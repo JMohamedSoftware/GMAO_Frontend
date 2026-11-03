@@ -210,6 +210,7 @@ export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreate
       <IncidentList
         columns={columns}
         getColumnIncidents={getColumnIncidents}
+        allIncidents={incidents}
         equipments={equipments}
         getUrgencyColor={getUrgencyColor}
         can={can}
