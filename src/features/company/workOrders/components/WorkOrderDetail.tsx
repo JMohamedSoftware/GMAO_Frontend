@@ -47,10 +47,10 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
 
   // Identifier le plan préventif associé (si OT de type Préventif)
   const matchingPlan = useMemo(() => {
-    if (activeOt.type !== 'Préventif') return null;
+    if (!activeOt || activeOt.type !== 'Préventif') return null;
 
     // 1. Recherche par "Plan préventif {id}"
-    const matchId = (activeOt.description + ' ' + activeOt.title).match(/Plan préventif (\d+)/i);
+    const matchId = ((activeOt.description || '') + ' ' + (activeOt.title || '')).match(/Plan préventif (\d+)/i);
     if (matchId) {
       const found = plans.find(p => p.id === Number(matchId[1]));
       if (found) return found;
@@ -59,8 +59,8 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
     // 2. Recherche par titre du plan
     const foundByTitle = plans.find(p =>
       p.titre && (
-        activeOt.title.toLowerCase().includes(p.titre.toLowerCase()) ||
-        activeOt.description.toLowerCase().includes(p.titre.toLowerCase())
+        (activeOt.title && activeOt.title.toLowerCase().includes(p.titre.toLowerCase())) ||
+        (activeOt.description && activeOt.description.toLowerCase().includes(p.titre.toLowerCase()))
       )
     );
     if (foundByTitle) return foundByTitle;
@@ -71,6 +71,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
 
   // Liste des tâches (issues du plan ou parsées depuis la description)
   const otTasks = useMemo(() => {
+    if (!activeOt) return [];
     if (matchingPlan?.taches && matchingPlan.taches.length > 0) {
       return matchingPlan.taches.map(t => ({
         description: t.description,
@@ -89,13 +90,14 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
       }
     }
     return [];
-  }, [matchingPlan, activeOt.description]);
+  }, [matchingPlan, activeOt]);
 
   // État coché persistant par OT
-  const storageKey = `gmao_ot_tasks_${activeOt.id}`;
+  const storageKey = activeOt ? `gmao_ot_tasks_${activeOt.id}` : '';
   const [checkedTaskIndices, setCheckedTaskIndices] = useState<number[]>(() => {
+    if (!activeOt) return [];
     try {
-      const saved = localStorage.getItem(storageKey);
+      const saved = localStorage.getItem(`gmao_ot_tasks_${activeOt.id}`);
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
@@ -103,15 +105,20 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
   });
 
   useEffect(() => {
+    if (!activeOt || !storageKey) {
+      setCheckedTaskIndices([]);
+      return;
+    }
     try {
       const saved = localStorage.getItem(storageKey);
       setCheckedTaskIndices(saved ? JSON.parse(saved) : []);
     } catch {
       setCheckedTaskIndices([]);
     }
-  }, [activeOt.id, storageKey]);
+  }, [activeOt?.id, storageKey]);
 
   const toggleTask = (index: number) => {
+    if (!storageKey) return;
     setCheckedTaskIndices(prev => {
       const next = prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index];
       try {
