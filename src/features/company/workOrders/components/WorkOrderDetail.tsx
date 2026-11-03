@@ -1,17 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   X, Calendar, Check, FileText, Wrench,
   Play, User, Pause,
   CheckCircle, FileCheck, Settings2, Clock,
   File, Image as ImageIcon, FileBadge2,
   SendHorizontal, UserPlus, PenLine, Plus, Trash2,
-  Loader2, Package
+  Loader2, Package, ListTodo
 } from 'lucide-react';
 import { WorkOrder, Equipment, Technician, SparePart } from '@/shared/types/gmao';
 import { usePermissions } from '@/shared/hooks/usePermissions';
 import { useGmao } from '@/shared/hooks/useGmao';
 import { PERMISSIONS } from '@/shared/permissions';
 import { useAuth } from '@/features/auth';
+import { usePreventive } from '@/features/company/preventive/hooks/usePreventive';
 
 interface WorkOrderDetailProps {
   activeOt: WorkOrder | null | undefined;
@@ -42,6 +43,83 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
   const myUserId = auth.currentUser?.id ?? currentUser?.id;
 
   const [activeTab, setActiveTab] = useState<Tab>('vue_generale');
+  const { plans } = usePreventive();
+
+  // Identifier le plan préventif associé (si OT de type Préventif)
+  const matchingPlan = useMemo(() => {
+    if (activeOt.type !== 'Préventif') return null;
+
+    // 1. Recherche par "Plan préventif {id}"
+    const matchId = (activeOt.description + ' ' + activeOt.title).match(/Plan préventif (\d+)/i);
+    if (matchId) {
+      const found = plans.find(p => p.id === Number(matchId[1]));
+      if (found) return found;
+    }
+
+    // 2. Recherche par titre du plan
+    const foundByTitle = plans.find(p =>
+      p.titre && (
+        activeOt.title.toLowerCase().includes(p.titre.toLowerCase()) ||
+        activeOt.description.toLowerCase().includes(p.titre.toLowerCase())
+      )
+    );
+    if (foundByTitle) return foundByTitle;
+
+    // 3. Fallback : même équipement
+    return plans.find(p => String(p.equipementId) === String(activeOt.equipmentId)) || null;
+  }, [activeOt, plans]);
+
+  // Liste des tâches (issues du plan ou parsées depuis la description)
+  const otTasks = useMemo(() => {
+    if (matchingPlan?.taches && matchingPlan.taches.length > 0) {
+      return matchingPlan.taches.map(t => ({
+        description: t.description,
+        duree: t.dureeEstimeeMinutes,
+        obligatoire: t.estObligatoire
+      }));
+    }
+    if (activeOt.description && activeOt.description.includes('•')) {
+      const lines = activeOt.description.split('\n').filter(l => l.trim().startsWith('•'));
+      if (lines.length > 0) {
+        return lines.map(l => ({
+          description: l.replace(/^[•\-\*]\s*/, '').trim(),
+          duree: undefined,
+          obligatoire: true
+        }));
+      }
+    }
+    return [];
+  }, [matchingPlan, activeOt.description]);
+
+  // État coché persistant par OT
+  const storageKey = `gmao_ot_tasks_${activeOt.id}`;
+  const [checkedTaskIndices, setCheckedTaskIndices] = useState<number[]>(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      setCheckedTaskIndices(saved ? JSON.parse(saved) : []);
+    } catch {
+      setCheckedTaskIndices([]);
+    }
+  }, [activeOt.id, storageKey]);
+
+  const toggleTask = (index: number) => {
+    setCheckedTaskIndices(prev => {
+      const next = prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index];
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
 
   // ── Rapport d'intervention (edit mode) ──
   const [editingReport, setEditingReport] = useState(false);
@@ -462,6 +540,83 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
                 )}
               </div>
             </div>
+
+            {/* Checklist des tâches préventives */}
+            {otTasks.length > 0 && (
+              <div className="bg-white dark:bg-slate-850 rounded-xl border border-teal-200 dark:border-teal-900/50 p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 flex items-center justify-center text-teal-600 dark:text-teal-400">
+                      <ListTodo className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-2">
+                        Tâches à réaliser
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300">
+                          {checkedTaskIndices.length} / {otTasks.length}
+                        </span>
+                      </h3>
+                      {matchingPlan && (
+                        <p className="text-[11px] text-slate-400">
+                          Plan de maintenance : <span className="font-semibold text-slate-600 dark:text-slate-300">{matchingPlan.titre}</span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {checkedTaskIndices.length === otTasks.length && (
+                    <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 px-2.5 py-1 rounded-full flex items-center gap-1">
+                      <Check className="w-3.5 h-3.5 stroke-[3]" /> Toutes validées
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  {otTasks.map((task, idx) => {
+                    const isDone = checkedTaskIndices.includes(idx);
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => toggleTask(idx)}
+                        className={`flex items-start gap-3 p-3 rounded-lg border transition-all cursor-pointer select-none ${
+                          isDone
+                            ? 'bg-emerald-50/70 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-800/60'
+                            : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/80 hover:border-teal-400/50'
+                        }`}
+                      >
+                        <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 mt-0.5 border transition-colors ${
+                          isDone
+                            ? 'bg-emerald-600 border-emerald-600 text-white'
+                            : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800'
+                        }`}>
+                          {isDone && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-xs font-semibold leading-relaxed ${
+                            isDone ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-200'
+                          }`}>
+                            {task.description}
+                          </p>
+                          {task.duree && (
+                            <span className="text-[10px] text-slate-400 mt-0.5 inline-flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-slate-400" /> {task.duree} min
+                            </span>
+                          )}
+                        </div>
+                        {task.obligatoire && (
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${
+                            isDone
+                              ? 'bg-slate-100 text-slate-400 border-slate-200 dark:bg-slate-800 dark:border-slate-700'
+                              : 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900/40 dark:text-rose-400'
+                          }`}>
+                            Obligatoire
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Description des travaux */}
             <div className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">

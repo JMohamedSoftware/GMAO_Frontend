@@ -5,6 +5,8 @@
 import React, { useState, useEffect } from 'react';
 import { usePermissions } from '@/shared/hooks/usePermissions';
 import { useGmao } from '@/shared/hooks/useGmao';
+import { useAppDispatch } from '@/app/hooks';
+import { fetchTenantDataAsync } from '@/app/gmaoSlice';
 import type { PlanPreventif, CreatePlanDto } from '../types/preventive.types';
 import { usePreventive } from '../hooks/usePreventive';
 import { PreventivePlanList } from '../components/PreventivePlanList';
@@ -24,6 +26,7 @@ export const Preventive: React.FC<PreventiveProps> = ({
   onClearNewPlanEquipmentId,
 }) => {
   const { equipments, technicians } = useGmao();
+  const dispatch = useAppDispatch();
   const { can } = usePermissions();
 
   // ── Hook ─────────────────────────────────────────────────────────────────
@@ -77,6 +80,7 @@ export const Preventive: React.FC<PreventiveProps> = ({
       showToast(`✅ OT créé : ${numero}`, 'success');
       setSelectedPlan(null);
       setActiveDragPlan(null);
+      dispatch(fetchTenantDataAsync());
     } catch {
       showToast("Erreur lors de la génération de l'OT", 'error');
     }
