@@ -153,7 +153,7 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
         </div>
       )}
 
-      {/* Edit User Modal */}
+      {/* Modal de modification utilisateur */}
       {isEditUserOpen && editingUser && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease-out]">
           <div className="bg-white dark:bg-slate-900 rounded-custom-xl shadow-2xl w-full max-w-sm border border-slate-200 dark:border-slate-800 overflow-hidden">

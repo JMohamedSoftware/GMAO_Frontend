@@ -60,13 +60,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
         setActiveView={setActiveView}
       />
 
-      {/* 2. Top Quick Actions (Image 4 top cards) */}
+      {/* 2. Actions rapides supérieures */}
       <DashboardActionCards
         onNavigate={onNavigate}
         onOpenDeclareIncident={() => setIsDeclareModalOpen(true)}
       />
 
-      {/* 3. Core KPI Cards: Status counters + Industrial Norms (MTBF, MTTR, Disponibilité, Coût) */}
+      {/* 3. Cartes KPI principales : compteurs de statuts + normes industrielles (MTBF, MTTR, Disponibilité, Coût) */}
       <DashboardKpis
         equipments={equipments}
         workOrders={workOrders}

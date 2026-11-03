@@ -55,7 +55,7 @@ export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreate
 
   // Filter incidents based on search query and role
   const filteredIncidents = enrichedIncidents.filter(inc => {
-    // Production/Technicien see only their own DIs
+    // Production/Technicien voient uniquement leurs propres déclarations
     if (isProduction || isTechnicien) {
       if (currentUser && !inc.reportedBy.includes(currentUser.name) && inc.reportedBy !== currentUser.id?.toString()) return false;
     }

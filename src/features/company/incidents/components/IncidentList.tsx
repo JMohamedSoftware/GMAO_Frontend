@@ -32,7 +32,7 @@ export const IncidentList: React.FC<IncidentListProps> = ({
         
         return (
           <div key={column.id} className="flex flex-col gap-4">
-            {/* Column Header */}
+            {/* En-tête de colonne */}
             <div className="flex items-center justify-between px-2">
               <div className="flex items-center gap-2">
                 <span className={`w-2.5 h-2.5 rounded-full ${column.color}`} />
@@ -45,7 +45,7 @@ export const IncidentList: React.FC<IncidentListProps> = ({
               </span>
             </div>
 
-            {/* Column Cards Container */}
+            {/* Conteneur des cartes de la colonne */}
             <div className="flex-1 flex flex-col gap-3 min-h-[450px] p-2 bg-slate-200/20 dark:bg-slate-900/10 rounded-custom-lg border border-slate-200/40 dark:border-slate-800/40">
               {colIncidents.length === 0 ? (
                 <div className="text-center py-12 text-[10px] text-slate-400 font-medium">
@@ -70,7 +70,7 @@ export const IncidentList: React.FC<IncidentListProps> = ({
                   const reporterUser = users.find(u => u.id?.toString() === inc.reportedBy?.toString());
                   const reporterName = reporterUser ? reporterUser.name : (inc.reportedBy && !/^\d+$/.test(inc.reportedBy) ? inc.reportedBy : 'Responsable / Admin');
                   
-                  // Avatar based on user or fallback
+                  // Avatar basé sur l'utilisateur ou photo par défaut
                   const avatarUrl = reporterUser?.avatar || 
                     `https://ui-avatars.com/api/?name=${encodeURIComponent(reporterName.split(' ')[0])}&background=random&color=fff&size=64`;
                   
@@ -84,7 +84,7 @@ export const IncidentList: React.FC<IncidentListProps> = ({
                       key={inc.id}
                       className="p-4 rounded-custom-md border border-white/50 dark:border-slate-850/40 bg-white/60 dark:bg-slate-900/20 neumorphic-card hover-lift flex flex-col gap-3 group relative overflow-hidden"
                     >
-                      {/* Hover effect gradient */}
+                      {/* Effet de dégradé au survol */}
                       <div className="absolute inset-0 bg-gradient-to-br from-primary/0 to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
 
                       <div className="flex justify-between items-start z-10 mb-1">
@@ -150,7 +150,7 @@ export const IncidentList: React.FC<IncidentListProps> = ({
                         </div>
                       </div>
 
-                      {/* Interactive transitions block inside card */}
+                      {/* Bloc d'actions et transitions interactives dans la carte */}
                       <div className="flex gap-1.5 mt-1 z-10">
                         {(can(PERMISSIONS.INCIDENT_UPDATE) || can(PERMISSIONS.INCIDENT_VALIDATE)) && inc.status === 'Nouveau' && (
                           <>
@@ -189,7 +189,7 @@ export const IncidentList: React.FC<IncidentListProps> = ({
                           </button>
                         )}
 
-                        {/* Production/Technicien: see status only */}
+                        {/* Production/Technicien : affichage du statut uniquement */}
                         {!can(PERMISSIONS.INCIDENT_UPDATE) && (isProduction || isTechnicien) && (
                           <div className={`w-full py-1 rounded text-[9px] font-bold text-center border ${
                             inc.status === 'Nouveau' ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-900/20 dark:border-rose-900/30' :

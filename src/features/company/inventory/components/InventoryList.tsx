@@ -46,7 +46,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({
     // Category filter
     if (filterCategory && p.category !== filterCategory) return false;
     
-    // Status dropdown filter
+    // Filtre déroulant par statut
     if (filterStatus === 'normal' && p.stockCurrent <= p.stockMin) return false;
     if (filterStatus === 'low' && !(p.stockCurrent > 0 && p.stockCurrent <= p.stockMin)) return false;
     if (filterStatus === 'empty' && p.stockCurrent > 0) return false;
