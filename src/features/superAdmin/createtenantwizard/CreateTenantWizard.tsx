@@ -167,7 +167,7 @@ export const CreateTenantWizard: React.FC<CreateTenantWizardProps> = ({ show, on
               <Sparkles className="w-5 h-5 text-rose-500 animate-pulse" />
               Créer une Nouvelle Entreprise (Tenant)
             </h3>
-            <span className="text-[10px] text-slate-400 block font-semibold mt-0.5">Wizard Onboarding SaaS multi-tenant</span>
+            <span className="text-[10px] text-slate-400 block font-semibold mt-0.5">Assistant d'intégration SaaS multi-tenant</span>
           </div>
           <button 
             onClick={() => { onClose(); setCurrentStep(1); }}
@@ -378,9 +378,9 @@ export const CreateTenantWizard: React.FC<CreateTenantWizardProps> = ({ show, on
               <h4 className="font-extrabold text-slate-800 dark:text-white uppercase tracking-wider text-[10px]">Abonnement & Restrictions</h4>
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { key: 'Basic', label: 'Starter', price: plansConfig.Basic, features: 'Core CMMS' },
-                  { key: 'Premium', label: 'Professional', price: plansConfig.Premium, features: 'Advanced Analytics, LOTO' },
-                  { key: 'Enterprise', label: 'Enterprise', price: plansConfig.Enterprise, features: 'Multi-site, Custom API, Dedicated VM' }
+                  { key: 'Basic', label: 'Starter', price: plansConfig.Basic, features: 'GMAO Essentielle' },
+                  { key: 'Premium', label: 'Professionnel', price: plansConfig.Premium, features: 'Analytiques avancées, Consignation LOTO' },
+                  { key: 'Enterprise', label: 'Entreprise', price: plansConfig.Enterprise, features: 'Multi-sites, API dédiée, Serveur dédié' }
                 ].map(p => (
                   <button key={p.key} type="button" onClick={() => handlePlanChange(p.key as any)} className={`p-3 bg-white/50 dark:bg-slate-900 border rounded-xl flex flex-col text-left justify-between h-32 transition hover-lift ${subPlan === p.key ? 'border-primary ring-2 ring-primary/20' : 'border-slate-200 dark:border-slate-800'}`}>
                     <div>
@@ -443,7 +443,7 @@ export const CreateTenantWizard: React.FC<CreateTenantWizardProps> = ({ show, on
                       <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Administrateur</span>
                       <h5 className="font-extrabold text-slate-800 dark:text-white text-sm mt-1">{adminFirstName} {adminLastName}</h5>
                       <span className="text-[10px] font-mono text-slate-400 block mt-0.5">{adminEmail}</span>
-                      <span className="text-[10px] font-mono text-slate-400 block mt-0.5">Password: ••••••••</span>
+                      <span className="text-[10px] font-mono text-slate-400 block mt-0.5">Mot de passe : ••••••••</span>
                     </div>
                   </div>
                   <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-150 dark:border-slate-800 rounded-xl flex justify-between items-center text-xs font-semibold text-slate-700 dark:text-slate-350">
@@ -457,7 +457,7 @@ export const CreateTenantWizard: React.FC<CreateTenantWizardProps> = ({ show, on
                     </div>
                     <div className="text-right">
                       <span className="text-[9px] text-slate-400 block uppercase font-bold">Forfait Choisi</span>
-                      <span className="text-primary font-extrabold uppercase text-xs">{subPlan} Plan</span>
+                      <span className="text-primary font-extrabold uppercase text-xs">Forfait {subPlan}</span>
                     </div>
                   </div>
                 </>

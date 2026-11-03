@@ -80,7 +80,7 @@ export const DashboardNavigation: React.FC<DashboardNavigationProps> = ({ onNavi
             className="aspect-video bg-gradient-to-br from-indigo-500 to-slate-700 rounded-custom-sm p-3.5 flex flex-col justify-between items-start text-left shadow-md hover:shadow-indigo-200 dark:hover:shadow-indigo-900/40 hover:scale-[1.03] active:scale-[0.98] transition-all cursor-pointer border border-indigo-400/30"
           >
             <Sliders className="w-5 h-5 drop-shadow" />
-            <span className="drop-shadow">Gammes / Roles</span>
+            <span className="drop-shadow">Gammes & Rôles</span>
           </button>
         )}
 
