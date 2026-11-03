@@ -2,9 +2,11 @@ import React from 'react';
 import { Calendar as CalendarIcon, X, CheckCircle, Circle, Edit3, RefreshCw, Clock, Zap, Layers } from 'lucide-react';
 import type { PlanPreventif } from '../types/preventive.types';
 import { PERMISSIONS } from '@/shared/permissions';
+import { planDisplayNum } from '@/shared/utils/displayNumbers';
 
 interface PreventiveDrawerProps {
   plan: PlanPreventif | null;
+  allPlans?: PlanPreventif[];
   onClose: () => void;
   onEdit: (plan: PlanPreventif) => void;
   onGenererOT: (plan: PlanPreventif) => void;
@@ -23,7 +25,7 @@ const daysDiff = (dateStr?: string) => {
 };
 
 export const PreventiveDrawer: React.FC<PreventiveDrawerProps> = ({
-  plan, onClose, onEdit, onGenererOT, can
+  plan, allPlans = [], onClose, onEdit, onGenererOT, can
 }) => {
   if (!plan) return null;
 
@@ -39,7 +41,7 @@ export const PreventiveDrawer: React.FC<PreventiveDrawerProps> = ({
       <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
         <h2 className="font-bold text-base text-slate-800 dark:text-white flex items-center gap-2">
           <CalendarIcon className="w-5 h-5 text-primary" />
-          Plan PRV-{plan.id.toString().padStart(3, '0')}
+          Plan {allPlans.length > 0 ? planDisplayNum(plan, allPlans) : 'PRV-' + plan.id.toString().padStart(3, '0')}
         </h2>
         <button
           onClick={onClose}

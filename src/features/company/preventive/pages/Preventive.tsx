@@ -263,6 +263,7 @@ export const Preventive: React.FC<PreventiveProps> = ({
 
       <PreventiveDrawer
         plan={selectedPlan}
+        allPlans={plans}
         onClose={() => { setSelectedPlan(null); setActiveDragPlan(null); }}
         onEdit={handleOpenEdit}
         onGenererOT={handleGenererOT}

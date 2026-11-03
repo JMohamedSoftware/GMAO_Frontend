@@ -115,7 +115,10 @@ export const PreventiveModal: React.FC<PreventiveModalProps> = ({
     if (uniteMesure === 'jours')    base.setDate(base.getDate() + frequence);
     else if (uniteMesure === 'semaines') base.setDate(base.getDate() + frequence * 7);
     else if (uniteMesure === 'mois')  base.setMonth(base.getMonth() + frequence);
-    else return; // heures → manuel
+    else if (uniteMesure === 'heures') {
+      const jours = Math.max(1, Math.ceil(frequence / 24));
+      base.setDate(base.getDate() + jours);
+    } else return;
     setProchaineDate(base.toISOString().split('T')[0]);
   }, [derniereDate, frequence, uniteMesure]);
 
