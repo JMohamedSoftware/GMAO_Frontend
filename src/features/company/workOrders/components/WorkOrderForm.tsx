@@ -1,6 +1,7 @@
 import React from 'react';
 import { Wrench, X, Loader2 } from 'lucide-react';
 import { WorkOrder, Equipment, Technician } from '@/shared/types/gmao';
+import { equipmentDisplayCode } from '@/shared/utils/displayNumbers';
 
 interface WorkOrderFormProps {
   show: boolean;
@@ -75,9 +76,15 @@ export const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
                 className="p-2 border border-slate-200 dark:border-slate-800 rounded bg-transparent text-slate-800 dark:text-slate-100 focus:border-primary outline-none dark:bg-slate-900"
               >
                 <option value="">Choisir la machine...</option>
-                {equipments.map(e => (
-                  <option key={e.id} value={e.id}>{e.name} ({e.id})</option>
-                ))}
+                {equipments.map(e => {
+                  const code = e.code && e.code !== e.name ? e.code : equipmentDisplayCode(e, equipments);
+                  const loc = e.localisation?.nom || (e as any).localisationNom;
+                  return (
+                    <option key={e.id} value={e.id}>
+                      {e.name} [Code : {code}]{loc ? ` • ${loc}` : ''}
+                    </option>
+                  );
+                })}
               </select>
             </div>
             
@@ -127,10 +134,9 @@ export const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
                 onChange={(e) => setNewType(e.target.value as WorkOrder['type'])}
                 className="p-2 border border-slate-200 dark:border-slate-800 rounded bg-transparent text-slate-800 dark:text-slate-100 focus:border-primary outline-none dark:bg-slate-900"
               >
-                <option value="Correctif">Corrective (Panne)</option>
-                <option value="Préventif">Préventive (Calendrier)</option>
-                <option value="Curatif">Curative (Urgente)</option>
-                <option value="Amélioratif">Améliorative (Mise à jour)</option>
+                <option value="Correctif">Corrective (Dépannage / Panne)</option>
+                <option value="Amélioratif">Améliorative (Modification / Travaux neufs)</option>
+                <option value="Préventif">Préventive (Contrôle ponctuel)</option>
               </select>
             </div>
 
