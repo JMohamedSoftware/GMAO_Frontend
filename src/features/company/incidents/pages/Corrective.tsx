@@ -3,7 +3,7 @@ import { useGmao } from '@/shared/hooks/useGmao';
 import { Incident } from '@/shared/types/gmao';
 import { otDisplayNum } from '@/shared/utils/displayNumbers';
 import { usePermissions } from '@/shared/hooks/usePermissions';
-import { Plus, Search, RefreshCw } from 'lucide-react';
+import { Plus, Search, RefreshCw, Lock } from 'lucide-react';
 
 import { IncidentList } from '../components/IncidentList';
 import { IncidentModals } from '../components/IncidentModals';
@@ -14,7 +14,19 @@ interface CorrectiveProps {
 }
 
 export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreateOtWithIncident }) => {
-  const { incidents, equipments, workOrders, currentUser, users, addIncident, updateIncidentStatus } = useGmao();
+  const { 
+    incidents, 
+    equipments, 
+    workOrders, 
+    currentUser, 
+    users, 
+    addIncident, 
+    updateIncidentStatus,
+    isCampaignClosed,
+    campaignIncidents,
+    campaignWorkOrders,
+    selectedCampaign
+  } = useGmao();
   const { can, isProduction, isTechnicien } = usePermissions();
   const [search, setSearch] = useState('');
   const [filterUrgency, setFilterUrgency] = useState<string>('Toutes');
@@ -32,16 +44,20 @@ export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreate
   const [urgency, setUrgency] = useState<Incident['urgency']>('Moyenne');
   const [photo, setPhoto] = useState('');
 
+  // Scoped lists according to active/closed campaign
+  const baseIncidents = isCampaignClosed ? campaignIncidents : incidents;
+  const baseWorkOrders = isCampaignClosed ? campaignWorkOrders : workOrders;
+
   // Enrich incidents: inject workOrderId, workOrderNumero, technicianId, and auto-transition to Clos when the linked OT is finished
-  const enrichedIncidents = incidents.map(inc => {
-    const linkedOt = workOrders.find(ot => ot.incidentId?.toString() === inc.id?.toString());
+  const enrichedIncidents = baseIncidents.map(inc => {
+    const linkedOt = baseWorkOrders.find(ot => ot.incidentId?.toString() === inc.id?.toString());
     const isOtClosed = linkedOt && (
       linkedOt.status === 'Terminé' || 
       linkedOt.status === 'Clôturé' || 
       (linkedOt as any).statut === 5 || 
       (linkedOt as any).statut === 6
     );
-    const otNumero = linkedOt ? otDisplayNum(linkedOt, workOrders) : undefined;
+    const otNumero = linkedOt ? otDisplayNum(linkedOt, baseWorkOrders) : undefined;
     return linkedOt 
       ? { 
           ...inc, 
@@ -118,6 +134,10 @@ export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreate
 
   /** Update status → PUT to backend */
   const handleUpdateStatus = async (id: string, status: Incident['status']) => {
+    if (isCampaignClosed) {
+      setErrorMsg(`Action verrouillée : la ${selectedCampaign} est en mode archive (lecture seule).`);
+      return;
+    }
     setUpdatingIds(prev => new Set(prev).add(id));
     setErrorMsg(null);
     try {
@@ -159,14 +179,21 @@ export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreate
         </div>
 
         <div className="flex gap-2">
-          <button 
-            onClick={() => setShowAddModal(true)}
-            disabled={isSubmitting}
-            className="flex items-center gap-1.5 px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs rounded-custom-sm shadow-md hover-lift cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Déclarer Panne</span>
-          </button>
+          {isCampaignClosed ? (
+            <div className="flex items-center gap-1.5 px-3 py-2 bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold text-xs rounded-custom-sm border border-slate-300 dark:border-slate-700 shadow-xs cursor-not-allowed">
+              <Lock className="w-3.5 h-3.5 text-amber-500" />
+              <span>Campagne clôturée (Lecture seule)</span>
+            </div>
+          ) : (
+            <button 
+              onClick={() => setShowAddModal(true)}
+              disabled={isSubmitting}
+              className="flex items-center gap-1.5 px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs rounded-custom-sm shadow-md hover-lift cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Déclarer Panne</span>
+            </button>
+          )}
         </div>
       </div>
 

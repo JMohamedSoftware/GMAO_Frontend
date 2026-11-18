@@ -25,7 +25,19 @@ import {
 } from 'recharts';
 
 export const Reports: React.FC = () => {
-  const { selectedCampaign, workOrders, equipments, incidents, currentUser, parts, technicians, campaigns } = useGmao();
+  const { 
+    selectedCampaign, 
+    workOrders, 
+    equipments, 
+    incidents, 
+    currentUser, 
+    parts, 
+    technicians, 
+    campaigns,
+    isCampaignClosed,
+    campaignWorkOrders,
+    campaignIncidents
+  } = useGmao();
   const { isChefEquipe, can } = usePermissions();
   
   const [exporting, setExporting] = useState<string | null>(null);
@@ -99,8 +111,12 @@ export const Reports: React.FC = () => {
 
   const scope = isChefEquipe ? 'mon_equipe' : 'toute_usine';
   
+  // Scoped lists according to active/closed campaign
+  const baseOrders = isCampaignClosed ? campaignWorkOrders : workOrders;
+  const baseIncidents = isCampaignClosed ? campaignIncidents : incidents;
+
   // Filter WorkOrders based on scope
-  const filteredWorkOrders = workOrders.filter(ot => {
+  const filteredWorkOrders = baseOrders.filter(ot => {
     if (scope === 'toute_usine') return true;
     if (scope === 'mon_equipe') {
       return true; 
@@ -109,7 +125,7 @@ export const Reports: React.FC = () => {
   });
 
   // Filter Incidents
-  const filteredIncidents = incidents.filter(inc => {
+  const filteredIncidents = baseIncidents.filter(inc => {
     if (scope === 'toute_usine') return true;
     if (scope === 'mon_equipe') return true;
     return inc.reportedBy === currentUser?.name;
@@ -289,7 +305,10 @@ export const Reports: React.FC = () => {
             Analyses & Rapports Avancés
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-450">
-            Performance industrielle de la {selectedCampaign} et rentabilité
+            {isCampaignClosed 
+              ? `Rapport d'archive — Performance industrielle et rentabilité de la ${selectedCampaign} (Clôturée)`
+              : `Performance industrielle de la ${selectedCampaign} et rentabilité`
+            }
           </p>
         </div>
 

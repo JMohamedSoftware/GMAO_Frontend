@@ -17,7 +17,8 @@ import {
   Calendar,
   AlertTriangle,
   Wrench,
-  Settings2
+  Settings2,
+  Lock
 } from 'lucide-react';
 import { WorkOrderForm } from '../components/WorkOrderForm';
 import { WorkOrderDetail } from '../components/WorkOrderDetail';
@@ -46,7 +47,9 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
     equipes,
     campaigns,
     selectedCampaign,
-    updateWorkOrderStatus 
+    updateWorkOrderStatus,
+    isCampaignClosed,
+    campaignWorkOrders
   } = useGmao();
 
   const dispatch = useAppDispatch();
@@ -111,7 +114,8 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
   const activeOtTech = activeOt ? technicians.find(t => t.id === activeOt.technicianId) : null;
 
   // 1. Base visibility filter based on user role (for KPIs & List)
-  const myOts = workOrders.filter(ot => {
+  const baseOrders = isCampaignClosed ? campaignWorkOrders : workOrders;
+  const myOts = baseOrders.filter(ot => {
     if (isTechnicien) {
       // Technicien sees only OTs assigned to them (use real auth ID)
       if (String(ot.technicianId) !== String(myUserId)) return false;
@@ -150,6 +154,11 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
   const handleCreateOtSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle || !newEqId) return;
+
+    if (isCampaignClosed) {
+      setSubmitError(`Action impossible : la ${selectedCampaign} est clôturée (Mode Archive en lecture seule).`);
+      return;
+    }
 
     const activeCamp = campaigns?.find(c => c.name === selectedCampaign || c.status === 'En cours');
     const activeCampId = activeCamp ? parseInt(activeCamp.id, 10) : undefined;
@@ -225,16 +234,23 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
         </div>
 
         {can(PERMISSIONS.WORKORDER_CREATE) && (
-          <button 
-            onClick={() => {
-              onClearPrefilledIncident();
-              setShowCreateModal(true);
-            }}
-            className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/95 text-white font-bold text-xs rounded-custom-sm shadow-md hover-lift"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Créer un OT</span>
-          </button>
+          isCampaignClosed ? (
+            <div className="flex items-center gap-1.5 px-3 py-2 bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold text-xs rounded-custom-sm border border-slate-300 dark:border-slate-700 shadow-xs cursor-not-allowed">
+              <Lock className="w-3.5 h-3.5 text-amber-500" />
+              <span>Campagne clôturée (Lecture seule)</span>
+            </div>
+          ) : (
+            <button 
+              onClick={() => {
+                onClearPrefilledIncident();
+                setShowCreateModal(true);
+              }}
+              className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/95 text-white font-bold text-xs rounded-custom-sm shadow-md hover-lift"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Créer un OT</span>
+            </button>
+          )
         )}
       </div>
 

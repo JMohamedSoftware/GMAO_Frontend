@@ -29,6 +29,37 @@ export const useGmao = () => {
   const activeTenantId = state.impersonatedTenantId || state.currentTenantId;
   const activeTenant = state.tenants.find(t => t.id === activeTenantId);
 
+  // Détection de la campagne active et de son statut d'archivage
+  const currentCampaignObj = (activeTenant?.campaigns || []).find(
+    c => c.name.toLowerCase() === (state.selectedCampaign || '').toLowerCase()
+  );
+  const isCampaignClosed = currentCampaignObj 
+    ? (currentCampaignObj.status === 'Clôturée' || currentCampaignObj.status === 'Terminée' || (currentCampaignObj as any).etat === 3)
+    : false;
+  const activeRunningCampaign = (activeTenant?.campaigns || []).find(
+    c => c.status === 'En cours' || (c as any).etat === 2
+  );
+
+  // OTs filtrés par campagne
+  const campaignWorkOrders = (activeTenant?.workOrders || []).filter(ot => {
+    if (!state.selectedCampaign) return true;
+    if (ot.campaign) return ot.campaign.toLowerCase() === state.selectedCampaign.toLowerCase();
+    if (ot.campagneId && currentCampaignObj) return String(ot.campagneId) === String(currentCampaignObj.id);
+    if (currentCampaignObj?.startDate && currentCampaignObj?.endDate && ot.createdDate) {
+      return ot.createdDate >= currentCampaignObj.startDate && ot.createdDate <= currentCampaignObj.endDate + 'T23:59:59';
+    }
+    return !isCampaignClosed;
+  });
+
+  // Incidents filtrés par la période de la campagne
+  const campaignIncidents = (activeTenant?.incidents || []).filter(inc => {
+    if (!state.selectedCampaign) return true;
+    if (currentCampaignObj?.startDate && currentCampaignObj?.endDate && inc.reportedDate) {
+      return inc.reportedDate >= currentCampaignObj.startDate && inc.reportedDate <= currentCampaignObj.endDate + 'T23:59:59';
+    }
+    return true;
+  });
+
   return {
     tenants: state.tenants,
     currentTenantId: state.currentTenantId,
@@ -50,6 +81,13 @@ export const useGmao = () => {
     campaigns: activeTenant ? activeTenant.campaigns : [],
     equipes: activeTenant ? (activeTenant.equipes || []) : [],
     movementLogs: activeTenant ? (activeTenant.movementLogs || []) : [],
+
+    // Campaign Archive & Scoping
+    isCampaignClosed,
+    currentCampaignObj,
+    activeRunningCampaign,
+    campaignWorkOrders,
+    campaignIncidents,
 
     // Actions
     login: (email: string, password?: string, tenantId?: string | null, quickRole?: User['role'], forcedName?: string, userId?: string, tenantName?: string) => {

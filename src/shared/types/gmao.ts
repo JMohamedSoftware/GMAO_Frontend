@@ -162,7 +162,7 @@ export interface Campaign {
   name: string;
   startDate: string;
   endDate: string;
-  status: 'En cours' | 'Terminée' | 'Planifiée';
+  status: 'En cours' | 'Terminée' | 'Planifiée' | 'Clôturée';
 }
 
 export interface Notification {

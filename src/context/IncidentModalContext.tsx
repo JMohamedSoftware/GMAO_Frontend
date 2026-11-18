@@ -19,7 +19,7 @@ export const useIncidentModal = () => {
 };
 
 export const IncidentModalProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { equipments, addIncident, currentUser } = useGmao();
+  const { equipments, addIncident, currentUser, isCampaignClosed, selectedCampaign } = useGmao();
   
   const [isOpen, setIsOpen] = useState(false);
   const [eqId, setEqId] = useState('');
@@ -30,6 +30,10 @@ export const IncidentModalProvider: React.FC<{ children: ReactNode }> = ({ child
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const openIncidentModal = (initialEquipmentId?: string) => {
+    if (isCampaignClosed) {
+      alert(`Action verrouillée : la ${selectedCampaign} est clôturée (Mode Archive en lecture seule). Basculez sur la campagne active pour déclarer une panne.`);
+      return;
+    }
     setEqId(initialEquipmentId || '');
     setDesc('');
     setUrgency('Moyenne');

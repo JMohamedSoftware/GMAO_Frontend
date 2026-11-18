@@ -16,7 +16,17 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipment }) => {
-  const { workOrders, equipments, incidents, technicians, parts, addIncident } = useGmao();
+  const { 
+    workOrders, 
+    equipments, 
+    incidents, 
+    technicians, 
+    parts, 
+    addIncident,
+    isCampaignClosed,
+    campaignWorkOrders,
+    campaignIncidents
+  } = useGmao();
   
   // View toggle: 'supervision' (Image 2 style) or 'map' (Image 3/4 style)
   const [activeView, setActiveView] = useState<'supervision' | 'map'>('supervision');
@@ -27,8 +37,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
   // Modal for declaring an incident / panne
   const [isDeclareModalOpen, setIsDeclareModalOpen] = useState(false);
 
+  // Scoped lists according to active/closed campaign
+  const currentOrders = isCampaignClosed ? campaignWorkOrders : workOrders;
+  const currentIncidents = isCampaignClosed ? campaignIncidents : incidents;
+
   // Maintenance Cost Calculations according to Cahier des Charges (Section 11 & 13)
-  const totalLaborCost = workOrders.reduce((acc, ot) => {
+  const totalLaborCost = currentOrders.reduce((acc, ot) => {
     if (ot.status === 'Terminé' || ot.status === 'Clôturé') {
       const tech = technicians.find(t => t.id === ot.technicianId);
       const rate = tech ? tech.hourlyRate : 35;
@@ -38,7 +52,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
     return acc;
   }, 0);
 
-  const totalPartsCost = workOrders.reduce((acc, ot) => {
+  const totalPartsCost = currentOrders.reduce((acc, ot) => {
     if (ot.status === 'Terminé' || ot.status === 'Clôturé') {
       const orderParts = (ot.partsUsed || []).reduce((partAcc, usage) => {
         const part = parts.find(p => p.ref === usage.partRef);
@@ -64,13 +78,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
       <DashboardActionCards
         onNavigate={onNavigate}
         onOpenDeclareIncident={() => setIsDeclareModalOpen(true)}
+        isCampaignClosed={isCampaignClosed}
       />
 
       {/* 3. Cartes KPI principales : compteurs de statuts + normes industrielles (MTBF, MTTR, Disponibilité, Coût) */}
       <DashboardKpis
         equipments={equipments}
-        workOrders={workOrders}
-        incidents={incidents}
+        workOrders={currentOrders}
+        incidents={currentIncidents}
         totalLaborCost={totalLaborCost}
         totalPartsCost={totalPartsCost}
         totalMaintCost={totalMaintCost}
@@ -82,8 +97,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
           {/* 3-Column Core: Arborescence (Left), Machine Card (Center), DIs & OTs (Right) */}
           <DashboardParkSection
             equipments={equipments}
-            incidents={incidents}
-            workOrders={workOrders}
+            incidents={currentIncidents}
+            workOrders={currentOrders}
             selectedEq={selectedEq}
             setSelectedEq={setSelectedEq}
             onNavigate={onNavigate}
@@ -94,7 +109,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
           {/* Bottom Analytics: Donut Status, OT Bar Chart, Top 5 Sollicités */}
           <DashboardAnalytics
             equipments={equipments}
-            workOrders={workOrders}
+            workOrders={currentOrders}
             onNavigate={onNavigate}
           />
         </>

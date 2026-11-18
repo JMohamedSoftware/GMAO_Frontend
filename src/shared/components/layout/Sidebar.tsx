@@ -26,7 +26,8 @@ import {
   UsersRound,
   Home,
   Factory,
-  ShieldCheck
+  ShieldCheck,
+  Archive
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -48,7 +49,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate }) =
     tenants,
     impersonatedTenantId,
     impersonateTenant,
-    equipes
+    equipes,
+    isCampaignClosed
   } = useGmao();
 
   const { can, isTechnicien, isChefEquipe } = usePermissions();
@@ -174,10 +176,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate }) =
 
         {/* Sélecteur de Campagne / Saison active (Dans son conteneur dédié) */}
         {(!isSuperAdmin || isImpersonating) && (
-          <div className="w-full bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/25 rounded-2xl p-2 mb-4 text-center transition-all hover:border-emerald-500/40">
-            <div className="flex items-center justify-center gap-1 text-emerald-700 dark:text-emerald-400 mb-1">
-              <CalendarRange className="w-3 h-3 flex-shrink-0" />
-              <span className="text-[9px] font-black uppercase tracking-wider">Campagne</span>
+          <div className={`w-full rounded-2xl p-2 mb-4 text-center transition-all ${
+            isCampaignClosed 
+              ? 'bg-amber-500/10 dark:bg-amber-950/40 border border-amber-500/30 hover:border-amber-500/50' 
+              : 'bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/25 hover:border-emerald-500/40'
+          }`}>
+            <div className={`flex items-center justify-center gap-1 mb-1 ${
+              isCampaignClosed ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400'
+            }`}>
+              {isCampaignClosed ? <Archive className="w-3 h-3 flex-shrink-0" /> : <CalendarRange className="w-3 h-3 flex-shrink-0" />}
+              <span className="text-[9px] font-black uppercase tracking-wider">
+                {isCampaignClosed ? 'Archive' : 'Campagne'}
+              </span>
             </div>
             <select 
               value={selectedCampaign} 

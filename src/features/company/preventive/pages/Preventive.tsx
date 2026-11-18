@@ -25,7 +25,7 @@ export const Preventive: React.FC<PreventiveProps> = ({
   newPlanEquipmentId,
   onClearNewPlanEquipmentId,
 }) => {
-  const { equipments, technicians } = useGmao();
+  const { equipments, technicians, isCampaignClosed, selectedCampaign } = useGmao();
   const dispatch = useAppDispatch();
   const { can } = usePermissions();
 
@@ -75,6 +75,10 @@ export const Preventive: React.FC<PreventiveProps> = ({
   // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handleGenererOT = async (plan: PlanPreventif) => {
+    if (isCampaignClosed) {
+      showToast(`Action verrouillée : la ${selectedCampaign} est clôturée (Mode Archive en lecture seule).`, 'error');
+      return;
+    }
     try {
       const numero = await triggerOT(plan);
       showToast(`✅ OT créé : ${numero}`, 'success');
@@ -87,6 +91,10 @@ export const Preventive: React.FC<PreventiveProps> = ({
   };
 
   const handleDropOnDay = (dateStr: string) => {
+    if (isCampaignClosed) {
+      showToast(`Action verrouillée : la ${selectedCampaign} est en mode archive.`, 'error');
+      return;
+    }
     if (!activeDragPlan || !dateStr) return;
     
     setConfirmRescheduleData({ planId: activeDragPlan.id, dateStr });
@@ -94,6 +102,10 @@ export const Preventive: React.FC<PreventiveProps> = ({
   };
 
   const handleSavePlan = async (dto: CreatePlanDto) => {
+    if (isCampaignClosed) {
+      showToast(`Action verrouillée : la ${selectedCampaign} est clôturée (Mode Archive).`, 'error');
+      return;
+    }
     try {
       if (editingPlan) {
         await editPlan(editingPlan.id, dto);
@@ -109,7 +121,14 @@ export const Preventive: React.FC<PreventiveProps> = ({
     }
   };
 
-  const handleOpenCreate = () => { setEditingPlan(null); setShowModal(true); };
+  const handleOpenCreate = () => { 
+    if (isCampaignClosed) {
+      showToast(`Action verrouillée : la ${selectedCampaign} est clôturée.`, 'error');
+      return;
+    }
+    setEditingPlan(null); 
+    setShowModal(true); 
+  };
 
   const handleOpenEdit = (plan: PlanPreventif) => {
     setEditingPlan(plan);

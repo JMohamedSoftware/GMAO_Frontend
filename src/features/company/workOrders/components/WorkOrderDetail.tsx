@@ -38,7 +38,7 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
   updateWorkOrderStatus
 }) => {
   const { can, isManagerLevel, isChefEquipe, isTechnicien, isAdmin } = usePermissions();
-  const { currentUser, incidents, users, equipes, addPartMovement } = useGmao();
+  const { currentUser, incidents, users, equipes, addPartMovement, isCampaignClosed } = useGmao();
   const auth = useAuth();
   const myUserId = auth.currentUser?.id ?? currentUser?.id;
 
@@ -207,15 +207,15 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
   
   const isMyOtAsTech  = String(activeOt.technicianId) === String(myUserId);
 
-  const canSubmit     = (isManagerLevel || isAdmin) && isDraft;
-  const canAssignChef = (isManagerLevel || isAdmin) && (activeOt.status === 'En attente' || activeOt.status === 'Brouillon');
-  const canAssignTech = (isChefEquipe || isManagerLevel || isAdmin) && activeOt.status === 'Affecté Chef';
-  const canStart      = (can(PERMISSIONS.WORKORDER_START,   otOwnerIds) || isMyOtAsTech) && activeOt.status === 'Affecté';
-  const canSuspend    = (can(PERMISSIONS.WORKORDER_SUSPEND, otOwnerIds) || isMyOtAsTech) && activeOt.status === 'En cours';
-  const canResume     = (can(PERMISSIONS.WORKORDER_START,   otOwnerIds) || isMyOtAsTech) && activeOt.status === 'Suspendu';
-  const canFinish     = (can(PERMISSIONS.WORKORDER_FINISH,  otOwnerIds) || isMyOtAsTech) && activeOt.status === 'En cours';
-  const canClose      = (can(PERMISSIONS.WORKORDER_CLOSE) || isMyOtAsTech) && activeOt.status === 'Terminé';
-  const canEditReport = (isTechnicien || isChefEquipe || isManagerLevel || isAdmin) &&
+  const canSubmit     = !isCampaignClosed && (isManagerLevel || isAdmin) && isDraft;
+  const canAssignChef = !isCampaignClosed && (isManagerLevel || isAdmin) && (activeOt.status === 'En attente' || activeOt.status === 'Brouillon');
+  const canAssignTech = !isCampaignClosed && (isChefEquipe || isManagerLevel || isAdmin) && activeOt.status === 'Affecté Chef';
+  const canStart      = !isCampaignClosed && (can(PERMISSIONS.WORKORDER_START,   otOwnerIds) || isMyOtAsTech) && activeOt.status === 'Affecté';
+  const canSuspend    = !isCampaignClosed && (can(PERMISSIONS.WORKORDER_SUSPEND, otOwnerIds) || isMyOtAsTech) && activeOt.status === 'En cours';
+  const canResume     = !isCampaignClosed && (can(PERMISSIONS.WORKORDER_START,   otOwnerIds) || isMyOtAsTech) && activeOt.status === 'Suspendu';
+  const canFinish     = !isCampaignClosed && (can(PERMISSIONS.WORKORDER_FINISH,  otOwnerIds) || isMyOtAsTech) && activeOt.status === 'En cours';
+  const canClose      = !isCampaignClosed && (can(PERMISSIONS.WORKORDER_CLOSE) || isMyOtAsTech) && activeOt.status === 'Terminé';
+  const canEditReport = !isCampaignClosed && (isTechnicien || isChefEquipe || isManagerLevel || isAdmin) &&
     ['En cours', 'Suspendu', 'Terminé'].includes(activeOt.status);
   const canAddParts   = canEditReport;
 
@@ -358,6 +358,12 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
             {activeOt.numeroOT || activeOt.id} · {activeOt.type}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            {isCampaignClosed && (
+              <span className="flex items-center gap-1.5 text-xs font-bold text-amber-700 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800">
+                <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                Mode Archive — Lecture seule
+              </span>
+            )}
             {/* Soumettre (Brouillon → En attente) */}
             {canSubmit && (
               <button
