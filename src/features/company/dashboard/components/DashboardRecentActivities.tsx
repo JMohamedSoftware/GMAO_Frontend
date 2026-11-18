@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Equipment, Incident } from '@/shared/types/gmao';
+import { equipmentDisplayCode } from '@/shared/utils/displayNumbers';
 
 interface DashboardRecentActivitiesProps {
   equipments: Equipment[];
@@ -65,9 +66,15 @@ export const DashboardRecentActivities: React.FC<DashboardRecentActivitiesProps>
               className="p-2 bg-white/50 dark:bg-slate-900/15 border border-slate-200 dark:border-slate-800 rounded-lg outline-none font-semibold text-slate-800 dark:text-slate-200"
             >
               <option value="" className="dark:bg-slate-900">Sélectionner la machine...</option>
-              {equipments.map(e => (
-                <option key={e.id} value={e.id} className="dark:bg-slate-900">{e.name} ({e.id})</option>
-              ))}
+              {equipments.map(e => {
+                const code = e.code && e.code !== e.name ? e.code : equipmentDisplayCode(e, equipments);
+                const loc = e.localisation?.nom || (e as any).localisationNom || e.location;
+                return (
+                  <option key={e.id} value={e.id} className="dark:bg-slate-900">
+                    {e.name} [Code : {code}]{loc ? ` • ${loc}` : ''}
+                  </option>
+                );
+              })}
             </select>
           </div>
 

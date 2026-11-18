@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { AlertCircle, CheckCircle2, X } from 'lucide-react';
 import { useGmao } from '@/shared/hooks/useGmao';
+import { equipmentDisplayCode } from '@/shared/utils/displayNumbers';
 
 interface IncidentModalContextType {
   openIncidentModal: (equipmentId?: string) => void;
@@ -98,9 +99,15 @@ export const IncidentModalProvider: React.FC<{ children: ReactNode }> = ({ child
                     className="p-2 border border-slate-200 dark:border-slate-800 rounded bg-transparent text-slate-800 dark:text-slate-100 focus:border-primary outline-none dark:bg-slate-900"
                   >
                     <option value="">Choisir la machine...</option>
-                    {equipments.map(e => (
-                      <option key={e.id} value={e.id}>{e.name} ({e.id}) • {e.localisation?.nom || 'Non spécifié'}</option>
-                    ))}
+                    {equipments.map(e => {
+                      const code = e.code && e.code !== e.name ? e.code : equipmentDisplayCode(e, equipments);
+                      const loc = e.localisation?.nom || (e as any).localisationNom || e.location;
+                      return (
+                        <option key={e.id} value={e.id}>
+                          {e.name} [Code : {code}]{loc ? ` • ${loc}` : ''}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
 

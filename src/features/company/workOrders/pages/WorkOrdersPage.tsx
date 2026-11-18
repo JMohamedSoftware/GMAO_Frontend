@@ -304,7 +304,7 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
             <option value="All">Tous les types</option>
             <option value="Correctif">Correctif</option>
             <option value="Préventif">Préventif</option>
-            <option value="Curatif">Curatif</option>
+            <option value="Curatif" style={{display:'none'}}>Curatif</option>
             <option value="Amélioratif">Amélioratif</option>
           </select>
 
