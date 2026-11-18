@@ -1,36 +1,36 @@
-import { apiClient } from '@/shared/services/apiClient';
+/**
+ * ============================================================================
+ * MODULE : Fournisseurs & Prestataires (Suppliers) - Service Métier
+ * ============================================================================
+ */
 
-export interface SupplierDto {
-  id?: number;
-  nom: string;
-  contact?: string;
-  telephone?: string;
-  email?: string;
-  adresse?: string;
-}
+import { 
+  fetchSuppliersApiCall, 
+  fetchSupplierByIdApiCall, 
+  createSupplierApiCall, 
+  updateSupplierApiCall, 
+  deleteSupplierApiCall 
+} from '../api/supplier.api';
+import { CreateSupplierDto, UpdateSupplierDto } from '../types/supplier.types';
 
 export const supplierService = {
   getAll: async () => {
-    const res = await apiClient.get('/api/Fournisseurs');
-    return res.data;
+    return await fetchSuppliersApiCall();
   },
 
   getById: async (id: number | string) => {
-    const res = await apiClient.get(`/api/Fournisseurs/${id}`);
-    return res.data;
+    return await fetchSupplierByIdApiCall(id);
   },
 
-  create: async (dto: SupplierDto) => {
-    const res = await apiClient.post('/api/Fournisseurs', dto);
-    return res.data;
+  create: async (dto: CreateSupplierDto) => {
+    return await createSupplierApiCall(dto);
   },
 
-  update: async (id: number | string, dto: Partial<SupplierDto>) => {
-    const res = await apiClient.put(`/api/Fournisseurs/${id}`, { id, ...dto });
-    return res.data;
+  update: async (id: number | string, dto: Partial<UpdateSupplierDto>) => {
+    return await updateSupplierApiCall(id, dto);
   },
 
   delete: async (id: number | string) => {
-    await apiClient.delete(`/api/Fournisseurs/${id}`);
+    await deleteSupplierApiCall(id);
   }
 };

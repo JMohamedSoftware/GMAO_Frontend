@@ -1,68 +1,71 @@
-import { apiClient } from '@/shared/services/apiClient';
+/**
+ * ============================================================================
+ * MODULE : Magasin & Pièces de Rechange (Inventory) - Service Métier
+ * ============================================================================
+ * Encapsule la gestion du stock :
+ * - Gestion du catalogue des pièces et seuils d'alerte (Stock min)
+ * - Mouvements d'entrée et de sortie sur ordre de travail
+ * - Valorisation financière du stock
+ */
 
-export interface SparePartDto {
-  id?: number;
-  reference: string;
-  designation: string;
-  famillePieceId?: number;
-  stockActuel: number;
-  stockMinimum: number;
-  prixUnitaire: number;
-  emplacement?: string;
-  fournisseurId?: number;
-}
-
-export interface StockMovementDto {
-  pieceId: number;
-  typeMouvement: number; // 1 = Entree, 2 = Sortie, 3 = Retour, 4 = Casse, 5 = Inventaire
-  quantite: number;
-  date?: string;
-  ordreTravailId?: number | null;
-  utilisateurId?: number | null;
-  commentaire?: string;
-}
+import { 
+  fetchPartsApiCall, 
+  fetchPartByIdApiCall, 
+  createPartApiCall, 
+  updatePartApiCall, 
+  deletePartApiCall,
+  fetchStockMovementsApiCall,
+  createStockMovementApiCall
+} from '../api/inventory.api';
+import { CreateSparePartDto, CreateStockMovementDto } from '../types/inventory.types';
 
 export const inventoryService = {
+  /**
+   * Récupère la liste de toutes les pièces en stock
+   */
   getParts: async () => {
-    const res = await apiClient.get('/api/Pieces');
-    return res.data;
+    return await fetchPartsApiCall();
   },
 
+  /**
+   * Récupère une pièce par son ID
+   */
   getPartById: async (id: number | string) => {
-    const res = await apiClient.get(`/api/Pieces/${id}`);
-    return res.data;
+    return await fetchPartByIdApiCall(id);
   },
 
-  createPart: async (dto: SparePartDto) => {
-    const res = await apiClient.post('/api/Pieces', dto);
-    return res.data;
+  /**
+   * Crée une nouvelle pièce dans le magasin
+   */
+  createPart: async (dto: CreateSparePartDto) => {
+    return await createPartApiCall(dto);
   },
 
-  updatePart: async (id: number | string, dto: Partial<SparePartDto>) => {
-    const res = await apiClient.put(`/api/Pieces/${id}`, { id, ...dto });
-    return res.data;
+  /**
+   * Met à jour les paramètres d'une pièce
+   */
+  updatePart: async (id: number | string, dto: Partial<CreateSparePartDto>) => {
+    return await updatePartApiCall(id, dto);
   },
 
+  /**
+   * Supprime une référence de pièce
+   */
   deletePart: async (id: number | string) => {
-    await apiClient.delete(`/api/Pieces/${id}`);
+    await deletePartApiCall(id);
   },
 
+  /**
+   * Récupère l'historique des mouvements de stock
+   */
   getMovements: async () => {
-    const res = await apiClient.get('/api/MouvementsStock');
-    return res.data;
+    return await fetchStockMovementsApiCall();
   },
 
-  createMovement: async (dto: StockMovementDto) => {
-    const userStr = localStorage.getItem('gmao_current_user');
-    const userObj = userStr ? JSON.parse(userStr) : null;
-    const currentUserId = userObj?.id ? parseInt(userObj.id, 10) : 1;
-
-    const payload = {
-      ...dto,
-      utilisateurId: dto.utilisateurId || currentUserId
-    };
-
-    const res = await apiClient.post('/api/MouvementsStock', payload);
-    return res.data;
+  /**
+   * Enregistre un mouvement de stock
+   */
+  createMovement: async (dto: CreateStockMovementDto) => {
+    return await createStockMovementApiCall(dto);
   }
 };
