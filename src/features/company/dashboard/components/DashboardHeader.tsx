@@ -37,6 +37,10 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-50 text-blue-600 border border-blue-100 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900/40">
               {badgeLabel}
             </span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/40 flex items-center gap-1 shadow-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              {selectedCampaign || 'Campagne 2026'}
+            </span>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Vue globale de votre usine et de la maintenance en temps réel

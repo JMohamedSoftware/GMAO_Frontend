@@ -132,13 +132,40 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate }) =
             />
             <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
           </div>
-          <div className="text-center mt-1 hidden sm:block px-1">
+          <div className="text-center mt-1 hidden sm:block px-1 w-full">
             <h1 
-              className="font-black text-xs tracking-tight text-slate-800 dark:text-white leading-tight line-clamp-2 max-w-[120px]"
+              className="font-black text-xs tracking-tight text-slate-800 dark:text-white leading-tight line-clamp-2 max-w-[120px] mx-auto"
               title={currentUser?.tenantName || currentUser?.company || currentTenant?.name || 'POMODORO'}
             >
               {currentUser?.tenantName || currentUser?.company || currentTenant?.name || 'POMODORO'}
             </h1>
+
+            {/* Année / Campagne sous le nom de l'entreprise */}
+            {(!isSuperAdmin || isImpersonating) && (
+              <div className="mt-1.5 w-full flex flex-col items-center">
+                <div className="relative group w-full flex justify-center">
+                  <select 
+                    value={selectedCampaign} 
+                    onChange={(e) => setSelectedCampaign(e.target.value)}
+                    title="Campagne / Saison active"
+                    className="text-[9px] font-black text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/30 rounded-full px-2 py-0.5 outline-none cursor-pointer text-center appearance-none hover:bg-emerald-500/20 transition-all max-w-[120px]"
+                  >
+                    {campaigns && campaigns.length > 0 ? (
+                      campaigns.map(c => (
+                        <option key={c.id || c.name} value={c.name} className="dark:bg-slate-900 text-slate-800 dark:text-slate-100">
+                          {c.name} {c.status ? `(${c.status})` : ''}
+                        </option>
+                      ))
+                    ) : (
+                      <>
+                        <option value="Campagne 2026" className="dark:bg-slate-900 text-slate-800 dark:text-slate-100">Campagne 2026 (En cours)</option>
+                        <option value="Campagne 2025" className="dark:bg-slate-900 text-slate-800 dark:text-slate-100">Campagne 2025 (Clôturée)</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
