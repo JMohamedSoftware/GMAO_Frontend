@@ -911,7 +911,7 @@ export const SuperAdminMonitoring: React.FC = () => {
 
               {/* Stockage */}
               <div className="p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80">
-                <div className="text-[10px] text-slate-400 font-medium">Stockage</div>
+                <div className="text-[10px] text-slate-400 font-medium">Stockage Base & Fichiers</div>
                 <div className="text-sm font-black text-slate-800 dark:text-white mt-0.5">
                   {selectedTenant.storageUsed} GB / {selectedTenant.storageLimit} GB
                 </div>
@@ -923,6 +923,40 @@ export const SuperAdminMonitoring: React.FC = () => {
                 </div>
                 <div className="text-right text-[10px] font-bold text-amber-500 mt-1">
                   {Math.round((selectedTenant.storageUsed / selectedTenant.storageLimit) * 100)}%
+                </div>
+              </div>
+
+              {/* Périphériques & IoT */}
+              <div className="p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80">
+                <div className="text-[10px] text-slate-400 font-medium">Périphériques & Capteurs IoT</div>
+                <div className="text-sm font-black text-slate-800 dark:text-white mt-0.5">
+                  18 / 30 Appareils
+                </div>
+                <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mt-2 overflow-hidden">
+                  <div
+                    style={{ width: '60%' }}
+                    className="h-full bg-cyan-500 rounded-full"
+                  />
+                </div>
+                <div className="text-right text-[10px] font-bold text-cyan-500 mt-1">
+                  60% (10 Tab • 5 Scan • 3 IoT)
+                </div>
+              </div>
+
+              {/* Quantité Données & Enregistrements */}
+              <div className="p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80">
+                <div className="text-[10px] text-slate-400 font-medium">Volume Données & Lignes DB</div>
+                <div className="text-sm font-black text-slate-800 dark:text-white mt-0.5">
+                  34,800 Enregistrements
+                </div>
+                <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mt-2 overflow-hidden">
+                  <div
+                    style={{ width: '45%' }}
+                    className="h-full bg-indigo-500 rounded-full"
+                  />
+                </div>
+                <div className="text-right text-[10px] font-bold text-indigo-500 mt-1">
+                  ~142k Appels API / mois
                 </div>
               </div>
             </div>

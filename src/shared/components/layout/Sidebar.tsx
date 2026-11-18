@@ -27,7 +27,9 @@ import {
   Home,
   Factory,
   ShieldCheck,
-  Archive
+  Archive,
+  RotateCcw,
+  Calendar
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -86,13 +88,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate }) =
   const superAdminMenuItems = [
     { id: 'saas-dashboard', label: 'Tableau de bord', icon: Home },
     { id: 'saas-tenants', label: 'Entreprises', icon: Building2 },
+    { id: 'saas-campaigns', label: 'Campagnes Usines', icon: Calendar },
+    { id: 'saas-monitoring', label: 'Consommation & Quotas', icon: Activity },
+    { id: 'saas-redologs', label: 'Redo Logs & Rollback', icon: RotateCcw },
+    { id: 'saas-logs', label: 'Journaux d’activité', icon: Layers },
     { id: 'saas-sites', label: 'Sites & Usines', icon: Factory },
     { id: 'saas-plans', label: 'Plans & Offres', icon: Package },
     { id: 'saas-billing', label: 'Abonnements', icon: ShieldCheck },
     { id: 'saas-users', label: 'Utilisateurs', icon: UsersRound },
     { id: 'saas-invoices', label: 'Facturation', icon: CreditCard },
-    { id: 'saas-monitoring', label: 'Suivi d’utilisation', icon: Activity },
-    { id: 'saas-logs', label: 'Journaux d’activité', icon: Layers },
     { id: 'saas-settings', label: 'Paramètres', icon: Settings }
   ];
 

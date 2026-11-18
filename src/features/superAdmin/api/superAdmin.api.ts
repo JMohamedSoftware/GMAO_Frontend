@@ -431,6 +431,24 @@ export const superAdminApi = {
       body: JSON.stringify(settings)
     }),
 
+  // 11. Multi-Tenant Campaigns (Campagnes Saisonnières)
+  getCampaigns: (fallback?: any[]) =>
+    safeApiCall<any[]>('/superadmin/campaigns', undefined, fallback),
+
+  // 12. Redo Logs & Rollback
+  getRedoLogs: (params?: { societeId?: number; entityType?: string }, fallback?: any[]) => {
+    const searchParams = new URLSearchParams();
+    if (params?.societeId) searchParams.set('societeId', String(params.societeId));
+    if (params?.entityType) searchParams.set('entityType', params.entityType);
+    const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    return safeApiCall<any[]>(`/superadmin/redologs${query}`, undefined, fallback);
+  },
+
+  rollbackRedoLog: (id: string) =>
+    safeApiCall<{ success: boolean; message: string; rolledBackId?: string }>(`/superadmin/redologs/${id}/rollback`, {
+      method: 'POST'
+    }),
+
   // Seeding
   seedData: () =>
     safeApiCall<{ message: string }>('/superadmin/seed', { method: 'POST' })

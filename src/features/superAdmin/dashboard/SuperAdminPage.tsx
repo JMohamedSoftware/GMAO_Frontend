@@ -10,10 +10,12 @@ import { SuperAdminUsers } from '@/features/superAdmin/users/SuperAdminUsers';
 import { SuperAdminMonitoring } from '@/features/superAdmin/monitoring/SuperAdminMonitoring';
 import { SuperAdminLogs } from '@/features/superAdmin/logs/SuperAdminLogs';
 import { SuperAdminSettings } from '@/features/superAdmin/settings/SuperAdminSettings';
+import { SuperAdminCampaigns } from '@/features/superAdmin/campaigns/SuperAdminCampaigns';
+import { SuperAdminRedoLogs } from '@/features/superAdmin/redologs/SuperAdminRedoLogs';
 import { CreateTenantWizard } from '@/features/superAdmin/createtenantwizard/CreateTenantWizard';
 
 interface SuperAdminProps {
-  activeTab?: 'dashboard' | 'tenants' | 'sites' | 'plans' | 'billing' | 'users' | 'invoices' | 'monitoring' | 'logs' | 'settings';
+  activeTab?: 'dashboard' | 'tenants' | 'sites' | 'plans' | 'billing' | 'users' | 'invoices' | 'monitoring' | 'logs' | 'settings' | 'campaigns' | 'redologs';
 }
 
 export const SuperAdmin: React.FC<SuperAdminProps> = ({ activeTab = 'dashboard' }) => {
@@ -102,6 +104,9 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({ activeTab = 'dashboard' 
             refreshTrigger={tenantsRefreshKey}
           />
         )}
+
+        {activeTab === 'campaigns' && <SuperAdminCampaigns />}
+        {activeTab === 'redologs' && <SuperAdminRedoLogs />}
 
         {activeTab === 'users' && <SuperAdminUsers />}
 
