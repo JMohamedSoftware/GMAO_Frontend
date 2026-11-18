@@ -238,7 +238,7 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
   const [col3Tab, setCol3Tab] = useState<'di' | 'ot'>('di');
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
-  const { currentUser, currentTenantId, tenants } = useGmao();
+  const { currentUser, currentTenantId, tenants, selectedCampaign } = useGmao();
   const currentTenant = tenants.find(t => t.id === currentTenantId);
   const companyName = currentUser?.tenantName || currentUser?.company || currentTenant?.name || 'Votre Entreprise';
   const isPomodoro = currentTenantId === 'tenant-midi' || (currentTenant?.name || '').toLowerCase().includes('pomodoro');
@@ -599,7 +599,7 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
 
                 {/* Campagne Badge */}
                 <span className="absolute bottom-2.5 left-2.5 px-2 py-0.5 rounded-md text-[9px] font-extrabold bg-slate-900/80 text-white backdrop-blur-sm">
-                  Campagne 2026
+                  {selectedCampaign || 'Campagne en cours'}
                 </span>
               </div>
 
