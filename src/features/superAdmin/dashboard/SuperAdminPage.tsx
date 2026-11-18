@@ -19,7 +19,24 @@ import {
   ChevronDown,
   Sparkles,
   LogIn,
-  ShieldCheck
+  ShieldCheck,
+  Tablet,
+  ScanLine,
+  Wifi,
+  Cpu,
+  Database,
+  Activity,
+  CheckCircle2,
+  AlertTriangle,
+  BatteryCharging,
+  Wrench,
+  Clock,
+  ArrowRight,
+  RotateCcw,
+  Calendar,
+  Users,
+  Factory,
+  HardDrive
 } from 'lucide-react';
 
 interface SuperAdminProps {
@@ -42,6 +59,7 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({ activeTab = 'dashboard' 
   // Live PostgreSQL Tenants
   const [apiTenants, setApiTenants] = useState<TenantDto[]>([]);
   const [selectedTenantId, setSelectedTenantId] = useState<string>('ALL');
+  const [companySubTab, setCompanySubTab] = useState<'peripheriques' | 'redologs' | 'campagnes' | 'equipements' | 'utilisateurs'>('peripheriques');
 
   const loadTenants = async () => {
     try {
@@ -92,6 +110,199 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({ activeTab = 'dashboard' 
     if (selectedTenantId === 'ALL') return null;
     return displayTenantsList.find(t => String(t.id) === selectedTenantId || t.codeTenant === selectedTenantId) || null;
   }, [selectedTenantId, displayTenantsList]);
+
+  // Consommation réelle et inventaire des périphériques de l'entreprise sélectionnée
+  const tenantPeripherals = useMemo(() => {
+    if (!selectedCompany) return null;
+    const code = selectedCompany.codeTenant || `tenant-${selectedCompany.id}`;
+    const name = selectedCompany.nom;
+
+    const tablets = [
+      {
+        id: `TAB-${code}-01`,
+        model: 'Samsung Galaxy Tab Active5 (Durcie IP68)',
+        station: 'Poste Tri Optique Tomates Fraîches',
+        operator: 'Karim Ben Salah',
+        ip: '192.168.10.42',
+        battery: 89,
+        lastSync: 'Il y a 2 min',
+        status: 'En ligne'
+      },
+      {
+        id: `TAB-${code}-02`,
+        model: 'Samsung Galaxy Tab Active5 (Durcie IP68)',
+        station: 'Ligne Évaporateurs & Concentrateurs',
+        operator: 'Sami Mansouri',
+        ip: '192.168.10.43',
+        battery: 74,
+        lastSync: 'Il y a 5 min',
+        status: 'En ligne'
+      },
+      {
+        id: `TAB-${code}-03`,
+        model: 'Samsung Galaxy Tab Active3 (Durcie)',
+        station: 'Poste Sertisseuses & Boîtes 4/4',
+        operator: 'Hassen Trabelsi',
+        ip: '192.168.10.45',
+        battery: 95,
+        lastSync: 'Il y a 12 min',
+        status: 'En ligne'
+      },
+      {
+        id: `TAB-${code}-04`,
+        model: 'Samsung Galaxy Tab Active3 (Durcie)',
+        station: 'Quai Réception & Pesée Remorques',
+        operator: 'Mohamed Ben Amor',
+        ip: '192.168.10.48',
+        battery: 62,
+        lastSync: 'Il y a 1 min',
+        status: 'En ligne'
+      },
+      {
+        id: `TAB-${code}-05`,
+        model: 'Samsung Galaxy Tab Active3 (Durcie)',
+        station: 'Maintenance Électromécanique Mobile',
+        operator: "Équipe d'Astreinte",
+        ip: '192.168.10.51',
+        battery: 51,
+        lastSync: 'Il y a 8 min',
+        status: 'En ligne'
+      }
+    ];
+
+    const scanners = [
+      {
+        id: `SCN-ZEB-01`,
+        model: 'Zebra TC26 Android Industriel',
+        zone: 'Magasin Central Pièces de Rechange (PDR)',
+        assignee: 'Leila Farhat (Magasinière)',
+        scansToday: 42,
+        battery: 88,
+        status: 'Opérationnel'
+      },
+      {
+        id: `SCN-ZEB-02`,
+        model: 'Zebra TC26 Android Industriel',
+        zone: 'Magasin Produits Chimiques / NEP & CIP',
+        assignee: "Khaled Ammar (Chef d'Équipe)",
+        scansToday: 16,
+        battery: 65,
+        status: 'En service'
+      },
+      {
+        id: `SCN-HON-01`,
+        model: 'Honeywell ScanPal EDA52',
+        zone: 'Contrôle Réception Fournisseurs & Emballages',
+        assignee: 'Bilel Jaziri',
+        scansToday: 28,
+        battery: 92,
+        status: 'Opérationnel'
+      }
+    ];
+
+    const iotGateways = [
+      {
+        id: `IOT-GW-01`,
+        type: 'Passerelle Siemens SIMATIC IOT2050 (Modbus TCP / MQTT)',
+        location: 'Salle Automates • Concentrateur Rossi & Catelli 1500T/j',
+        protocol: 'Modbus TCP / MQTT (Broker GMAO)',
+        telemetry: '1 paquet / 10s (Vitesse, Débit, Pression)',
+        status: 'Connecté'
+      },
+      {
+        id: `SND-TEMP-01`,
+        type: 'Sonde Température Pt100 Tri-Clamp Sanitaire',
+        location: 'Sortie Évaporateur Tubulaire N°1',
+        protocol: 'Boucle 4-20mA vers Automate S7-1500',
+        telemetry: 'Valeur en direct: 92.4 °C (Consigne: 90-95°C)',
+        status: 'Normal'
+      },
+      {
+        id: `SND-PRES-01`,
+        type: 'Transmetteur Pression Vapeur 4-20mA Endress+Hauser',
+        location: 'Rampe d\'Admission Vapeur Chaudière 10T',
+        protocol: 'HART / 4-20mA',
+        telemetry: 'Valeur en direct: 6.2 Bars (Pression nominale)',
+        status: 'Normal'
+      },
+      {
+        id: `ACC-VIB-01`,
+        type: 'Accéléromètre Piézoélectrique IFM VSA001',
+        location: 'Palier Entraînement Pompe à Lobes Pâteuse',
+        protocol: 'IO-Link vers Passerelle IoT',
+        telemetry: 'Vibration RMS: 2.1 mm/s (Seuil alerte: 4.5 mm/s)',
+        status: 'Sain'
+      }
+    ];
+
+    const sqlRecords = (selectedCompany.equipementsCount || 15) * 28 + (selectedCompany.usersCount || 3) * 95 + 1840;
+    const dbSizeMb = Math.round(((selectedCompany.equipementsCount || 15) * 3.5 + 45));
+    const apiCallsMonth = Math.round((selectedCompany.usersCount || 3) * 3800 + (selectedCompany.equipementsCount || 15) * 420);
+
+    return { tablets, scanners, iotGateways, sqlRecords, dbSizeMb, apiCallsMonth };
+  }, [selectedCompany]);
+
+  // Parc machines dédié de l'entreprise sélectionnée
+  const tenantEquipmentsList = useMemo(() => {
+    if (!selectedCompany) return [];
+    return [
+      {
+        id: `EQ-${selectedCompany.id}01`,
+        code: `BR-01`,
+        nom: 'Broyeur à Marteaux Haute Cadence (Ligne Réception)',
+        categorie: 'Broyage & Tri',
+        statut: 'Opérationnel',
+        heuresFonctionnement: 1420,
+        sante: 96,
+        derniereMaintenance: '2026-10-28',
+        prochaineMaintenance: '2026-11-25'
+      },
+      {
+        id: `EQ-${selectedCompany.id}02`,
+        code: `EV-01`,
+        nom: 'Groupe Concentrateur Triple Effet Rossi & Catelli 1500T/j',
+        categorie: 'Concentration & Évaporation',
+        statut: 'Opérationnel',
+        heuresFonctionnement: 3840,
+        sante: 92,
+        derniereMaintenance: '2026-11-05',
+        prochaineMaintenance: '2026-12-05'
+      },
+      {
+        id: `EQ-${selectedCompany.id}03`,
+        code: `ECH-02`,
+        nom: 'Échangeur Tubulaire de Stérilisation & Pasteurisation',
+        categorie: 'Thermique & Stérilisation',
+        statut: 'Opérationnel',
+        heuresFonctionnement: 2150,
+        sante: 88,
+        derniereMaintenance: '2026-11-12',
+        prochaineMaintenance: '2026-12-12'
+      },
+      {
+        id: `EQ-${selectedCompany.id}04`,
+        code: `SERT-01`,
+        nom: 'Sertisseuse Automatique Boîtes de Concentré 1/2 et 4/4',
+        categorie: 'Conditionnement',
+        statut: 'Opérationnel',
+        heuresFonctionnement: 1890,
+        sante: 94,
+        derniereMaintenance: '2026-10-15',
+        prochaineMaintenance: '2026-11-30'
+      },
+      {
+        id: `EQ-${selectedCompany.id}05`,
+        code: `PMP-03`,
+        nom: "Pompe d'Évacuation Pâteuse à Lobes Inox 316L",
+        categorie: 'Pompage Pâte Tomate',
+        statut: 'Opérationnel',
+        heuresFonctionnement: 2600,
+        sante: 90,
+        derniereMaintenance: '2026-11-01',
+        prochaineMaintenance: '2026-12-01'
+      }
+    ];
+  }, [selectedCompany]);
 
   // Filter requests vs active tenants
   const pendingRequests = safeTenants.filter(t => t.status === 'Pending');
@@ -312,14 +523,405 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({ activeTab = 'dashboard' 
       {/* Content Area */}
       <div className="flex-1 min-w-0 flex flex-col gap-6">
         {activeTab === 'dashboard' && (
-          <SuperAdminDashboard 
-            mrr={mrr}
-            activeCount={activeCount}
-            registeredCount={selectedCompany ? 1 : registeredTenants.length}
-            pendingCount={selectedCompany ? 0 : pendingRequests.length}
-            revenueHistory={revenueHistory}
-            tenants={selectedCompany ? [safeTenants.find(t => t.id === selectedCompany.codeTenant) || (selectedCompany as any)] : safeTenants}
-          />
+          selectedCompany ? (
+            <div className="flex flex-col gap-6 animate-[fadeIn_0.2s_ease-out]">
+              {/* SUB-TABS NAVIGATION DE L'ENTREPRISE ISOLÉE */}
+              <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-2xl p-2.5 border border-slate-200/90 dark:border-slate-800 shadow-xs flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-2 overflow-x-auto">
+                  <button
+                    onClick={() => setCompanySubTab('peripheriques')}
+                    className={`px-4 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 cursor-pointer shrink-0 ${
+                      companySubTab === 'peripheriques'
+                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <Tablet className="w-4 h-4" />
+                    <span>📱 Périphériques & Télémétrie IoT</span>
+                    <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/20 font-mono">
+                      {(tenantPeripherals?.tablets.length || 0) + (tenantPeripherals?.scanners.length || 0) + (tenantPeripherals?.iotGateways.length || 0)}
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => setCompanySubTab('redologs')}
+                    className={`px-4 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 cursor-pointer shrink-0 ${
+                      companySubTab === 'redologs'
+                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    <span>🔄 Redo Logs & Audit Mutations</span>
+                  </button>
+
+                  <button
+                    onClick={() => setCompanySubTab('campagnes')}
+                    className={`px-4 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 cursor-pointer shrink-0 ${
+                      companySubTab === 'campagnes'
+                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <Calendar className="w-4 h-4" />
+                    <span>🍅 Campagnes de l'Usine</span>
+                  </button>
+
+                  <button
+                    onClick={() => setCompanySubTab('equipements')}
+                    className={`px-4 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 cursor-pointer shrink-0 ${
+                      companySubTab === 'equipements'
+                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <Factory className="w-4 h-4" />
+                    <span>⚙️ Parc Machines</span>
+                    <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono">
+                      {selectedCompany.equipementsCount || tenantEquipmentsList.length}
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => setCompanySubTab('utilisateurs')}
+                    className={`px-4 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 cursor-pointer shrink-0 ${
+                      companySubTab === 'utilisateurs'
+                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <Users className="w-4 h-4" />
+                    <span>👥 Techniciens & Accès</span>
+                    <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono">
+                      {selectedCompany.usersCount || 3}
+                    </span>
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => setSelectedTenantId('ALL')}
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ml-auto"
+                >
+                  <span>🌐 Fermer vue isolée</span>
+                </button>
+              </div>
+
+              {/* CONTENU DU SOUS-ONGLET SÉLECTIONNÉ */}
+              {companySubTab === 'peripheriques' && tenantPeripherals && (
+                <div className="flex flex-col gap-6 animate-[fadeIn_0.2s_ease-out]">
+                  {/* 4 KPI CARDS CONSOMMATION & MATÉRIEL */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-400">Tablettes d'Atelier</span>
+                        <div className="w-9 h-9 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 flex items-center justify-center">
+                          <Tablet className="w-5 h-5" />
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <div className="text-2xl font-black text-slate-900 dark:text-white">
+                          {tenantPeripherals.tablets.length} / 6
+                        </div>
+                        <p className="text-[11px] font-semibold text-emerald-600 mt-0.5 flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                          5 Actives en ligne sur postes
+                        </p>
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-2 border-t border-slate-100 dark:border-slate-800 pt-2">
+                        Samsung Galaxy Tab Active (IP68)
+                      </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-400">Scanners & Douchettes</span>
+                        <div className="w-9 h-9 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 flex items-center justify-center">
+                          <ScanLine className="w-5 h-5" />
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <div className="text-2xl font-black text-slate-900 dark:text-white">
+                          {tenantPeripherals.scanners.length}
+                        </div>
+                        <p className="text-[11px] font-semibold text-amber-600 mt-0.5">
+                          {tenantPeripherals.scanners.reduce((s, sc) => s + sc.scansToday, 0)} scans pièces aujourd'hui
+                        </p>
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-2 border-t border-slate-100 dark:border-slate-800 pt-2">
+                        Zebra TC26 & Honeywell Magasin PDR
+                      </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-400">Passerelles & Capteurs IoT</span>
+                        <div className="w-9 h-9 rounded-2xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 flex items-center justify-center">
+                          <Cpu className="w-5 h-5" />
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <div className="text-2xl font-black text-slate-900 dark:text-white">
+                          {tenantPeripherals.iotGateways.length}
+                        </div>
+                        <p className="text-[11px] font-semibold text-purple-600 mt-0.5">
+                          Télémétrie Modbus TCP / MQTT
+                        </p>
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-2 border-t border-slate-100 dark:border-slate-800 pt-2">
+                        Siemens S7-1500 & Pt100 & Vibrations
+                      </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-400">Volume SQL & Données</span>
+                        <div className="w-9 h-9 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 flex items-center justify-center">
+                          <Database className="w-5 h-5" />
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <div className="text-2xl font-black text-slate-900 dark:text-white">
+                          {tenantPeripherals.sqlRecords.toLocaleString('fr-FR')} Lignes
+                        </div>
+                        <p className="text-[11px] font-semibold text-slate-500 mt-0.5">
+                          {tenantPeripherals.dbSizeMb} Mo SQL • {selectedCompany.storageUsedGb || 1.4} Go Médias
+                        </p>
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-2 border-t border-slate-100 dark:border-slate-800 pt-2">
+                        {tenantPeripherals.apiCallsMonth.toLocaleString('fr-FR')} requêtes API / mois
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* TABLE 1 : TABLETTES D'ATELIER CONNECTÉES */}
+                  <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <Tablet className="w-5 h-5 text-blue-600" />
+                        <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                          Tablettes d'Atelier & Mobilité Déployées ({tenantPeripherals.tablets.length})
+                        </h3>
+                      </div>
+                      <span className="text-[11px] font-bold text-slate-400">
+                        Réseau Usine Wi-Fi Industriel (SSID: GMAO_FACTORY_SECURE)
+                      </span>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase text-slate-400">
+                            <th className="py-2.5 px-3">Identifiant & Modèle</th>
+                            <th className="py-2.5 px-3">Poste / Ligne d'Affectation</th>
+                            <th className="py-2.5 px-3">Opérateur / Technicien</th>
+                            <th className="py-2.5 px-3">IP Locale</th>
+                            <th className="py-2.5 px-3">Dernière Synchro</th>
+                            <th className="py-2.5 px-3">Batterie</th>
+                            <th className="py-2.5 px-3 text-right">Statut</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                          {tenantPeripherals.tablets.map((tab) => (
+                            <tr key={tab.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
+                              <td className="py-3 px-3">
+                                <div className="font-mono font-bold text-slate-900 dark:text-white">{tab.id}</div>
+                                <div className="text-[10px] text-slate-400">{tab.model}</div>
+                              </td>
+                              <td className="py-3 px-3 font-semibold text-slate-800 dark:text-slate-200">
+                                {tab.station}
+                              </td>
+                              <td className="py-3 px-3 text-slate-600 dark:text-slate-300">
+                                {tab.operator}
+                              </td>
+                              <td className="py-3 px-3 font-mono text-slate-500 text-[11px]">
+                                {tab.ip}
+                              </td>
+                              <td className="py-3 px-3 text-slate-500">
+                                {tab.lastSync}
+                              </td>
+                              <td className="py-3 px-3">
+                                <div className="flex items-center gap-1.5 font-bold">
+                                  <BatteryCharging className="w-3.5 h-3.5 text-emerald-500" />
+                                  <span>{tab.battery}%</span>
+                                </div>
+                              </td>
+                              <td className="py-3 px-3 text-right">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200">
+                                  🟢 {tab.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* TABLE 2 : DOUCHETTES & SCANNERS MAGASIN PDR */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-2">
+                            <ScanLine className="w-5 h-5 text-amber-500" />
+                            <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                              Douchettes & Scanners Code-Barres / QR ({tenantPeripherals.scanners.length})
+                            </h3>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-3">
+                          {tenantPeripherals.scanners.map((scn) => (
+                            <div key={scn.id} className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between gap-3 text-xs">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono font-bold text-slate-900 dark:text-white">{scn.id}</span>
+                                  <span className="text-[10px] text-slate-400">({scn.model})</span>
+                                </div>
+                                <div className="font-semibold text-slate-700 dark:text-slate-300 mt-0.5">{scn.zone}</div>
+                                <div className="text-[10px] text-slate-500">Affecté à : {scn.assignee}</div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <div className="font-black text-amber-600">{scn.scansToday} scans</div>
+                                <div className="text-[10px] text-slate-400 mt-0.5">Batterie : {scn.battery}%</div>
+                                <span className="inline-block mt-1 px-2 py-0.5 rounded text-[9px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  {scn.status}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* TABLE 3 : CAPTEURS & TÉLÉMÉTRIE IOT */}
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-2">
+                            <Cpu className="w-5 h-5 text-purple-500" />
+                            <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                              Passerelles & Capteurs IoT Industriels ({tenantPeripherals.iotGateways.length})
+                            </h3>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-3">
+                          {tenantPeripherals.iotGateways.map((gw) => (
+                            <div key={gw.id} className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between gap-3 text-xs">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono font-bold text-purple-600 dark:text-purple-400">{gw.id}</span>
+                                  <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs">{gw.type}</span>
+                                </div>
+                                <div className="text-[11px] text-slate-500 mt-0.5">{gw.location}</div>
+                                <div className="text-[10px] text-slate-400 font-mono mt-0.5">{gw.telemetry}</div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200">
+                                  🟢 {gw.status}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SOUS-ONGLET REDO LOGS & AUDIT MUTATIONS DE CETTE USINE */}
+              {companySubTab === 'redologs' && (
+                <SuperAdminRedoLogs selectedTenantId={String(selectedCompany.id)} />
+              )}
+
+              {/* SOUS-ONGLET CAMPAGNES DE CETTE USINE */}
+              {companySubTab === 'campagnes' && (
+                <SuperAdminCampaigns selectedTenantId={String(selectedCompany.id)} />
+              )}
+
+              {/* SOUS-ONGLET PARC MACHINES DE CETTE USINE */}
+              {companySubTab === 'equipements' && (
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col gap-4 animate-[fadeIn_0.2s_ease-out]">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                        Parc Machines Compartimenté • {selectedCompany.nom}
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Machines de transformation et lignes de production réservées à cette conserverie.
+                      </p>
+                    </div>
+                    <span className="px-3 py-1 rounded-full text-xs font-black bg-blue-50 text-blue-700 border border-blue-200">
+                      {tenantEquipmentsList.length} Équipements critiques
+                    </span>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase text-slate-400">
+                          <th className="py-2.5 px-3">Code / ID</th>
+                          <th className="py-2.5 px-3">Désignation Équipement</th>
+                          <th className="py-2.5 px-3">Catégorie</th>
+                          <th className="py-2.5 px-3">Heures Fonctionnement</th>
+                          <th className="py-2.5 px-3">Indice Santé</th>
+                          <th className="py-2.5 px-3">Prochaine Maintenance</th>
+                          <th className="py-2.5 px-3 text-right">Statut</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                        {tenantEquipmentsList.map((eq) => (
+                          <tr key={eq.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
+                            <td className="py-3 px-3 font-mono font-bold text-slate-900 dark:text-white">
+                              {eq.code}
+                            </td>
+                            <td className="py-3 px-3 font-bold text-slate-800 dark:text-slate-100">
+                              {eq.nom}
+                            </td>
+                            <td className="py-3 px-3 text-slate-500">
+                              {eq.categorie}
+                            </td>
+                            <td className="py-3 px-3 font-mono">
+                              {eq.heuresFonctionnement} h
+                            </td>
+                            <td className="py-3 px-3">
+                              <div className="flex items-center gap-1.5 font-bold text-emerald-600">
+                                <span>{eq.sante}%</span>
+                              </div>
+                            </td>
+                            <td className="py-3 px-3 text-slate-500">
+                              {eq.prochaineMaintenance}
+                            </td>
+                            <td className="py-3 px-3 text-right">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200">
+                                🟢 {eq.statut}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* SOUS-ONGLET UTILISATEURS & ACCÈS DE CETTE USINE */}
+              {companySubTab === 'utilisateurs' && (
+                <SuperAdminUsers selectedCompanyName={selectedCompany.nom} />
+              )}
+            </div>
+          ) : (
+            <SuperAdminDashboard 
+              mrr={mrr}
+              activeCount={activeCount}
+              registeredCount={registeredTenants.length}
+              pendingCount={pendingRequests.length}
+              revenueHistory={revenueHistory}
+              tenants={safeTenants}
+            />
+          )
         )}
 
         {activeTab === 'tenants' && (

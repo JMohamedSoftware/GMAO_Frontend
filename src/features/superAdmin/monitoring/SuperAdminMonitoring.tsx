@@ -211,7 +211,10 @@ export const SuperAdminMonitoring: React.FC<SuperAdminMonitoringProps> = ({ sele
             };
           });
           setTenantsList(mapped);
-          if (mapped.length > 0) {
+          if (initialSelectedTenantId && initialSelectedTenantId !== 'ALL') {
+            const formatted = initialSelectedTenantId.startsWith('mon-') ? initialSelectedTenantId : `mon-${initialSelectedTenantId}`;
+            setSelectedTenantId(formatted);
+          } else if (mapped.length > 0 && !selectedTenantId) {
             setSelectedTenantId(mapped[0].id);
           }
         }
@@ -446,28 +449,23 @@ export const SuperAdminMonitoring: React.FC<SuperAdminMonitoringProps> = ({ sele
               <div className="flex justify-between"><span>0</span></div>
             </div>
 
-            {[
-              { name: 'SICAM', val: 60 },
-              { name: 'SFBT', val: 80 },
-              { name: 'POMODORO', val: 25 },
-              { name: 'Carthage SARL', val: 30 },
-              { name: 'Unimed', val: 50 },
-              { name: 'Carthage Grains', val: 45 },
-              { name: 'Autres', val: 22 }
-            ].map(item => (
-              <div key={item.name} className="flex-1 flex flex-col items-center gap-1 group relative z-10">
-                <div className="absolute -top-6 opacity-0 group-hover:opacity-100 transition-opacity px-1.5 py-0.5 rounded bg-slate-900 text-white text-[9px] font-bold pointer-events-none z-20 whitespace-nowrap">
-                  {item.val} util.
+            {tenantsList.slice(0, 7).map(item => {
+              const maxUsers = Math.max(10, ...tenantsList.map(t => t.usersUsed || 1));
+              return (
+                <div key={item.id} className="flex-1 flex flex-col items-center gap-1 group relative z-10">
+                  <div className="absolute -top-6 opacity-0 group-hover:opacity-100 transition-opacity px-1.5 py-0.5 rounded bg-slate-900 text-white text-[9px] font-bold pointer-events-none z-20 whitespace-nowrap">
+                    {item.usersUsed} util.
+                  </div>
+                  <div
+                    style={{ height: `${Math.min(100, Math.max(12, (item.usersUsed / maxUsers) * 100))}%` }}
+                    className="w-full max-w-[24px] bg-blue-500 group-hover:bg-blue-600 rounded-t transition-all"
+                  />
+                  <span className="text-[8px] font-semibold text-slate-400 truncate max-w-[45px] text-center -rotate-45 sm:rotate-0 mt-1">
+                    {item.name}
+                  </span>
                 </div>
-                <div
-                  style={{ height: `${(item.val / 80) * 100}%` }}
-                  className="w-full max-w-[24px] bg-blue-500 group-hover:bg-blue-600 rounded-t transition-all"
-                />
-                <span className="text-[8px] font-semibold text-slate-400 truncate max-w-[45px] text-center -rotate-45 sm:rotate-0 mt-1">
-                  {item.name}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -495,28 +493,23 @@ export const SuperAdminMonitoring: React.FC<SuperAdminMonitoringProps> = ({ sele
               <div className="flex justify-between"><span>0</span></div>
             </div>
 
-            {[
-              { name: 'SFBT', val: 500 },
-              { name: 'SICAM', val: 350 },
-              { name: 'Unimed', val: 320 },
-              { name: 'Carthage Grains', val: 280 },
-              { name: 'Carthage SARL', val: 180 },
-              { name: 'POMODORO', val: 150 },
-              { name: 'Autres', val: 105 }
-            ].map(item => (
-              <div key={item.name} className="flex-1 flex flex-col items-center gap-1 group relative z-10">
-                <div className="absolute -top-6 opacity-0 group-hover:opacity-100 transition-opacity px-1.5 py-0.5 rounded bg-slate-900 text-white text-[9px] font-bold pointer-events-none z-20 whitespace-nowrap">
-                  {item.val} équips.
+            {tenantsList.slice(0, 7).map(item => {
+              const maxEq = Math.max(20, ...tenantsList.map(t => t.equipmentsUsed || 1));
+              return (
+                <div key={item.id} className="flex-1 flex flex-col items-center gap-1 group relative z-10">
+                  <div className="absolute -top-6 opacity-0 group-hover:opacity-100 transition-opacity px-1.5 py-0.5 rounded bg-slate-900 text-white text-[9px] font-bold pointer-events-none z-20 whitespace-nowrap">
+                    {item.equipmentsUsed} équips.
+                  </div>
+                  <div
+                    style={{ height: `${Math.min(100, Math.max(12, (item.equipmentsUsed / maxEq) * 100))}%` }}
+                    className="w-full max-w-[24px] bg-emerald-500 group-hover:bg-emerald-600 rounded-t transition-all"
+                  />
+                  <span className="text-[8px] font-semibold text-slate-400 truncate max-w-[45px] text-center -rotate-45 sm:rotate-0 mt-1">
+                    {item.name}
+                  </span>
                 </div>
-                <div
-                  style={{ height: `${(item.val / 400) * 100}%` }}
-                  className="w-full max-w-[24px] bg-emerald-500 group-hover:bg-emerald-600 rounded-t transition-all"
-                />
-                <span className="text-[8px] font-semibold text-slate-400 truncate max-w-[45px] text-center -rotate-45 sm:rotate-0 mt-1">
-                  {item.name}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -543,27 +536,23 @@ export const SuperAdminMonitoring: React.FC<SuperAdminMonitoringProps> = ({ sele
               <div className="flex justify-between"><span>0</span></div>
             </div>
 
-            {[
-              { name: 'SFBT', val: 64 },
-              { name: 'SICAM', val: 42.5 },
-              { name: 'Unimed', val: 39.5 },
-              { name: 'Carthage Grains', val: 31.4 },
-              { name: 'Carthage SARL', val: 18.2 },
-              { name: 'POMODORO', val: 14.5 }
-            ].map(item => (
-              <div key={item.name} className="flex-1 flex flex-col items-center gap-1 group relative z-10">
-                <div className="absolute -top-6 opacity-0 group-hover:opacity-100 transition-opacity px-1.5 py-0.5 rounded bg-slate-900 text-white text-[9px] font-bold pointer-events-none z-20 whitespace-nowrap">
-                  {item.val} GB
+            {tenantsList.slice(0, 7).map(item => {
+              const maxStorage = Math.max(5, ...tenantsList.map(t => t.storageUsed || 1));
+              return (
+                <div key={item.id} className="flex-1 flex flex-col items-center gap-1 group relative z-10">
+                  <div className="absolute -top-6 opacity-0 group-hover:opacity-100 transition-opacity px-1.5 py-0.5 rounded bg-slate-900 text-white text-[9px] font-bold pointer-events-none z-20 whitespace-nowrap">
+                    {item.storageUsed} GB
+                  </div>
+                  <div
+                    style={{ height: `${Math.min(100, Math.max(12, (item.storageUsed / maxStorage) * 100))}%` }}
+                    className="w-full max-w-[24px] bg-purple-500 group-hover:bg-purple-600 rounded-t transition-all"
+                  />
+                  <span className="text-[8px] font-semibold text-slate-400 truncate max-w-[45px] text-center -rotate-45 sm:rotate-0 mt-1">
+                    {item.name}
+                  </span>
                 </div>
-                <div
-                  style={{ height: `${(item.val / 30) * 100}%` }}
-                  className="w-full max-w-[24px] bg-purple-500 group-hover:bg-purple-600 rounded-t transition-all"
-                />
-                <span className="text-[8px] font-semibold text-slate-400 truncate max-w-[45px] text-center -rotate-45 sm:rotate-0 mt-1">
-                  {item.name}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

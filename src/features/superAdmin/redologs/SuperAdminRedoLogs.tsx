@@ -15,7 +15,7 @@ export interface RedoLogItem {
   authorName: string;
   authorRole: string;
   authorAvatar?: string;
-  entityType: 'Équipement' | 'Ordre de Travail' | 'Pièce de Stock' | 'Campagne' | 'Incident' | 'Utilisateur';
+  entityType: 'Équipement' | 'Ordre de Travail' | 'Pièce de Stock' | 'Campagne' | 'Incident' | 'Utilisateur' | 'Tâche Préventive';
   entityId: string;
   entityName: string;
   actionType: 'CREATE' | 'UPDATE' | 'DELETE' | 'ROLLBACK';
@@ -102,21 +102,82 @@ export const SuperAdminRedoLogs: React.FC<SuperAdminRedoLogsProps> = ({ selected
         canRollback: true
       });
 
+      // 3. DELETE Tâche Préventive Obsolète
       list.push({
-        id: `TX-${90410 - idx * 4}`,
+        id: `TX-${90410 - idx * 6}`,
         timestamp: new Date(now.getTime() - (idx * 45 + 75) * 60000).toISOString().replace('T', ' ').slice(0, 19),
         tenantId: tId,
         tenantName: tName,
+        authorName: 'Khaled Ammar',
+        authorRole: "Chef d'Équipe Ligne",
+        authorAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
+        entityType: 'Tâche Préventive',
+        entityId: `TP-${tId}08`,
+        entityName: 'Contrôle hebdomadaire vanne bypass échangeur',
+        actionType: 'DELETE',
+        fieldName: 'Suppression Tâche Obsolète',
+        oldValue: 'Tâche active: Contrôle hebdo vanne bypass (Créée le 10/11)',
+        newValue: 'Tâche préventive supprimée et archivée du plan de maintenance',
+        isRollbacked: false,
+        canRollback: true
+      });
+
+      // 4. UPDATE Pièce de Stock
+      list.push({
+        id: `TX-${90409 - idx * 6}`,
+        timestamp: new Date(now.getTime() - (idx * 60 + 115) * 60000).toISOString().replace('T', ' ').slice(0, 19),
+        tenantId: tId,
+        tenantName: tName,
         authorName: 'Leila Farhat',
-        authorRole: 'Gestionnaire Stock',
+        authorRole: 'Magasinière Centrale PDR',
         authorAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150',
         entityType: 'Pièce de Stock',
         entityId: `PR-ROUL-${6204 + idx}`,
         entityName: `Roulement haute température SKF-${6204 + idx}`,
         actionType: 'UPDATE',
         fieldName: 'Stock Physique',
-        oldValue: 'Stock: 14 pièces',
-        newValue: 'Stock: 2 pièces (Alerte seuil minimum)',
+        oldValue: 'Quantité en stock: 14 pièces',
+        newValue: 'Quantité en stock: 2 pièces (Alerte seuil de sécurité)',
+        isRollbacked: false,
+        canRollback: true
+      });
+
+      // 5. CREATE Incident / Alerte Ligne
+      list.push({
+        id: `TX-${90408 - idx * 6}`,
+        timestamp: new Date(now.getTime() - (idx * 75 + 180) * 60000).toISOString().replace('T', ' ').slice(0, 19),
+        tenantId: tId,
+        tenantName: tName,
+        authorName: 'Mohamed Ben Amor',
+        authorRole: 'Opérateur Ligne Broyage',
+        authorAvatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150',
+        entityType: 'Incident',
+        entityId: `INC-2026-${tId}91`,
+        entityName: 'Vibration anormale sur palier moteur broyeur',
+        actionType: 'CREATE',
+        fieldName: 'Déclaration Panne Ligne',
+        oldValue: 'N/A (Nouvel Incident)',
+        newValue: 'Incident déclaré avec urgence Haute sur Broyeur Principal',
+        isRollbacked: false,
+        canRollback: true
+      });
+
+      // 6. DELETE Ordre de Travail Annulé
+      list.push({
+        id: `TX-${90407 - idx * 6}`,
+        timestamp: new Date(now.getTime() - (idx * 90 + 260) * 60000).toISOString().replace('T', ' ').slice(0, 19),
+        tenantId: tId,
+        tenantName: tName,
+        authorName: idx === 0 ? 'Sami Mansouri' : 'Admin Local',
+        authorRole: 'Responsable Maintenance Usine',
+        authorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+        entityType: 'Ordre de Travail',
+        entityId: `OT-2026-${tId}02`,
+        entityName: 'Nettoyage chimique échangeur tubulaire N°2',
+        actionType: 'DELETE',
+        fieldName: 'Annulation & Suppression OT',
+        oldValue: "OT #OT-2026-002: Statut 'En attente' (Créé le 15/11)",
+        newValue: 'OT annulé et purgé du planning de maintenance',
         isRollbacked: false,
         canRollback: true
       });
@@ -156,7 +217,10 @@ export const SuperAdminRedoLogs: React.FC<SuperAdminRedoLogsProps> = ({ selected
         log.oldValue.toLowerCase().includes(search.toLowerCase()) ||
         log.newValue.toLowerCase().includes(search.toLowerCase());
 
-      const matchesTenant = tenantFilter === 'ALL' || String(log.tenantId) === tenantFilter;
+      const matchesTenant = tenantFilter === 'ALL' || 
+        String(log.tenantId) === tenantFilter || 
+        (Number(tenantFilter) > 0 && log.tenantId === Number(tenantFilter)) ||
+        (log.tenantName && log.tenantName.toLowerCase().includes(tenantFilter.toLowerCase()));
       const matchesEntity = entityFilter === 'ALL' || log.entityType === entityFilter;
       const matchesAction = actionFilter === 'ALL' || log.actionType === actionFilter;
 
