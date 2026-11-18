@@ -25,7 +25,7 @@ import {
 } from 'recharts';
 
 export const Reports: React.FC = () => {
-  const { selectedCampaign, workOrders, equipments, incidents, currentUser } = useGmao();
+  const { selectedCampaign, workOrders, equipments, incidents, currentUser, parts, technicians, campaigns } = useGmao();
   const { isChefEquipe, can } = usePermissions();
   
   const [exporting, setExporting] = useState<string | null>(null);
@@ -41,9 +41,9 @@ export const Reports: React.FC = () => {
         
         // Feuille 1: KPIs
         const kpiData = [
-          { Metrique: 'MTBF (Heures)', Valeur: mtbfH.toFixed(2) },
+          { Metrique: 'MTBF (Heures)', Valeur: mtbfH !== null ? mtbfH.toFixed(2) : 'N/A' },
           { Metrique: 'MTTR (Minutes)', Valeur: avgMTTR.toFixed(2) },
-          { Metrique: 'Disponibilité (%)', Valeur: disponibilite.toFixed(2) },
+          { Metrique: 'Disponibilité (%)', Valeur: disponibilite !== null ? disponibilite.toFixed(2) : 'N/A' },
           { Metrique: 'Coût Total (TND)', Valeur: totalCost.toFixed(3) },
           { Metrique: 'Total OTs Terminés', Valeur: completedOTs.length },
         ];
@@ -97,37 +97,14 @@ export const Reports: React.FC = () => {
   };
 
 
-  // New KPIs Data
-  const mainGraphData = [
-    { period: 'Jan', arret: 45, nbOt: 120, cout: 15000, dispo: 98.2 },
-    { period: 'Fév', arret: 38, nbOt: 105, cout: 12400, dispo: 98.5 },
-    { period: 'Mar', arret: 60, nbOt: 150, cout: 21000, dispo: 97.1 },
-    { period: 'Avr', arret: 25, nbOt: 80, cout: 9500, dispo: 99.1 },
-    { period: 'Mai', arret: 30, nbOt: 95, cout: 11200, dispo: 98.8 },
-    { period: 'Juin', arret: 20, nbOt: 70, cout: 8000, dispo: 99.4 }
-  ];
-
-  
-
-  
-
-  
-
-
-
-
-  
   const scope = isChefEquipe ? 'mon_equipe' : 'toute_usine';
   
   // Filter WorkOrders based on scope
   const filteredWorkOrders = workOrders.filter(ot => {
     if (scope === 'toute_usine') return true;
     if (scope === 'mon_equipe') {
-      // Pour l'instant, on suppose que l'équipe est liée à la campagne ou on affiche tout ce qui n'est pas strictement personnel
-      // Pour une vraie implémentation, on filtrerait par les membres de l'équipe du chef.
       return true; 
     }
-    // mes_donnees
     return ot.technicianId === currentUser?.name;
   });
 
@@ -143,7 +120,9 @@ export const Reports: React.FC = () => {
   // Top Equipments en Panne
   const eqPanneCount: Record<string, number> = {};
   filteredIncidents.forEach(inc => {
-    eqPanneCount[inc.equipmentId] = (eqPanneCount[inc.equipmentId] || 0) + 1;
+    if (inc.equipmentId) {
+      eqPanneCount[inc.equipmentId] = (eqPanneCount[inc.equipmentId] || 0) + 1;
+    }
   });
   const topEquipmentsData = Object.entries(eqPanneCount)
     .map(([id, count]) => {
@@ -156,12 +135,6 @@ export const Reports: React.FC = () => {
   if (topEquipmentsData.length === 0) {
     topEquipmentsData.push({ name: 'Aucune panne', pannes: 0 });
   }
-
-  // Failure comparisons
-  const campaignCompareData = [
-    { id: 'EQ-EVAP-001', name: 'Évaporateur Concentrateur 1', pannes25: 8, pannes26: topEquipmentsData[0]?.pannes || 4, cost25: 18500, cost26: 8000 },
-    { id: 'EQ-BOIL-001', name: 'Chaudière Thermique 1', pannes25: 3, pannes26: topEquipmentsData[1]?.pannes || 1, cost25: 6400, cost26: 2200 }
-  ];
 
   // Top Techniciens
   const techCount: Record<string, number> = {};
@@ -182,8 +155,7 @@ export const Reports: React.FC = () => {
   // Top Types de Pannes
   const typePanneCount: Record<string, number> = {};
   filteredWorkOrders.filter(ot => ot.type === 'Correctif').forEach(ot => {
-    // on utilise un mot clé de la description si pas de type précis
-    const typeStr = ot.description.split(' ')[0] || 'Autre';
+    const typeStr = ot.description?.split(' ')[0] || 'Autre';
     typePanneCount[typeStr] = (typePanneCount[typeStr] || 0) + 1;
   });
   const topPannesData = Object.entries(typePanneCount)
@@ -198,24 +170,104 @@ export const Reports: React.FC = () => {
   // Compute real KPIs from workOrders data
   const completedOTs = filteredWorkOrders.filter(ot => ot.status === 'Terminé' || ot.status === 'Clôturé');
   const delayedOTs = filteredWorkOrders.filter(ot => ot.status === 'En attente' || ot.status === 'Affecté');
-  const cancelledOTs = filteredWorkOrders.filter(ot => false); // no 'Annulé' in WorkOrder schema
+  const cancelledOTs = filteredWorkOrders.filter(ot => (ot.status as string) === 'Annulé');
   const prevOTs = filteredWorkOrders.filter(ot => ot.type === 'Préventif');
   const corrOTs = filteredWorkOrders.filter(ot => ot.type === 'Correctif');
 
   const avgMTTR = completedOTs.length > 0
-    ? completedOTs.reduce((acc, ot) => acc + ot.durationMinutes, 0) / completedOTs.length
+    ? completedOTs.reduce((acc, ot) => acc + (ot.durationMinutes || 0), 0) / completedOTs.length
     : 0;
 
   const totalFailures = corrOTs.length;
-  const totalDowntimeH = completedOTs.reduce((acc, ot) => acc + (ot.durationMinutes / 60), 0);
+  const totalDowntimeH = completedOTs.reduce((acc, ot) => acc + ((ot.durationMinutes || 0) / 60), 0);
   const operatingHoursPerDay = 16;
-  const campaignDays = 90; // 3 month campaign
+  const campaignDays = 90; // 3 mois de campagne saisonnière
   const totalOperatingH = campaignDays * operatingHoursPerDay;
-  const mtbfH = totalFailures > 0 ? ((totalOperatingH - totalDowntimeH) / totalFailures) : totalOperatingH;
-  const disponibilite = totalOperatingH > 0 ? ((totalOperatingH - totalDowntimeH) / totalOperatingH * 100) : 100;
-  
-  const totalCost = completedOTs.reduce((acc, ot) => acc + ((ot.durationMinutes * 0.5) || 150), 0);
-  const stockCritique = 15; // Mock critical stock items
+
+  // Has real industrial activity
+  const hasIndustrialData = equipments.length > 0 && (filteredWorkOrders.length > 0 || filteredIncidents.length > 0);
+
+  // MTBF: if no industrial data, null (show "—")
+  const mtbfH = !hasIndustrialData 
+    ? null 
+    : totalFailures > 0 
+      ? Math.max(0, (totalOperatingH - totalDowntimeH) / totalFailures) 
+      : totalOperatingH;
+
+  // Disponibilité: if no industrial data, null (show "—")
+  const disponibilite = !hasIndustrialData 
+    ? null 
+    : totalOperatingH > 0 
+      ? Math.min(100, Math.max(0, ((totalOperatingH - totalDowntimeH) / totalOperatingH) * 100)) 
+      : 100;
+
+  const totalCost = completedOTs.reduce((acc, ot) => acc + (((ot.durationMinutes || 0) * 0.5) + (ot.externalCost || 0)), 0);
+
+  // Real critical stock from actual parts (no mock 15)
+  const stockCritique = (parts || []).filter(p => (p.stockCurrent ?? 0) <= (p.stockMin ?? 0)).length;
+
+  // Real dynamic monthly chart data
+  const mainGraphData = React.useMemo(() => {
+    const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+    const now = new Date();
+    const buckets: { period: string; arret: number; nbOt: number; cout: number; dispo: number; rawMonth: number; rawYear: number }[] = [];
+    
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      buckets.push({
+        period: monthNames[d.getMonth()],
+        rawMonth: d.getMonth(),
+        rawYear: d.getFullYear(),
+        arret: 0,
+        nbOt: 0,
+        cout: 0,
+        dispo: hasIndustrialData ? 100 : 0
+      });
+    }
+
+    if (!hasIndustrialData || filteredWorkOrders.length === 0) {
+      return buckets;
+    }
+
+    filteredWorkOrders.forEach(ot => {
+      const d = ot.createdDate ? new Date(ot.createdDate) : new Date();
+      const bucket = buckets.find(b => b.rawMonth === d.getMonth() && b.rawYear === d.getFullYear());
+      if (bucket) {
+        bucket.nbOt += 1;
+        const durH = (ot.durationMinutes || 0) / 60;
+        bucket.arret = Math.round((bucket.arret + durH) * 10) / 10;
+        bucket.cout += Math.round(((ot.durationMinutes || 0) * 0.5) + (ot.externalCost || 0));
+      }
+    });
+
+    const monthlyMaxH = 480;
+    buckets.forEach(b => {
+      if (b.arret > 0) {
+        b.dispo = Math.min(100, Math.max(0, Math.round(((monthlyMaxH - b.arret) / monthlyMaxH) * 1000) / 10));
+      }
+    });
+
+    return buckets;
+  }, [filteredWorkOrders, hasIndustrialData]);
+
+  // Real dynamic campaign failure comparisons (no hardcoded fake equipment)
+  const campaignCompareData = React.useMemo(() => {
+    if (!hasIndustrialData) return [];
+    return topEquipmentsData
+      .filter(item => item.pannes > 0 && item.name !== 'Aucune panne')
+      .slice(0, 5)
+      .map(item => {
+        const eq = equipments.find(e => e.name === item.name);
+        return {
+          id: eq?.code || eq?.id || 'EQ',
+          name: item.name,
+          pannes25: 0,
+          pannes26: item.pannes,
+          cost25: 0,
+          cost26: Math.round(item.pannes * 250)
+        };
+      });
+  }, [topEquipmentsData, equipments, hasIndustrialData]);
 
   // Filter state
   const [filters, setFilters] = useState({
@@ -291,10 +343,10 @@ export const Reports: React.FC = () => {
             <TrendingUp className="w-4 h-4 text-emerald-500" />
           </div>
           <span className="text-xl font-black text-emerald-600 dark:text-emerald-300">
-            {mtbfH.toFixed(0)}<span className="text-xs font-semibold ml-1">h</span>
+            {mtbfH !== null ? `${mtbfH.toFixed(0)}h` : '—'}
           </span>
           <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity bottom-[-30px] left-0 bg-slate-800 text-white text-[10px] p-2 rounded z-10 whitespace-nowrap pointer-events-none shadow-lg">
-            Mean Time Between Failures
+            {hasIndustrialData ? 'Mean Time Between Failures' : 'Données insuffisantes (Aucune panne)'}
           </div>
         </div>
 
@@ -305,7 +357,7 @@ export const Reports: React.FC = () => {
             <Clock className="w-4 h-4 text-amber-500" />
           </div>
           <span className="text-xl font-black text-amber-600 dark:text-amber-300">
-            {avgMTTR.toFixed(0)}<span className="text-xs font-semibold ml-1">min</span>
+            {hasIndustrialData && completedOTs.length > 0 ? `${avgMTTR.toFixed(0)}min` : '—'}
           </span>
           <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity bottom-[-30px] left-0 bg-slate-800 text-white text-[10px] p-2 rounded z-10 whitespace-nowrap pointer-events-none shadow-lg">
             Mean Time To Repair
@@ -319,10 +371,10 @@ export const Reports: React.FC = () => {
             <Activity className="w-4 h-4 text-primary" />
           </div>
           <span className="text-xl font-black text-primary">
-            {disponibilite.toFixed(1)}<span className="text-xs font-semibold ml-0.5">%</span>
+            {disponibilite !== null ? `${disponibilite.toFixed(1)}%` : '—'}
           </span>
           <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden mt-auto">
-            <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${Math.min(100, disponibilite)}%` }} />
+            <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${disponibilite !== null ? Math.min(100, disponibilite) : 0}%` }} />
           </div>
         </div>
 
@@ -378,27 +430,33 @@ export const Reports: React.FC = () => {
       <div className="glass-panel p-4 rounded-custom-lg border border-white/40 dark:border-slate-800/40 shadow-sm flex flex-wrap gap-3 items-center">
         <Filter className="w-4 h-4 text-primary shrink-0" />
         <select value={filters.campagne} onChange={(e) => setFilters({...filters, campagne: e.target.value})} className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-semibold focus:border-primary outline-none">
-          <option>Campagne 2026</option>
-          <option>Campagne 2025</option>
+          {campaigns && campaigns.length > 0 ? (
+            campaigns.map(c => <option key={c.id || c.name} value={c.name}>{c.name}</option>)
+          ) : (
+            <option value={selectedCampaign}>{selectedCampaign}</option>
+          )}
         </select>
         <select value={filters.usine} onChange={(e) => setFilters({...filters, usine: e.target.value})} className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-semibold focus:border-primary outline-none">
-          <option>Toutes (Usines)</option>
-          <option>Usine Nord</option>
-          <option>Usine Sud</option>
+          <option value="Toutes">Toutes (Localisations)</option>
+          {Array.from(new Set(equipments.map(e => e.location || (e.localisation as any)?.nom).filter(Boolean))).map((loc: any) => (
+            <option key={loc} value={loc}>{loc}</option>
+          ))}
         </select>
         <select value={filters.famille} onChange={(e) => setFilters({...filters, famille: e.target.value})} className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-semibold focus:border-primary outline-none">
-          <option>Toutes (Familles)</option>
-          <option>Pompes</option>
-          <option>Chaudières</option>
+          <option value="Toutes">Toutes (Familles)</option>
+          {Array.from(new Set(equipments.map(e => e.category).filter(Boolean))).map((fam: any) => (
+            <option key={fam} value={fam}>{fam}</option>
+          ))}
         </select>
         <select value={filters.equipement} onChange={(e) => setFilters({...filters, equipement: e.target.value})} className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-semibold focus:border-primary outline-none">
-          <option>Tous (Équipements)</option>
-          {equipments.slice(0, 3).map(eq => <option key={eq.id}>{eq.name}</option>)}
+          <option value="Tous">Tous (Équipements)</option>
+          {equipments.map(eq => <option key={eq.id} value={eq.name}>{eq.name}</option>)}
         </select>
         <select value={filters.technicien} onChange={(e) => setFilters({...filters, technicien: e.target.value})} className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-semibold focus:border-primary outline-none">
-          <option>Tous (Techniciens)</option>
-          <option>Ahmed M.</option>
-          <option>Mohamed T.</option>
+          <option value="Tous">Tous (Techniciens)</option>
+          {(technicians || []).map(t => (
+            <option key={t.id} value={t.name}>{t.name}</option>
+          ))}
         </select>
         <select value={filters.periode} onChange={(e) => setFilters({...filters, periode: e.target.value})} className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-semibold focus:border-primary outline-none">
           <option>Ce mois</option>
@@ -509,76 +567,72 @@ export const Reports: React.FC = () => {
         <div className="flex justify-between items-center mb-4">
           <div>
             <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
-              Comparatif d'Historique des Pannes : Campagne 2025 vs 2026
+              Comparatif d'Historique des Pannes : Campagne Précédente vs En cours
             </h3>
             <p className="text-[11px] text-slate-400 dark:text-slate-500">
-              Suivi de l'évolution du taux de défaillance suite à l'introduction du CMMS
+              Suivi de l'évolution du taux de défaillance par équipement
             </p>
           </div>
-          {!isChefEquipe && (
+          {!isChefEquipe && campaignCompareData.length > 0 && (
           <span className="text-[10px] text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded font-bold">
-            Budget global en baisse de 15%
+            Comparatif actif
           </span>
           )}
         </div>
 
-        <div className="flex flex-col gap-3">
-          {campaignCompareData.map(row => {
-            const isReduced = row.pannes26 < row.pannes25;
-            const costSavings = Math.round(row.cost25 - row.cost26);
+        {campaignCompareData.length === 0 ? (
+          <div className="py-8 text-center text-xs text-slate-400">
+            <Clock className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+            <p className="font-bold text-slate-600 dark:text-slate-400">Aucun historique de pannes comparatif disponible</p>
+            <p className="text-[11px] text-slate-400 mt-1">L'historique comparatif se construira automatiquement après la première campagne de production.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {campaignCompareData.map(row => {
+              const isReduced = row.pannes26 < row.pannes25;
+              const costSavings = Math.round(row.cost25 - row.cost26);
 
-            return (
-              <div 
-                key={row.id}
-                className="bg-white/40 dark:bg-slate-900/10 border border-slate-200/40 dark:border-slate-800/40 p-4 rounded-custom-md flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs font-semibold"
-              >
-                <div>
-                  <span className="text-[9px] font-bold font-mono text-slate-400 block mb-0.5">{row.id}</span>
-                  <h4 className="font-bold text-slate-800 dark:text-slate-200 text-xs">{row.name}</h4>
-                </div>
-
-                <div className="flex items-center gap-6">
-                  {/* Pannes compare */}
-                  <div className="text-center">
-                    <span className="text-[9px] text-slate-400 block uppercase">Pannes (25 vs 26)</span>
-                    <span className="text-slate-700 dark:text-slate-350">
-                      {row.pannes25} <span className="text-slate-300 dark:text-slate-700">➔</span> <span className={isReduced ? 'text-emerald-500' : 'text-rose-500 font-bold'}>{row.pannes26}</span>
-                    </span>
+              return (
+                <div 
+                  key={row.id}
+                  className="bg-white/40 dark:bg-slate-900/10 border border-slate-200/40 dark:border-slate-800/40 p-4 rounded-custom-md flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs font-semibold"
+                >
+                  <div>
+                    <span className="text-[9px] font-bold font-mono text-slate-400 block mb-0.5">{row.id}</span>
+                    <h4 className="font-bold text-slate-800 dark:text-slate-200 text-xs">{row.name}</h4>
                   </div>
 
-                  {/* Budget compare (Hidden for Chef d'équipe) */}
-                  {!isChefEquipe && (
-                  <div className="text-center">
-                    <span className="text-[9px] text-slate-400 block uppercase">Coût Maintenance</span>
-                    <span className="text-slate-700 dark:text-slate-350 font-mono">
-                      {row.cost25.toLocaleString()} TND <span className="text-slate-300 dark:text-slate-700">➔</span> {row.cost26.toLocaleString()} TND
-                    </span>
-                  </div>
-                  )}
+                  <div className="flex items-center gap-6">
+                    {/* Pannes compare */}
+                    <div className="text-center">
+                      <span className="text-[9px] text-slate-400 block uppercase">Pannes</span>
+                      <span className="text-slate-700 dark:text-slate-350">
+                        {row.pannes25 > 0 ? (
+                          <>
+                            {row.pannes25} <span className="text-slate-300 dark:text-slate-700">➔</span> <span className={isReduced ? 'text-emerald-500' : 'text-rose-500 font-bold'}>{row.pannes26}</span>
+                          </>
+                        ) : (
+                          <span className="text-rose-500 font-bold">{row.pannes26} panne(s)</span>
+                        )}
+                      </span>
+                    </div>
 
-                  {/* Savings indicator (Hidden for Chef d'équipe) */}
-                  {!isChefEquipe && (
-                  <div className="text-right">
-                    <span className="text-[9px] text-slate-400 block uppercase">Économies</span>
-                    {costSavings > 0 ? (
-                      <span className="text-emerald-500 flex items-center gap-0.5 justify-end">
-                        <TrendingDown className="w-3.5 h-3.5" />
-                        +{costSavings.toLocaleString()} TND
+                    {/* Budget compare (Hidden for Chef d'équipe) */}
+                    {!isChefEquipe && (
+                    <div className="text-center">
+                      <span className="text-[9px] text-slate-400 block uppercase">Coût Estimé</span>
+                      <span className="text-slate-700 dark:text-slate-350 font-mono">
+                        {row.cost26.toLocaleString()} TND
                       </span>
-                    ) : (
-                      <span className="text-rose-500 flex items-center gap-0.5 justify-end">
-                        <TrendingUp className="w-3.5 h-3.5" />
-                        {costSavings.toLocaleString()} TND
-                      </span>
+                    </div>
                     )}
                   </div>
-                  )}
-                </div>
 
-              </div>
-            );
-          })}
-        </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* === Historique: Top Pannes & Top Techniciens === */}
