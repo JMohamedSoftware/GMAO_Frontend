@@ -480,30 +480,38 @@ export const Reports: React.FC = () => {
             </p>
           </div>
           
-          <div className="w-full h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={mainGraphData} margin={{ top: 10, right: -10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" className="dark:stroke-slate-800" />
-                <XAxis dataKey="period" stroke="#94A3B8" fontSize={10} tickLine={false} />
-                <YAxis yAxisId="left" stroke="#EF4444" fontSize={10} tickLine={false} label={{ value: 'Arrêt (h)', angle: -90, position: 'insideLeft', offset: 10, fill: '#EF4444', fontSize: 10 }} />
-                <YAxis yAxisId="right" orientation="right" stroke="#F59E0B" fontSize={10} tickLine={false} label={{ value: 'Coût (TND)', angle: 90, position: 'insideRight', offset: 10, fill: '#F59E0B', fontSize: 10 }} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'rgba(255,255,255,0.9)', 
-                    border: 'none', 
-                    borderRadius: '12px', 
-                    fontSize: '11px' 
-                  }} 
-                />
-                <Legend verticalAlign="top" height={36} iconSize={8} wrapperStyle={{ fontSize: '10px' }} />
-                <Bar yAxisId="left" dataKey="arret" name="Temps d'arrêt (h)" fill="#EF4444" fillOpacity={0.85} radius={[4, 4, 0, 0]} />
-                {!isChefEquipe && (
-                  <Line yAxisId="right" type="monotone" dataKey="cout" name="Coût (TND)" stroke="#F59E0B" strokeWidth={2} dot={{ fill: '#F59E0B' }} />
-                )}
-                <Line yAxisId="left" type="monotone" dataKey="nbOt" name="Nombre d'OT" stroke="#6366F1" strokeWidth={2} dot={{ fill: '#6366F1' }} />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
+          {!hasIndustrialData ? (
+            <div className="h-64 flex flex-col items-center justify-center text-center p-4">
+              <Activity className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-2" />
+              <p className="text-xs font-bold text-slate-600 dark:text-slate-400">Aucune intervention enregistrée</p>
+              <p className="text-[10px] text-slate-400 mt-1">Les indicateurs mensuels s'afficheront automatiquement dès la création d'ordres de travail.</p>
+            </div>
+          ) : (
+            <div className="w-full h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={mainGraphData} margin={{ top: 10, right: -10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" className="dark:stroke-slate-800" />
+                  <XAxis dataKey="period" stroke="#94A3B8" fontSize={10} tickLine={false} />
+                  <YAxis yAxisId="left" stroke="#EF4444" fontSize={10} tickLine={false} label={{ value: 'Arrêt (h)', angle: -90, position: 'insideLeft', offset: 10, fill: '#EF4444', fontSize: 10 }} />
+                  <YAxis yAxisId="right" orientation="right" stroke="#F59E0B" fontSize={10} tickLine={false} label={{ value: 'Coût (TND)', angle: 90, position: 'insideRight', offset: 10, fill: '#F59E0B', fontSize: 10 }} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'rgba(255,255,255,0.9)', 
+                      border: 'none', 
+                      borderRadius: '12px', 
+                      fontSize: '11px' 
+                    }} 
+                  />
+                  <Legend verticalAlign="top" height={36} iconSize={8} wrapperStyle={{ fontSize: '10px' }} />
+                  <Bar yAxisId="left" dataKey="arret" name="Temps d'arrêt (h)" fill="#EF4444" fillOpacity={0.85} radius={[4, 4, 0, 0]} />
+                  {!isChefEquipe && (
+                    <Line yAxisId="right" type="monotone" dataKey="cout" name="Coût (TND)" stroke="#F59E0B" strokeWidth={2} dot={{ fill: '#F59E0B' }} />
+                  )}
+                  <Line yAxisId="left" type="monotone" dataKey="nbOt" name="Nombre d'OT" stroke="#6366F1" strokeWidth={2} dot={{ fill: '#6366F1' }} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
 
         {/* Disponibilité Mensuelle */}
@@ -518,25 +526,33 @@ export const Reports: React.FC = () => {
             </p>
           </div>
 
-          <div className="w-full h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={mainGraphData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" className="dark:stroke-slate-800" />
-                <XAxis dataKey="period" stroke="#94A3B8" fontSize={10} tickLine={false} />
-                <YAxis domain={[90, 100]} stroke="#0EA5E9" fontSize={10} tickLine={false} label={{ value: 'Disponibilité (%)', angle: -90, position: 'insideLeft', offset: 15, fill: '#0EA5E9', fontSize: 10 }} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'rgba(255,255,255,0.9)', 
-                    border: 'none', 
-                    borderRadius: '12px', 
-                    fontSize: '11px' 
-                  }} 
-                />
-                <Bar dataKey="dispo" name="Disponibilité (%)" fill="#0EA5E9" fillOpacity={0.85} radius={[4, 4, 0, 0]} />
-                <Line type="monotone" dataKey="dispo" name="Tendance" stroke="#0284C7" strokeWidth={2} dot={{ fill: '#0284C7' }} />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
+          {!hasIndustrialData ? (
+            <div className="h-64 flex flex-col items-center justify-center text-center p-4">
+              <Sparkles className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-2" />
+              <p className="text-xs font-bold text-slate-600 dark:text-slate-400">Aucune donnée de disponibilité</p>
+              <p className="text-[10px] text-slate-400 mt-1">Le taux de disponibilité se calculera automatiquement à partir des temps d'arrêt et de fonctionnement des machines.</p>
+            </div>
+          ) : (
+            <div className="w-full h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={mainGraphData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" className="dark:stroke-slate-800" />
+                  <XAxis dataKey="period" stroke="#94A3B8" fontSize={10} tickLine={false} />
+                  <YAxis domain={[80, 100]} stroke="#0EA5E9" fontSize={10} tickLine={false} label={{ value: 'Disponibilité (%)', angle: -90, position: 'insideLeft', offset: 15, fill: '#0EA5E9', fontSize: 10 }} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'rgba(255,255,255,0.9)', 
+                      border: 'none', 
+                      borderRadius: '12px', 
+                      fontSize: '11px' 
+                    }} 
+                  />
+                  <Bar dataKey="dispo" name="Disponibilité (%)" fill="#0EA5E9" fillOpacity={0.85} radius={[4, 4, 0, 0]} />
+                  <Line type="monotone" dataKey="dispo" name="Tendance" stroke="#0284C7" strokeWidth={2} dot={{ fill: '#0284C7' }} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
       </div>
 
@@ -549,16 +565,24 @@ export const Reports: React.FC = () => {
           </h3>
         </div>
         <div className="flex flex-col gap-2">
-          {topEquipmentsData.map((eq, idx) => (
-            <div key={idx} className="flex items-center justify-between p-3 bg-white/40 dark:bg-slate-900/20 border border-slate-200/40 dark:border-slate-800/40 rounded-lg">
-              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                {idx + 1}. {eq.name}
-              </span>
-              <span className="text-xs font-bold text-rose-500 bg-rose-500/10 px-2 py-1 rounded">
-                {eq.pannes} pannes
-              </span>
+          {topEquipmentsData.length === 0 || (topEquipmentsData.length === 1 && topEquipmentsData[0].pannes === 0) ? (
+            <div className="py-6 text-center text-xs text-slate-400">
+              <CheckCircle className="w-7 h-7 text-emerald-500 mx-auto mb-1.5 opacity-60" />
+              <p className="font-semibold text-slate-600 dark:text-slate-400">Aucune panne critique enregistrée</p>
+              <p className="text-[11px] text-slate-400">Le parc machine ne présente aucun arrêt critique pour les filtres sélectionnés.</p>
             </div>
-          ))}
+          ) : (
+            topEquipmentsData.map((eq, idx) => (
+              <div key={idx} className="flex items-center justify-between p-3 bg-white/40 dark:bg-slate-900/20 border border-slate-200/40 dark:border-slate-800/40 rounded-lg">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  {idx + 1}. {eq.name}
+                </span>
+                <span className="text-xs font-bold text-rose-500 bg-rose-500/10 px-2 py-1 rounded">
+                  {eq.pannes} pannes
+                </span>
+              </div>
+            ))
+          )}
         </div>
       </div>
 

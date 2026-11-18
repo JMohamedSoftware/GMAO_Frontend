@@ -448,23 +448,27 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
     return machineWorkOrders.filter(w => w.status === 'Terminé' || w.status === 'Clôturé');
   }, [machineWorkOrders]);
 
-  const machineDispo = activeMachine ? (activeMachine.status === 'En panne' ? 0 : (activeMachine.healthIndex || 98)) : 0;
+  const machineDispo = activeMachine ? (activeMachine.status === 'En panne' ? 0 : (activeMachine.healthIndex ?? 100)) : null;
 
   const machineMtbf = useMemo(() => {
-    if (!activeMachine) return 0;
+    if (!activeMachine) return null;
     const failures = machineIncidents.length + machineWorkOrders.filter(w => w.type === 'Correctif').length;
-    const hours = activeMachine.hoursCount || 1000;
+    const hours = activeMachine.hoursCount || 0;
+    if (hours === 0 && failures === 0) return null;
     return failures > 0 ? Math.round(hours / failures) : hours;
   }, [machineIncidents, machineWorkOrders, activeMachine?.hoursCount]);
 
   const machineMttr = useMemo(() => {
-    if (!activeMachine) return '0.0';
+    if (!activeMachine) return null;
     if (machineCompletedOts.length > 0) {
-      const totalMinutes = machineCompletedOts.reduce((sum, o) => sum + (o.durationMinutes || 90), 0);
-      return (totalMinutes / (machineCompletedOts.length * 60)).toFixed(1);
+      const ordersWithDuration = machineCompletedOts.filter(o => o.durationMinutes && o.durationMinutes > 0);
+      if (ordersWithDuration.length > 0) {
+        const totalMinutes = ordersWithDuration.reduce((sum, o) => sum + (o.durationMinutes || 0), 0);
+        return (totalMinutes / (ordersWithDuration.length * 60)).toFixed(1);
+      }
     }
-    return activeMachine.status === 'En panne' ? '2.0' : '0.0';
-  }, [machineCompletedOts, activeMachine?.status]);
+    return null;
+  }, [machineCompletedOts]);
 
   // Demandes d'intervention calculations (Section 6)
   const diATraiter = incidents.filter(i => i.status === 'Nouveau').length;
@@ -665,19 +669,19 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
                 <div className="p-2 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
                   <span className="text-[9px] uppercase font-bold text-slate-400 block">Disponibilité</span>
                   <span className="font-bold text-emerald-600 dark:text-emerald-400 text-xs">
-                    {machineDispo}%
+                    {machineDispo !== null ? `${machineDispo}%` : '—'}
                   </span>
                 </div>
                 <div className="p-2 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
                   <span className="text-[9px] uppercase font-bold text-slate-400 block">MTBF machine</span>
                   <span className="font-bold text-indigo-600 dark:text-indigo-400 text-xs">
-                    {machineMtbf} h
+                    {machineMtbf !== null ? `${machineMtbf} h` : '—'}
                   </span>
                 </div>
                 <div className="p-2 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
                   <span className="text-[9px] uppercase font-bold text-slate-400 block">MTTR moyen</span>
                   <span className="font-bold text-cyan-600 dark:text-cyan-400 text-xs">
-                    {machineMttr} h
+                    {machineMttr !== null ? `${machineMttr} h` : '—'}
                   </span>
                 </div>
               </div>
