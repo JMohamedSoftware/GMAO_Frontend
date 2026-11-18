@@ -35,7 +35,37 @@ import {
   X
 } from 'lucide-react';
 import tomateImg from '@/shared/assets/images/tomate.jpg';
-import { RealCompany } from '../constants/realTenantsData';
+
+export interface RealCompany {
+  id: string;
+  index: number;
+  name: string;
+  code: string;
+  logo: string;
+  category: string;
+  contact: string;
+  email: string;
+  phone: string;
+  address: string;
+  plan: string;
+  planColor: string;
+  sites: number;
+  maxSites: number;
+  users: number;
+  maxUsers: number;
+  equipments: number;
+  maxEquipments: number;
+  storageUsedGb: number;
+  maxStorageGb: number;
+  capacityTonsPerDay: number;
+  status: 'Active' | 'En essai' | 'Suspendue';
+  statusColor: string;
+  registrationDate: string;
+  subscriptionEnd: string;
+  daysLeft: number;
+  monthlyAmount: number;
+  activeModules: string[];
+}
 
 interface SuperAdminTenantsProps {
   pendingRequests: Tenant[];

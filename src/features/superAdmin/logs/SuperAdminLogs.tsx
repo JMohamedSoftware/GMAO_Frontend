@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { superAdminApi } from '../api/superAdmin.api';
-import { REAL_DB_COMPANIES } from '../constants/realTenantsData';
 import {
   FileText,
   Users,
@@ -349,6 +348,9 @@ export const SuperAdminLogs: React.FC = () => {
   const totalActionsCount = logsList.length;
   const activeUsersInLogs = useMemo(() => new Set(logsList.map(l => l.userName)).size, [logsList]);
   const companiesInLogs = useMemo(() => new Set(logsList.map(l => l.companyName)).size, [logsList]);
+  const availableCompanies = useMemo(() => {
+    return Array.from(new Set(logsList.map(l => l.companyName).filter(Boolean)));
+  }, [logsList]);
   const sensitiveActionsCount = useMemo(() => logsList.filter(l => l.actionType === 'suspension' || l.actionType === 'delete' || l.actionType === 'plan').length, [logsList]);
   const failedActionsCount = useMemo(() => logsList.filter(l => l.status === 'Échec').length, [logsList]);
   const totalPages = Math.max(1, Math.ceil(filteredLogs.length / itemsPerPage));
@@ -668,7 +670,7 @@ export const SuperAdminLogs: React.FC = () => {
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 appearance-none pr-7 cursor-pointer"
                 >
                   <option value="All">Toutes les entreprises</option>
-                  {REAL_DB_COMPANIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+                  {availableCompanies.map(name => <option key={name} value={name}>{name}</option>)}
                 </select>
                 <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               </div>

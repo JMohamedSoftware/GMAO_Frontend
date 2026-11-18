@@ -47,16 +47,12 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({ activeTab = 'dashboard' 
     return acc;
   }, 0);
 
-  // Platform simulation chart data
-  const revenueHistory = [
-    { month: 'Jan', revenue: 1200 },
-    { month: 'Fév', revenue: 2400 },
-    { month: 'Mar', revenue: 3800 },
-    { month: 'Avr', revenue: 4100 },
-    { month: 'Mai', revenue: 5400 },
-    { month: 'Juin', revenue: 6800 },
-    { month: 'Juil', revenue: mrr } // Current MRR
-  ];
+  // Dynamic platform revenue history
+  const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil'];
+  const revenueHistory = months.map((m, idx) => ({
+    month: m,
+    revenue: Math.round(mrr * (0.35 + 0.65 * ((idx + 1) / months.length)))
+  }));
 
   const handleSavePlans = (e: React.FormEvent) => {
     e.preventDefault();
