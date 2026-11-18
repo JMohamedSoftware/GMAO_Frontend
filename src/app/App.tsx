@@ -1,23 +1,35 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useGmao } from '@/shared/hooks/useGmao';
 import { Equipment as EqType, Incident as IncType } from '@/shared/types/gmao';
 import { MainLayout } from '@/shared/layouts/MainLayout';
 import { IncidentModalProvider } from '@/context/IncidentModalContext';
 import { Login } from '@/features/auth/pages/Login';
-import { Dashboard } from '@/features/company/dashboard/pages/Dashboard';
-import { Equipment } from '@/features/company/equipments/pages/EquipmentPage';
-import { Preventive } from '@/features/company/preventive/pages/Preventive';
-import { Corrective } from '@/features/company/incidents/pages/Corrective';
-import { WorkOrders } from '@/features/company/workOrders/pages/WorkOrdersPage';
-import { Inventory } from '@/features/company/inventory/pages/Inventory';
-import { Reports } from '@/features/company/reports/pages/Reports';
-import { Suppliers } from '@/features/company/suppliers/pages/Suppliers';
-import { Admin } from '@/features/company/settings/Admin';
-import { SuperAdmin } from '@/features/superAdmin/dashboard/SuperAdminPage';
-import { EquipesPage } from '@/features/company/equipes/pages/EquipesPage';
 import { AccessGuard } from '@/shared/components/AccessGuard';
 import { PERMISSIONS } from '@/shared/permissions';
 import { ErrorBoundary } from '@/shared/components/ErrorBoundary';
+import { Loader2 } from 'lucide-react';
+
+// ============================================================================
+// CODE SPLITTING (Lazy Loading des modules pour un chargement instantané)
+// ============================================================================
+const Dashboard = lazy(() => import('@/features/company/dashboard/pages/Dashboard').then(m => ({ default: m.Dashboard })));
+const Equipment = lazy(() => import('@/features/company/equipments/pages/EquipmentPage').then(m => ({ default: m.Equipment })));
+const Preventive = lazy(() => import('@/features/company/preventive/pages/Preventive').then(m => ({ default: m.Preventive })));
+const Corrective = lazy(() => import('@/features/company/incidents/pages/Corrective').then(m => ({ default: m.Corrective })));
+const WorkOrders = lazy(() => import('@/features/company/workOrders/pages/WorkOrdersPage').then(m => ({ default: m.WorkOrders })));
+const Inventory = lazy(() => import('@/features/company/inventory/pages/Inventory').then(m => ({ default: m.Inventory })));
+const Reports = lazy(() => import('@/features/company/reports/pages/Reports').then(m => ({ default: m.Reports })));
+const Suppliers = lazy(() => import('@/features/company/suppliers/pages/Suppliers').then(m => ({ default: m.Suppliers })));
+const Admin = lazy(() => import('@/features/company/settings/Admin').then(m => ({ default: m.Admin })));
+const SuperAdmin = lazy(() => import('@/features/superAdmin/dashboard/SuperAdminPage').then(m => ({ default: m.SuperAdmin })));
+const EquipesPage = lazy(() => import('@/features/company/equipes/pages/EquipesPage').then(m => ({ default: m.EquipesPage })));
+
+const PageLoader = () => (
+  <div className="flex-1 flex flex-col items-center justify-center p-12 min-h-[400px]">
+    <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-3" />
+    <span className="text-xs font-bold text-slate-500 animate-pulse">Chargement du module...</span>
+  </div>
+);
 
 function AppContent() {
   const { currentUser, equipments, impersonatedTenantId } = useGmao();
@@ -147,97 +159,99 @@ function AppContent() {
 
   return (
     <MainLayout currentScreen={currentScreen} onNavigate={handleNavigate}>
-      {currentScreen === 'dashboard' && (
-        <AccessGuard permission={PERMISSIONS.DASHBOARD_VIEW}>
-          <Dashboard 
-            onNavigate={handleNavigate}
-            onSelectEquipment={(eq) => {
-              setSelectedEqFromDash(eq);
-              setCurrentScreen('equipment');
-            }}
-          />
-        </AccessGuard>
-      )}
+      <Suspense fallback={<PageLoader />}>
+        {currentScreen === 'dashboard' && (
+          <AccessGuard permission={PERMISSIONS.DASHBOARD_VIEW}>
+            <Dashboard 
+              onNavigate={handleNavigate}
+              onSelectEquipment={(eq) => {
+                setSelectedEqFromDash(eq);
+                setCurrentScreen('equipment');
+              }}
+            />
+          </AccessGuard>
+        )}
 
-      {currentScreen === 'equipment' && (
-        <AccessGuard permission={PERMISSIONS.EQUIPMENT_VIEW}>
-          <Equipment 
-            selectedEqFromDash={selectedEqFromDash}
-            onClearSelectedEq={() => setSelectedEqFromDash(null)}
-            onNavigate={handleNavigate}
-          />
-        </AccessGuard>
-      )}
+        {currentScreen === 'equipment' && (
+          <AccessGuard permission={PERMISSIONS.EQUIPMENT_VIEW}>
+            <Equipment 
+              selectedEqFromDash={selectedEqFromDash}
+              onClearSelectedEq={() => setSelectedEqFromDash(null)}
+              onNavigate={handleNavigate}
+            />
+          </AccessGuard>
+        )}
 
-      {currentScreen === 'preventive' && (
-        <AccessGuard permission={PERMISSIONS.PREVENTIVE_VIEW}>
-          <Preventive 
-            onNavigate={handleNavigate}
-            newPlanEquipmentId={newPreventivePlanEqId}
-            onClearNewPlanEquipmentId={() => setNewPreventivePlanEqId(null)}
-          />
-        </AccessGuard>
-      )}
+        {currentScreen === 'preventive' && (
+          <AccessGuard permission={PERMISSIONS.PREVENTIVE_VIEW}>
+            <Preventive 
+              onNavigate={handleNavigate}
+              newPlanEquipmentId={newPreventivePlanEqId}
+              onClearNewPlanEquipmentId={() => setNewPreventivePlanEqId(null)}
+            />
+          </AccessGuard>
+        )}
 
-      {currentScreen === 'corrective' && (
-        <AccessGuard permission={PERMISSIONS.INCIDENT_VIEW}>
-          <Corrective 
-            onNavigate={handleNavigate}
-            onOpenCreateOtWithIncident={(inc) => {
-              setPrefilledIncident(inc);
-              setCurrentScreen('workorders');
-            }}
-          />
-        </AccessGuard>
-      )}
+        {currentScreen === 'corrective' && (
+          <AccessGuard permission={PERMISSIONS.INCIDENT_VIEW}>
+            <Corrective 
+              onNavigate={handleNavigate}
+              onOpenCreateOtWithIncident={(inc) => {
+                setPrefilledIncident(inc);
+                setCurrentScreen('workorders');
+              }}
+            />
+          </AccessGuard>
+        )}
 
-      {currentScreen === 'workorders' && (
-        <AccessGuard permission={PERMISSIONS.WORKORDER_VIEW}>
-          <WorkOrders 
-            selectedOtFromUrl={selectedOtFromUrl}
-            onClearSelectedOt={() => setSelectedOtFromUrl(null)}
-            prefilledIncident={prefilledIncident}
-            onClearPrefilledIncident={() => setPrefilledIncident(null)}
-            newWorkOrderEqId={newWorkOrderEqId}
-          />
-        </AccessGuard>
-      )}
+        {currentScreen === 'workorders' && (
+          <AccessGuard permission={PERMISSIONS.WORKORDER_VIEW}>
+            <WorkOrders 
+              selectedOtFromUrl={selectedOtFromUrl}
+              onClearSelectedOt={() => setSelectedOtFromUrl(null)}
+              prefilledIncident={prefilledIncident}
+              onClearPrefilledIncident={() => setPrefilledIncident(null)}
+              newWorkOrderEqId={newWorkOrderEqId}
+            />
+          </AccessGuard>
+        )}
 
-      {currentScreen === 'inventory' && (
-        <AccessGuard permission={PERMISSIONS.INVENTORY_VIEW}>
-          <Inventory onNavigate={setCurrentScreen} />
-        </AccessGuard>
-      )}
+        {currentScreen === 'inventory' && (
+          <AccessGuard permission={PERMISSIONS.INVENTORY_VIEW}>
+            <Inventory onNavigate={setCurrentScreen} />
+          </AccessGuard>
+        )}
 
-      {currentScreen === 'suppliers' && (
-        <AccessGuard permission={PERMISSIONS.SUPPLIER_VIEW}>
-          <Suppliers />
-        </AccessGuard>
-      )}
+        {currentScreen === 'suppliers' && (
+          <AccessGuard permission={PERMISSIONS.SUPPLIER_VIEW}>
+            <Suppliers />
+          </AccessGuard>
+        )}
 
-      {currentScreen === 'reports' && (
-        <AccessGuard permission={PERMISSIONS.REPORT_VIEW}>
-          <Reports />
-        </AccessGuard>
-      )}
+        {currentScreen === 'reports' && (
+          <AccessGuard permission={PERMISSIONS.REPORT_VIEW}>
+            <Reports />
+          </AccessGuard>
+        )}
 
-      {currentScreen === 'admin' && (
-        <AccessGuard permission={PERMISSIONS.USER_VIEW}>
-          <Admin />
-        </AccessGuard>
-      )}
+        {currentScreen === 'admin' && (
+          <AccessGuard permission={PERMISSIONS.USER_VIEW}>
+            <Admin />
+          </AccessGuard>
+        )}
 
-      {currentScreen === 'equipes' && (
-        <AccessGuard permission={PERMISSIONS.USER_VIEW}>
-          <EquipesPage />
-        </AccessGuard>
-      )}
+        {currentScreen === 'equipes' && (
+          <AccessGuard permission={PERMISSIONS.USER_VIEW}>
+            <EquipesPage />
+          </AccessGuard>
+        )}
 
-      {currentScreen.startsWith('saas-') && currentUser?.role === 'SuperAdmin' && (
-        <ErrorBoundary fallbackTitle="Module Super Admin momentanément indisponible">
-          <SuperAdmin activeTab={currentScreen.split('-')[1] as any} />
-        </ErrorBoundary>
-      )}
+        {currentScreen.startsWith('saas-') && currentUser?.role === 'SuperAdmin' && (
+          <ErrorBoundary fallbackTitle="Module Super Admin momentanément indisponible">
+            <SuperAdmin activeTab={currentScreen.split('-')[1] as any} />
+          </ErrorBoundary>
+        )}
+      </Suspense>
     </MainLayout>
   );
 }
