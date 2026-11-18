@@ -9,6 +9,7 @@ import { AdminDashboardStats } from './AdminDashboardStats';
 import { UserManagement } from '../users/UserManagement';
 import { RoleSettings } from './RoleSettings';
 import { LocalisationSettings } from './LocalisationSettings';
+import { CampaignSettings } from './CampaignSettings';
 import { AdminSettings } from './AdminSettings';
 import { AdminModals } from '../users/AdminModals';
 import { usersApi } from '../users/api/users.api';
@@ -21,7 +22,7 @@ export const Admin: React.FC = () => {
   const [successSaved, setSuccessSaved] = useState(false);
   const [language, setLanguage] = useState<'fr' | 'en'>('fr');
   const [emailAlerts, setEmailAlerts] = useState(true);
-  const [activeTab, setActiveTab] = useState<'utilisateurs' | 'roles' | 'localisations' | 'parametres'>('utilisateurs');
+  const [activeTab, setActiveTab] = useState<'utilisateurs' | 'roles' | 'localisations' | 'campagnes' | 'parametres'>('utilisateurs');
   
   const [selectedRole, setSelectedRole] = useState<AppRole>('Technicien');
 
@@ -261,6 +262,16 @@ export const Admin: React.FC = () => {
           Localisations
         </button>
         <button
+          onClick={() => setActiveTab('campagnes')}
+          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+            activeTab === 'campagnes'
+              ? 'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-500 dark:bg-indigo-500/10 dark:text-indigo-400'
+              : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
+          }`}
+        >
+          Campagnes
+        </button>
+        <button
           onClick={() => setActiveTab('parametres')}
           className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
             activeTab === 'parametres'
@@ -291,6 +302,10 @@ export const Admin: React.FC = () => {
 
         {activeTab === 'localisations' && (
           <LocalisationSettings />
+        )}
+
+        {activeTab === 'campagnes' && (
+          <CampaignSettings />
         )}
 
         {activeTab === 'parametres' && (

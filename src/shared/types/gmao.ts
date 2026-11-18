@@ -72,7 +72,8 @@ export interface WorkOrder {
   equipmentId: string;
   title: string;
   description: string;
-  type: 'Correctif' | 'Préventif' | 'Curatif' | 'Amélioratif';
+  type: 'Correctif' | 'Préventif' | 'Amélioratif' | 'Prédictif';
+  campagneId?: number;
   priority: 'Faible' | 'Moyenne' | 'Haute' | 'Critique';
   status: 'Brouillon' | 'En attente' | 'Affecté Chef' | 'Affecté' | 'En cours' | 'Suspendu' | 'Terminé' | 'Clôturé';
   createdDate: string;

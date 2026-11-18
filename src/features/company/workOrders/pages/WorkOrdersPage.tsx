@@ -44,6 +44,8 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
     parts, 
     currentUser,
     equipes,
+    campaigns,
+    selectedCampaign,
     updateWorkOrderStatus 
   } = useGmao();
 
@@ -59,6 +61,7 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
   const [filterType, setFilterType] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterPriority, setFilterPriority] = useState('All');
+  const [filterCampaign, setFilterCampaign] = useState('all');
   
   // Selected OT details
   const [selectedOtId, setSelectedOtId] = useState<string | null>(selectedOtFromUrl);
@@ -135,13 +138,21 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
     const matchesType = filterType === 'All' || ot.type === filterType;
     const matchesStatus = filterStatus === 'All' || ot.status === filterStatus;
     const matchesPriority = filterPriority === 'All' || ot.priority === filterPriority;
+    const matchesCampaign = filterCampaign === 'all'
+      ? true
+      : filterCampaign === 'active'
+        ? (!ot.campaign || ot.campaign.toLowerCase() === selectedCampaign.toLowerCase())
+        : (ot.campaign?.toLowerCase() === filterCampaign.toLowerCase());
 
-    return matchesSearch && matchesType && matchesStatus && matchesPriority;
+    return matchesSearch && matchesType && matchesStatus && matchesPriority && matchesCampaign;
   });
 
   const handleCreateOtSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle || !newEqId) return;
+
+    const activeCamp = campaigns?.find(c => c.name === selectedCampaign || c.status === 'En cours');
+    const activeCampId = activeCamp ? parseInt(activeCamp.id, 10) : undefined;
 
     setIsSubmitting(true);
     setSubmitError(null);
@@ -154,6 +165,7 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
         priority: newPriority,
         technicianId: newTechId || undefined,
         incidentId: prefilledIncident?.id,
+        campagneId: activeCampId,
       })).unwrap();
 
       setNewTitle('');
@@ -295,7 +307,19 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
           />
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
+        <div className="flex items-center gap-3 w-full md:w-auto flex-wrap">
+          <select 
+            value={filterCampaign} 
+            onChange={(e) => setFilterCampaign(e.target.value)}
+            className="bg-white/40 dark:bg-slate-900/10 border border-slate-200/50 dark:border-slate-800/50 rounded-custom-sm px-3 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400 outline-none cursor-pointer"
+          >
+            <option value="all">Toutes les campagnes</option>
+            <option value="active">{selectedCampaign || 'Campagne en cours'}</option>
+            {campaigns && campaigns.filter(c => c.name !== selectedCampaign).map(c => (
+              <option key={c.id || c.name} value={c.name}>{c.name}</option>
+            ))}
+          </select>
+
           <select 
             value={filterType} 
             onChange={(e) => setFilterType(e.target.value)}
@@ -304,7 +328,6 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
             <option value="All">Tous les types</option>
             <option value="Correctif">Correctif</option>
             <option value="Préventif">Préventif</option>
-            <option value="Curatif" style={{display:'none'}}>Curatif</option>
             <option value="Amélioratif">Amélioratif</option>
           </select>
 

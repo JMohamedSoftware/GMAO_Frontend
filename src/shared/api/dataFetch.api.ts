@@ -439,6 +439,7 @@ export interface CreateWorkOrderPayload {
     technicianId?: string;
     incidentId?: string;   // links to DemandeIntervention
     responsableId?: number;
+    campagneId?: number;
 }
 
 const typeToInt = (type: string): number => {
@@ -485,7 +486,7 @@ export const createWorkOrderApi = async (payload: CreateWorkOrderPayload): Promi
         coutMainOeuvre: null,
         coutPieces: null,
         coutSousTraitance: null,
-        campagneId: null,
+        campagneId: payload.campagneId ?? null,
     };
     if (activeTenantNumeric && activeTenantNumeric > 0) {
         body.societeId = activeTenantNumeric;
@@ -591,7 +592,7 @@ export const patchWorkOrderStatusApi = async (
         coutMainOeuvre: null,
         coutPieces: merged.externalCost || null,
         coutSousTraitance: null,
-        campagneId: null,
+        campagneId: merged.campagneId ?? null,
     };
     
     await axios.put(`${API_URL}/OrdresTravail/${numericId}`, body, getAuthHeaders());
@@ -633,7 +634,8 @@ export const fetchWorkOrders = async (): Promise<WorkOrder[]> => {
             solution: w.solution || undefined,
             partsUsed: [],
             externalCost: w.coutSousTraitance || 0,
-            campaign: w.campagneNom || ''
+            campaign: w.campagne?.nom || w.campagneNom || '',
+            campagneId: w.campagneId || undefined
         };
     });
 };
