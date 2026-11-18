@@ -283,30 +283,33 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate }) =
           </button>
         </div>
 
-        {/* User Card - Icon Centric */}
+        {/* User Card - Icon Centric avec overlay transparent au survol */}
         {currentUser && (
-          <div className="flex flex-col items-center justify-center w-full bg-white/30 dark:bg-slate-900/10 p-2 rounded-xl border border-white/50 dark:border-slate-800/50 gap-1.5 relative group">
+          <div className="flex flex-col items-center justify-center w-full bg-white/40 dark:bg-slate-900/30 p-2.5 rounded-2xl border border-white/60 dark:border-slate-800/60 gap-1.5 relative group overflow-hidden transition-all shadow-xs">
             <img 
               src={currentUser.avatar} 
               alt={currentUser.name} 
-              className="w-10 h-10 rounded-full object-cover border-2 border-white/70 shadow-sm"
+              className="w-10 h-10 rounded-full object-cover border-2 border-white/80 dark:border-slate-700 shadow-sm transition-transform group-hover:scale-105"
             />
-            <div className="text-center px-1">
-              <h4 className="text-[9px] font-black text-slate-700 dark:text-slate-200 truncate max-w-full">
+            <div className="text-center px-1 w-full">
+              <h4 className="text-[10px] font-black text-slate-700 dark:text-slate-200 truncate max-w-full">
                 {currentUser.name}
               </h4>
-              <span className="text-[8px] text-slate-400 font-semibold block leading-tight">
+              <span className="text-[9px] text-slate-400 font-bold block leading-tight">
                 {currentUser.role === 'SuperAdmin' ? 'Super Admin' : currentUser.role}
               </span>
             </div>
-            {/* Direct visible logout button for easy one-click logout */}
+
+            {/* Plaque transparente qui apparaît au survol (Hover Overlay) */}
             <button
               onClick={handleLogout}
               title="Se déconnecter"
-              className="w-full mt-0.5 py-1 px-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center justify-center gap-1 text-[8px] font-bold transition cursor-pointer"
+              className="absolute inset-0 bg-slate-900/80 dark:bg-slate-950/85 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center text-rose-400 hover:text-rose-300 opacity-0 group-hover:opacity-100 transition-all duration-200 cursor-pointer p-2 z-10"
             >
-              <LogOut className="w-3 h-3" />
-              <span>Quitter</span>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 shadow-sm scale-95 group-hover:scale-100 transition-transform">
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="text-[9px] font-extrabold tracking-wide uppercase">Quitter</span>
+              </div>
             </button>
           </div>
         )}
