@@ -33,6 +33,7 @@ export const Reports: React.FC = () => {
     currentUser, 
     parts, 
     technicians, 
+    users,
     campaigns,
     isCampaignClosed,
     campaignWorkOrders,
@@ -63,18 +64,25 @@ export const Reports: React.FC = () => {
         XLSX.utils.book_append_sheet(wb, wsKPI, 'KPIs');
 
         // Feuille 2: Work Orders
-        const woData = filteredWorkOrders.map(ot => ({
-          ID: ot.id,
-          Titre: ot.title,
-          Type: ot.type,
-          Statut: ot.status,
-          Equipement: ot.equipmentId,
-          Assigné_A: ot.technicianId,
-          Date_Creation: ot.createdDate,
-          Date_Debut: ot.startDate || '',
-          Date_Fin: ot.endDate || '',
-          Duree_Minutes: ot.durationMinutes
-        }));
+        const woData = filteredWorkOrders.map(ot => {
+          const eq = equipments.find(e => String(e.id) === String(ot.equipmentId));
+          const tech = technicians.find(t => String(t.id) === String(ot.technicianId));
+          const u = users?.find(user => String(user.id) === String(ot.technicianId));
+          const assignedName = tech?.name || u?.name || ot.technicianId || 'Non assigné';
+
+          return {
+            ID: ot.id,
+            Titre: ot.title,
+            Type: ot.type,
+            Statut: ot.status,
+            Equipement: eq ? `${eq.name} (${eq.code || eq.id})` : ot.equipmentId,
+            Assigné_A: assignedName,
+            Date_Creation: ot.createdDate,
+            Date_Debut: ot.startDate || '',
+            Date_Fin: ot.endDate || '',
+            Duree_Minutes: ot.durationMinutes
+          };
+        });
         const wsWO = XLSX.utils.json_to_sheet(woData);
         XLSX.utils.book_append_sheet(wb, wsWO, 'Bons de Travail');
 
@@ -152,7 +160,7 @@ export const Reports: React.FC = () => {
     topEquipmentsData.push({ name: 'Aucune panne', pannes: 0 });
   }
 
-  // Top Techniciens
+  // Top Techniciens (Résolution directe du nom et avatar)
   const techCount: Record<string, number> = {};
   filteredWorkOrders.filter(ot => ot.status === 'Terminé' || ot.status === 'Clôturé').forEach(ot => {
     if (ot.technicianId) {
@@ -160,12 +168,22 @@ export const Reports: React.FC = () => {
     }
   });
   const topTechniciansData = Object.entries(techCount)
-    .map(([name, count]) => ({ name, count }))
+    .map(([id, count]) => {
+      const tech = technicians.find(t => String(t.id) === String(id));
+      const user = users?.find(u => String(u.id) === String(id));
+      const resolvedName = tech?.name || user?.name || (isNaN(Number(id)) ? id : `Technicien #${id}`);
+      return { 
+        id, 
+        name: resolvedName, 
+        count,
+        avatar: tech?.avatar || user?.avatar
+      };
+    })
     .sort((a: any, b: any) => b.count - a.count)
     .slice(0, 5);
 
   if (topTechniciansData.length === 0) {
-    topTechniciansData.push({ name: 'Aucun', count: 0 });
+    topTechniciansData.push({ id: '0', name: 'Aucun', count: 0, avatar: undefined });
   }
 
   // Top Types de Pannes
@@ -710,10 +728,22 @@ export const Reports: React.FC = () => {
           <div className="flex flex-col gap-2">
             {topTechniciansData.map((tech, idx) => (
               <div key={idx} className="flex items-center justify-between p-3 bg-white/40 dark:bg-slate-900/20 border border-slate-200/40 dark:border-slate-800/40 rounded-lg">
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {idx + 1}. {tech.name}
-                </span>
-                <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xs font-black text-slate-400 w-4">
+                    {idx + 1}.
+                  </span>
+                  {tech.avatar ? (
+                    <img src={tech.avatar} alt={tech.name} className="w-6 h-6 rounded-full object-cover border border-white/60 dark:border-slate-700 shadow-xs" />
+                  ) : (
+                    <div className="w-6 h-6 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-[10px] font-black">
+                      {tech.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                    {tech.name}
+                  </span>
+                </div>
+                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md">
                   {tech.count} OT
                 </span>
               </div>
