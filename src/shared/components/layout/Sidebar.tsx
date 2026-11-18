@@ -192,10 +192,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate }) =
                   </option>
                 ))
               ) : (
-                <>
-                  <option value="Campagne 2026" className="dark:bg-slate-900 text-slate-800 dark:text-slate-100">Campagne 2026 (En cours)</option>
-                  <option value="Campagne 2025" className="dark:bg-slate-900 text-slate-800 dark:text-slate-100">Campagne 2025 (Clôturée)</option>
-                </>
+                <option value={`Campagne ${new Date().getFullYear()}`} className="dark:bg-slate-900 text-slate-800 dark:text-slate-100">
+                  Campagne {new Date().getFullYear()} (En cours)
+                </option>
               )}
             </select>
           </div>
