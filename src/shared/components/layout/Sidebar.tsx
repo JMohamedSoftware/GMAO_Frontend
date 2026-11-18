@@ -50,7 +50,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate }) =
     impersonatedTenantId,
     impersonateTenant,
     equipes,
-    isCampaignClosed
+    isCampaignClosed,
+    campaignWorkOrders,
+    campaignIncidents
   } = useGmao();
 
   const { can, isTechnicien, isChefEquipe } = usePermissions();
@@ -94,11 +96,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate }) =
     { id: 'saas-settings', label: 'Paramètres', icon: Settings }
   ];
 
-  // Calculate alerts to display
-  const activeAlerts = incidents.filter(i => i.status !== 'Transformé en OT' && i.status !== 'Rejeté').length;
+  // Calculate alerts to display (strictly scoped to the active/selected campaign)
+  const activeAlerts = campaignIncidents.filter(i => i.status !== 'Transformé en OT' && i.status !== 'Rejeté').length;
   
-  // Base visibility filter based on user role (for OT badge)
-  const myOts = workOrders.filter(ot => {
+  // Base visibility filter based on user role (for OT badge, scoped to campaign)
+  const myOts = campaignWorkOrders.filter(ot => {
     if (isTechnicien) {
       if (String(ot.technicianId) !== String(myUserId)) return false;
     } else if (isChefEquipe) {

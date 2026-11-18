@@ -113,8 +113,8 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
   const activeOtEq = activeOt ? equipments.find(e => e.id === activeOt.equipmentId) : null;
   const activeOtTech = activeOt ? technicians.find(t => t.id === activeOt.technicianId) : null;
 
-  // 1. Base visibility filter based on user role (for KPIs & List)
-  const baseOrders = isCampaignClosed ? campaignWorkOrders : workOrders;
+  // 1. Base visibility filter based on user role (strictly scoped to the selected campaign)
+  const baseOrders = campaignWorkOrders;
   const myOts = baseOrders.filter(ot => {
     if (isTechnicien) {
       // Technicien sees only OTs assigned to them (use real auth ID)

@@ -44,9 +44,9 @@ export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreate
   const [urgency, setUrgency] = useState<Incident['urgency']>('Moyenne');
   const [photo, setPhoto] = useState('');
 
-  // Scoped lists according to active/closed campaign
-  const baseIncidents = isCampaignClosed ? campaignIncidents : incidents;
-  const baseWorkOrders = isCampaignClosed ? campaignWorkOrders : workOrders;
+  // Scoped lists strictly according to the selected campaign
+  const baseIncidents = campaignIncidents;
+  const baseWorkOrders = campaignWorkOrders;
 
   // Enrich incidents: inject workOrderId, workOrderNumero, technicianId, and auto-transition to Clos when the linked OT is finished
   const enrichedIncidents = baseIncidents.map(inc => {

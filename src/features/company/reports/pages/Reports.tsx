@@ -111,9 +111,9 @@ export const Reports: React.FC = () => {
 
   const scope = isChefEquipe ? 'mon_equipe' : 'toute_usine';
   
-  // Scoped lists according to active/closed campaign
-  const baseOrders = isCampaignClosed ? campaignWorkOrders : workOrders;
-  const baseIncidents = isCampaignClosed ? campaignIncidents : incidents;
+  // Scoped lists strictly according to the selected campaign
+  const baseOrders = campaignWorkOrders;
+  const baseIncidents = campaignIncidents;
 
   // Filter WorkOrders based on scope
   const filteredWorkOrders = baseOrders.filter(ot => {

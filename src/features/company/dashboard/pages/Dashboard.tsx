@@ -37,9 +37,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
   // Modal for declaring an incident / panne
   const [isDeclareModalOpen, setIsDeclareModalOpen] = useState(false);
 
-  // Scoped lists according to active/closed campaign
-  const currentOrders = isCampaignClosed ? campaignWorkOrders : workOrders;
-  const currentIncidents = isCampaignClosed ? campaignIncidents : incidents;
+  // Scoped lists strictly according to the selected campaign (2026 vs 2025 archive)
+  const currentOrders = campaignWorkOrders;
+  const currentIncidents = campaignIncidents;
 
   // Maintenance Cost Calculations according to Cahier des Charges (Section 11 & 13)
   const totalLaborCost = currentOrders.reduce((acc, ot) => {
