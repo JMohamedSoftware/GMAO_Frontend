@@ -127,8 +127,7 @@ export const CampaignSettings: React.FC = () => {
             </h3>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
-            Conformément aux exigences d'une conserverie agro-industrielle (Cahier des Charges § 14 & 19), 
-            les ordres de travail, consommations et historiques de panne sont compartimentés par campagne saisonnière.
+            Planification et suivi des saisons de production : gestion des interventions, consommations de pièces et indicateurs de performance pour chaque campagne.
           </p>
         </div>
 
