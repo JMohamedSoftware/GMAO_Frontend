@@ -1,1077 +1,120 @@
-import axios from 'axios';
-import { Equipment, Supplier, SparePart, Incident, WorkOrder, Campaign, Technician, PlanPreventif, TachePreventive, UserAccount, Tenant, DocumentInfo } from '../types/gmao';
-
-const rawUrl = import.meta.env.VITE_API_URL || 'https://gmao-backend-a6r2.onrender.com';
-const API_URL = rawUrl.replace(/\/api\/?$/, '') + '/api';
-export const BASE_URL = rawUrl.replace(/\/api\/?$/, '');
-
-const getAuthHeaders = () => {
-    const token = localStorage.getItem('gmao_access_token');
-    const activeTenantId = localStorage.getItem('gmao_impersonated_tenant_id') || localStorage.getItem('gmao_current_tenant_id');
-    const headers: Record<string, string> = {
-        Authorization: `Bearer ${token}`
-    };
-    if (activeTenantId && activeTenantId !== 'null' && activeTenantId !== 'undefined') {
-        headers['X-Tenant-Id'] = activeTenantId;
-    }
-    return { headers };
-};
-
-export const fetchEquipments = async (): Promise<Equipment[]> => {
-    const response = await axios.get(`${API_URL}/Equipement`, getAuthHeaders());
-    return response.data.map((e: any) => ({
-        id: e.id?.toString(),
-        code: e.code || '',
-        name: e.designation,
-        location: e.localisationNom || '',
-        category: e.familleNom || 'Autre',
-        subFamily: e.familleNom || 'Autre',
-        brand: e.marque || '',
-        model: e.modele || '',
-        serialNumber: e.numeroSerie || '',
-        supplierId: e.fournisseurId?.toString(),
-        purchaseDate: e.dateAchat,
-        endOfWarranty: e.dateFinGarantie,
-        commissionDate: e.dateMiseEnService || new Date().toISOString(),
-        localisationId: e.localisationId,
-        localisation: e.localisationNom ? { id: e.localisationId, nom: e.localisationNom } : undefined,
-        criticality: normalizeEquipmentCriticality(e.criticite),
-        status: normalizeEquipmentStatus(e.etat),
-        healthIndex: 100,
-        lastMaintenance: e.updatedAt || new Date().toISOString(),
-        nextMaintenance: new Date().toISOString(),
-        hoursCount: 0,
-        cycleCount: 0,
-        documents: e.documents?.map((d: any) => ({
-            id: d.id,
-            name: d.name || d.nom,
-            type: d.type || 'autre',
-            size: d.size || '0 KB',
-            url: d.url?.startsWith('http') ? d.url : `${BASE_URL}${d.url}`,
-            uploadedAt: d.createdAt
-        })) || [],
-        photos: e.photoUrl ? [e.photoUrl] : [],
-        sensors: [],
-        spareParts: e.piecesIds?.map((id: number) => id.toString()) || [],
-        parentId: e.parentEquipementId ? e.parentEquipementId.toString() : undefined
-    }));
-};
-
-export const fetchSuppliers = async (): Promise<Supplier[]> => {
-    const response = await axios.get(`${API_URL}/Fournisseurs`, getAuthHeaders());
-    return response.data.map((s: any) => ({
-        id: s.id?.toString(),
-        name: s.nom,
-        contact: s.contact || '',
-        email: s.email || '',
-        phone: s.telephone || '',
-        address: s.adresse || '',
-        rating: 5,
-        contracts: []
-    }));
-};
-
-export const createSupplierApi = async (supplier: Supplier): Promise<Supplier> => {
-    const response = await axios.post(`${API_URL}/Fournisseurs`, {
-        nom: supplier.name,
-        contact: supplier.contact,
-        email: supplier.email,
-        telephone: supplier.phone,
-        adresse: supplier.address,
-        code: supplier.id && !supplier.id.startsWith('SUP-') ? supplier.id : undefined,
-        isActive: true
-    }, getAuthHeaders());
-    const s = response.data;
-    return {
-        id: s.id?.toString(),
-        name: s.nom,
-        contact: s.contact || '',
-        email: s.email || '',
-        phone: s.telephone || '',
-        address: s.adresse || '',
-        rating: supplier.rating || 5,
-        contracts: supplier.contracts || []
-    };
-};
-
-export const updateSupplierApi = async (id: string, supplier: Partial<Supplier>): Promise<Supplier> => {
-    const response = await axios.put(`${API_URL}/Fournisseurs/${id}`, {
-        id: Number(id),
-        nom: supplier.name,
-        contact: supplier.contact,
-        email: supplier.email,
-        telephone: supplier.phone,
-        adresse: supplier.address,
-        isActive: true
-    }, getAuthHeaders());
-    const s = response.data;
-    return {
-        id: s.id?.toString() || id,
-        name: s.nom || supplier.name || '',
-        contact: s.contact || supplier.contact || '',
-        email: s.email || supplier.email || '',
-        phone: s.telephone || supplier.phone || '',
-        address: s.adresse || supplier.address || '',
-        rating: supplier.rating || 5,
-        contracts: supplier.contracts || []
-    };
-};
-
-export const deleteSupplierApi = async (id: string): Promise<string> => {
-    await axios.delete(`${API_URL}/Fournisseurs/${id}`, getAuthHeaders());
-    return id;
-};
-
-let cachedCategories: { id: number, nom: string }[] | null = null;
-
-export const fetchPieceCategoriesApi = async () => {
-    const response = await axios.get(`${API_URL}/FamillePieces`, getAuthHeaders());
-    return response.data;
-};
-
-export const createPieceCategoryApi = async (nom: string) => {
-    const response = await axios.post(`${API_URL}/FamillePieces`, { nom }, getAuthHeaders());
-    return response.data;
-};
-
-const getCategoryIdByName = async (catName: string): Promise<number> => {
-    if (!catName) return 1; // Default to ID 1 ('Autre' or similar) if category is missing
-    if (!cachedCategories) {
-        cachedCategories = await fetchPieceCategoriesApi();
-    }
-    let cat = cachedCategories?.find(c => c.nom.toLowerCase() === catName.toLowerCase());
-    if (!cat) {
-        cat = await createPieceCategoryApi(catName);
-        if (cachedCategories && cat) {
-            cachedCategories.push(cat);
-        }
-    }
-    return cat?.id || 1;
-};
-
-export const fetchParts = async (): Promise<SparePart[]> => {
-    if (!cachedCategories) {
-        cachedCategories = await fetchPieceCategoriesApi();
-    }
-    const response = await axios.get(`${API_URL}/Pieces`, getAuthHeaders());
-    return response.data.map((p: any) => {
-        const cat = cachedCategories?.find(c => c.id === p.famillePieceId);
-        return {
-            id: p.id?.toString(),
-            ref: p.reference,
-            name: p.designation,
-            category: cat ? cat.nom : 'Autre',
-            supplierId: p.fournisseurId?.toString() || '',
-            stockCurrent: p.stockActuel || 0,
-            stockMin: p.stockMinimum || 0,
-            stockMax: p.stockMaximum || 100,
-            unitPrice: p.prixUnitaire || 0,
-            location: p.emplacement || '',
-            photo: p.photoUrl
-        };
-    });
-};
-
-export const createPartApi = async (part: SparePart): Promise<any> => {
-    const catId = await getCategoryIdByName(part.category);
-    const rawTenant = localStorage.getItem('gmao_impersonated_tenant_id') || localStorage.getItem('gmao_current_tenant_id');
-    const parsed = Number(rawTenant);
-    const tenantId = !isNaN(parsed) && parsed > 0 ? parsed : 1;
-
-    const payload = {
-        reference: part.ref,
-        designation: part.name,
-        famillePieceId: catId,
-        fournisseurId: part.supplierId && !isNaN(parseInt(part.supplierId)) ? parseInt(part.supplierId) : null,
-        stockActuel: Number(part.stockCurrent) || 0,
-        stockMinimum: Number(part.stockMin) || 0,
-        stockMaximum: Number(part.stockMax) || 100,
-        prixUnitaire: Number(part.unitPrice) || 0,
-        emplacement: part.location || '',
-        photoUrl: part.photo || null,
-        societeId: tenantId
-    };
-    const response = await axios.post(`${API_URL}/Pieces`, payload, getAuthHeaders());
-    return response.data;
-};
-
-export const updatePartApi = async (id: string, part: SparePart): Promise<any> => {
-    const catId = await getCategoryIdByName(part.category);
-    const rawTenant = localStorage.getItem('gmao_impersonated_tenant_id') || localStorage.getItem('gmao_current_tenant_id');
-    const parsed = Number(rawTenant);
-    const tenantId = !isNaN(parsed) && parsed > 0 ? parsed : 1;
-
-    const payload = {
-        id: parseInt(id),
-        reference: part.ref,
-        designation: part.name,
-        famillePieceId: catId,
-        fournisseurId: part.supplierId && !isNaN(parseInt(part.supplierId)) ? parseInt(part.supplierId) : null,
-        stockActuel: Number(part.stockCurrent) || 0,
-        stockMinimum: Number(part.stockMin) || 0,
-        stockMaximum: Number(part.stockMax) || 100,
-        prixUnitaire: Number(part.unitPrice) || 0,
-        emplacement: part.location || '',
-        photoUrl: part.photo || null,
-        societeId: tenantId
-    };
-    const response = await axios.put(`${API_URL}/Pieces/${id}`, payload, getAuthHeaders());
-    return response.data;
-};
-
-export const createMovementApi = async (movement: { pieceId: string, qty: number, type: 'in' | 'out', otId?: string, reason?: string, userId: string }): Promise<any> => {
-    const pieceId = parseInt(movement.pieceId);
-    const userId = parseInt(movement.userId);
-    const otId = movement.otId ? parseInt(movement.otId) : null;
-
-    console.log('[createMovementApi] Input:', movement);
-    console.log('[createMovementApi] Parsed:', { pieceId, userId, otId });
-
-    if (isNaN(pieceId) || isNaN(userId)) {
-        console.error('[createMovementApi] INVALID IDs — pieceId or userId is NaN. Cannot POST movement.', { pieceIdRaw: movement.pieceId, userIdRaw: movement.userId });
-        throw new Error(`Invalid IDs: pieceId=${movement.pieceId}, userId=${movement.userId}`);
-    }
-
-    const payload = {
-        pieceId,
-        oTId: isNaN(otId as any) ? null : otId,
-        userId,
-        type: movement.type === 'in' ? 1 : 2, // 1 = Entree, 2 = Sortie
-        quantite: movement.qty,
-        prixUnitaire: 0,
-        prixTotal: 0,
-        motif: movement.reason || (movement.type === 'in' ? 'Achat/Retour' : 'Maintenance/Sortie')
-    };
-    console.log('[createMovementApi] Sending POST payload:', payload);
-    const response = await axios.post(`${API_URL}/MouvementsStock`, payload, getAuthHeaders());
-    console.log('[createMovementApi] Response:', response.status, response.data);
-    return response.data;
-};
-
-
-export const fetchMovements = async (): Promise<any[]> => {
-    const response = await axios.get(`${API_URL}/MouvementsStock`, getAuthHeaders());
-    return response.data.map((m: any) => ({
-        id: `MVT-${new Date(m.date || Date.now()).getFullYear()}-${(m.id || 0).toString().padStart(3, '0')}`,
-        date: m.date,
-        partRef: m.piece?.reference || m.pieceId?.toString(),
-        qty: m.quantite,
-        type: m.type === 1 ? 'in' : 'out',
-        reason: m.motif || (m.type === 1 ? 'Achat/Retour' : 'Maintenance/Sortie'),
-        otId: (m.oTId || m.otId || m.otid || m.oTid || m.oTId)?.toString()
-    }));
-};
-
-const TECHNICIAN_ROLE_ID = 4;
-
-/** Maps a role label to the closest Technician.role union type */
-const mapTechRole = (roleId: number): Technician['role'] => {
-    return 'Électromécanicien'; // default — backend has no speciality field yet
-};
-
-export const fetchTechnicians = async (): Promise<Technician[]> => {
-    const response = await axios.get(`${API_URL}/Users`, getAuthHeaders());
-    return response.data
-        .filter((u: any) => u.roleId === TECHNICIAN_ROLE_ID && u.isActive !== false)
-        .map((u: any): Technician => ({
-            id: u.id?.toString(),
-            name: `${u.prenom} ${u.nom}`.trim(),
-            role: mapTechRole(u.roleId),
-            qualification: 'Technicien de Maintenance',
-            skills: [],
-            status: 'Disponible',
-            hourlyRate: 0,
-            avatar: u.avatar ||
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(`${u.prenom}+${u.nom}`)}&background=e11d48&color=fff&size=150`,
-        }));
-};
-
-const mapRoleIdToName = (roleId: number): string => {
-    switch (roleId) {
-        case 1: return 'Administrateur';
-        case 2: return 'Technicien';
-        case 3: return 'Demandeur';
-        default: return 'Utilisateur';
-    }
-};
-
-export const fetchUsers = async (): Promise<UserAccount[]> => {
-    const response = await axios.get(`${API_URL}/Users`, getAuthHeaders());
-    return response.data
-        .filter((u: any) => u.role?.nom !== 'SuperAdmin' && u.roleId !== 7)
-        .map((u: any) => ({
-            id: u.id?.toString(),
-            name: `${u.prenom} ${u.nom}`.trim(),
-            email: u.email,
-            role: u.role?.nom || mapRoleIdToName(u.roleId),
-            status: u.isActive !== false ? 'Actif' : 'Inactif',
-            avatar: u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(`${u.prenom}+${u.nom}`)}&background=e11d48&color=fff&size=150`,
-            phone: u.telephone,
-            createdAt: u.createdAt
-        }));
-};
-
-
-
-// ─── Enum converters ───────────────────────────────────────────────────────────
-
-/** Backend PrioriteIntervention → Frontend urgency string */
-const intToUrgency = (n: number): Incident['urgency'] => {
-    switch (n) {
-        case 1:  return 'Faible';
-        case 3:  return 'Haute';
-        case 4:  return 'Critique';
-        default: return 'Moyenne';
-    }
-};
-
-/** Backend StatutDemande → Frontend status string */
-const intToStatus = (n: number): Incident['status'] => {
-    switch (n) {
-        case 2:  return 'Validé';
-        case 3:  return 'Rejeté';
-        case 4:  return 'Transformé en OT';
-        case 5:  return 'Clos';
-        default: return 'Nouveau';
-    }
-};
-
-/** Frontend urgency string → backend PrioriteIntervention integer */
-const urgencyToInt = (urgency: string): number => {
-    switch (urgency) {
-        case 'Faible':   return 1;
-        case 'Haute':    return 3;
-        case 'Critique': return 4;
-        default:         return 2; // 'Moyenne'
-    }
-};
-
-/** Frontend status string → backend StatutDemande integer */
-const statusToInt = (status: string): number => {
-    switch (status) {
-        case 'Validé':            return 2;
-        case 'Rejeté':            return 3;
-        case 'Transformé en OT':  return 4;
-        case 'Clos':              return 5;
-        default:                  return 1; // 'Nouveau' / 'EnAttente'
-    }
-};
-
-// ─── Incidents ─────────────────────────────────────────────────────────────────
-
-export const fetchIncidents = async (): Promise<Incident[]> => {
-    const response = await axios.get(`${API_URL}/Incidents`, getAuthHeaders());
-    return response.data.map((i: any) => ({
-        id: i.id?.toString(),
-        equipmentId: i.equipementId?.toString(),
-        reportedBy: i.demandeurId?.toString(),
-        reportedDate: i.datePanne,
-        urgency: intToUrgency(i.priorite),
-        status: intToStatus(i.statut),
-        description: i.description,
-        photo: i.photoUrl || undefined,
-        commentaireRejet: i.commentaireRejet || undefined,
-    }));
-};
-
-export interface CreateIncidentPayload {
-    equipmentId: string;
-    description: string;
-    urgency: string;
-    demandeurId?: number;
-    photo?: string;
-}
-
-/** POST /api/Incidents — persists a new incident to the backend */
-export const createIncidentApi = async (payload: CreateIncidentPayload): Promise<Incident> => {
-    const body = {
-        equipementId: parseInt(payload.equipmentId, 10),
-        demandeurId: payload.demandeurId || 1,
-        datePanne: new Date().toISOString(),
-        description: payload.description,
-        priorite: urgencyToInt(payload.urgency),
-        statut: 1, // EnAttente / Nouveau
-        photoUrl: payload.photo || null,
-    };
-    const response = await axios.post(`${API_URL}/Incidents`, body, getAuthHeaders());
-    const i = response.data;
-    return {
-        id: i.id?.toString(),
-        equipmentId: i.equipementId?.toString(),
-        reportedBy: i.demandeurId?.toString(),
-        reportedDate: i.datePanne || new Date().toISOString(),
-        urgency: payload.urgency as Incident['urgency'],
-        status: 'Nouveau',
-        description: i.description,
-        photo: i.photoUrl || undefined,
-    };
-};
-
-/** PUT /api/Incidents/{id} — updates an incident's status on the backend */
-export const patchIncidentStatusApi = async (
-    id: string,
-    status: Incident['status'],
-    fullIncident: Incident,
-    commentaireRejet?: string
-): Promise<void> => {
-    const body = {
-        id: parseInt(id, 10),
-        equipementId: parseInt(fullIncident.equipmentId, 10),
-        demandeurId: parseInt(fullIncident.reportedBy, 10) || 1,
-        datePanne: fullIncident.reportedDate,
-        description: fullIncident.description,
-        priorite: urgencyToInt(fullIncident.urgency),
-        statut: statusToInt(status),
-        photoUrl: fullIncident.photo || null,
-        commentaireRejet: commentaireRejet || null,
-    };
-    await axios.put(`${API_URL}/Incidents/${id}`, body, getAuthHeaders());
-};
-
-// ─── Work Orders write ─────────────────────────────────────────────────────────
-
-export interface CreateWorkOrderPayload {
-    title: string;
-    description: string;
-    equipmentId: string;
-    type: WorkOrder['type'];
-    priority: WorkOrder['priority'];
-    technicianId?: string;
-    incidentId?: string;   // links to DemandeIntervention
-    responsableId?: number;
-    campagneId?: number;
-}
-
-const typeToInt = (type: string): number => {
-    switch (type) {
-        case 'Préventif':   return 2;
-        case 'Amélioratif': return 4;
-        default:            return 1; // Corrective
-    }
-};
-
-const otPriorityToInt = (priority: string): number => {
-    switch (priority) {
-        case 'Faible':   return 1;
-        case 'Haute':    return 3;
-        case 'Critique': return 4;
-        default:         return 2; // Moyenne
-    }
-};
-
-/** POST /api/OrdresTravail — creates a new OT and auto-transitions the linked incident */
-export const createWorkOrderApi = async (payload: CreateWorkOrderPayload): Promise<WorkOrder> => {
-    const now = new Date().toISOString();
-    const userStr = localStorage.getItem('gmao_current_user');
-    const userObj = userStr ? JSON.parse(userStr) : null;
-    const currentUserId = userObj?.id ? parseInt(userObj.id, 10) : 1;
-    const activeTenantId = localStorage.getItem('gmao_impersonated_tenant_id') || localStorage.getItem('gmao_current_tenant_id');
-    const activeTenantNumeric = activeTenantId && /^\d+$/.test(activeTenantId) ? parseInt(activeTenantId, 10) : null;
-
-    // Leave numeroOT empty so backend generates the clean sequential OT-YYYY-S{soc}-001 per company
-    const body: Record<string, any> = {
-        numeroOT: '',
-        demandeId: payload.incidentId ? parseInt(payload.incidentId, 10) : null,
-        equipementId: parseInt(payload.equipmentId, 10),
-        responsableId: payload.responsableId || currentUserId || 1,
-        technicienId: payload.technicianId ? parseInt(payload.technicianId, 10) : null,
-        priorite: otPriorityToInt(payload.priority),
-        typeMaintenance: typeToInt(payload.type),
-        statut: 1, // Cree
-        dateCreation: now,
-        dateDebutPrevue: null,
-        dateFinPrevue: null,
-        description: payload.title || payload.description,
-        instructions: payload.description || null,
-        coutMainOeuvre: null,
-        coutPieces: null,
-        coutSousTraitance: null,
-        campagneId: payload.campagneId ?? null,
-    };
-    if (activeTenantNumeric && activeTenantNumeric > 0) {
-        body.societeId = activeTenantNumeric;
-    }
-
-    try {
-        const response = await axios.post(`${API_URL}/OrdresTravail`, body, getAuthHeaders());
-        const w = response.data;
-        return {
-            id: w.id?.toString(),
-            numeroOT: w.numeroOT || `OT-${w.id}`,
-            equipmentId: w.equipementId?.toString() || payload.equipmentId,
-            title: payload.title || w.description || w.numeroOT || 'Ordre de Travail',
-            description: payload.description || w.instructions || w.description || '',
-            type: payload.type,
-            priority: payload.priority,
-            status: 'Brouillon',
-            createdDate: w.dateCreation || now,
-            startDate: undefined,
-            endDate: undefined,
-            technicianId: w.technicienId?.toString() || undefined,
-            assignedBy: w.responsableId?.toString() || '1',
-            durationMinutes: 0,
-            partsUsed: [],
-            externalCost: 0,
-            campaign: '',
-        };
-    } catch (err: any) {
-        let serverMsg = '';
-        const resData = err?.response?.data;
-        if (resData) {
-            if (typeof resData === 'string') {
-                serverMsg = resData;
-            } else if (resData.errors && typeof resData.errors === 'object') {
-                const errList = Object.values(resData.errors).flat();
-                serverMsg = errList.join(' — ');
-            } else if (resData.error) {
-                serverMsg = resData.error;
-            } else if (resData.title && resData.title !== 'One or more validation errors occurred.') {
-                serverMsg = resData.title;
-            } else if (resData.message) {
-                serverMsg = resData.message;
-            }
-        }
-        throw new Error(serverMsg || err?.message || 'Erreur lors de la création de l’ordre de travail');
-    }
-};
-
-export const patchWorkOrderStatusApi = async (
-    id: string,
-    status: WorkOrder['status'],
-    fullOt: WorkOrder,
-    updates?: Partial<WorkOrder>
-): Promise<void> => {
-    const merged = { ...fullOt, ...updates, status };
-    
-    let statutOt = 1; // Brouillon
-    switch(merged.status) {
-        case 'En attente':    statutOt = 2; break;
-        case 'Affecté Chef':  statutOt = 7; break; // 7 = Affecté Chef (stocké dans Statut)
-        case 'Affecté':       statutOt = 2; break; // 2 = En attente/Affecté (technicien défini)
-        case 'En cours':      statutOt = 3; break;
-        case 'Suspendu':      statutOt = 4; break;
-        case 'Terminé':       statutOt = 5; break;
-        case 'Clôturé':       statutOt = 6; break;
-    }
-
-    // For 'Affecté Chef': store the chef's userId in responsableId so it persists
-    const responsableId = merged.status === 'Affecté Chef' && merged.chefEquipeId
-        ? parseInt(merged.chefEquipeId, 10)
-        : (merged.assignedBy ? parseInt(merged.assignedBy, 10) : 1);
-
-    // Resolve a numeric backend id (Redux id may be an "OT-…" string for locally created OTs)
-    const numericId = /^\d+$/.test(String(id)) ? parseInt(id, 10) : NaN;
-    if (isNaN(numericId)) {
-        throw new Error(`OT ${id} n'est pas encore synchronisé avec le serveur (id non numérique).`);
-    }
-
-    const toInt = (v: any) => {
-        const n = parseInt(v, 10);
-        return isNaN(n) ? null : n;
-    };
-
-    const body = {
-        id: numericId,
-        // NumeroOT is an immutable identifier on the backend — always send the real one
-        numeroOT: merged.numeroOT || `OT-${numericId}`,
-        demandeId: merged.incidentId ? toInt(merged.incidentId) : null,
-        equipementId: toInt(merged.equipmentId) ?? 0,
-        responsableId: toInt(responsableId) ?? 0,
-        technicienId: merged.technicianId ? toInt(merged.technicianId) : null,
-        priorite: otPriorityToInt(merged.priority),
-        typeMaintenance: typeToInt(merged.type),
-        statut: statutOt,
-        dateCreation: merged.createdDate,
-        dateDebutPrevue: null,
-        dateFinPrevue: null,
-        dateDebutReelle: merged.startDate || null,
-        dateFinReelle: merged.endDate || null,
-        // fetchWorkOrders maps: title <- description, description <- instructions
-        description: merged.title || merged.description || null,
-        instructions: merged.solution || merged.description || null,
-        coutMainOeuvre: null,
-        coutPieces: merged.externalCost || null,
-        coutSousTraitance: null,
-        campagneId: merged.campagneId ?? null,
-    };
-    
-    await axios.put(`${API_URL}/OrdresTravail/${numericId}`, body, getAuthHeaders());
-};
-
-export const fetchWorkOrders = async (): Promise<WorkOrder[]> => {
-    const response = await axios.get(`${API_URL}/OrdresTravail`, getAuthHeaders());
-    return response.data.map((w: any) => {
-        let mappedStatus: WorkOrder['status'] = 'Brouillon';
-        if (w.statut === 1) mappedStatus = 'Brouillon';
-        else if (w.statut === 2) {
-            mappedStatus = w.technicienId ? 'Affecté' : 'En attente';
-        }
-        else if (w.statut === 7) mappedStatus = 'Affecté Chef'; // 7 = Affecté Chef
-        else if (w.statut === 3) mappedStatus = 'En cours';
-        else if (w.statut === 4) mappedStatus = 'Suspendu';
-        else if (w.statut === 5) mappedStatus = 'Terminé';
-        else if (w.statut === 6) mappedStatus = 'Clôturé';
-
-        return {
-            id: w.id?.toString(),
-            numeroOT: w.numeroOT || `OT-${w.id}`,
-            incidentId: w.demandeId != null ? w.demandeId.toString() : undefined,
-            equipmentId: w.equipementId?.toString() || '',
-            title: w.description || w.numeroOT || `OT-${w.id}`,
-            description: w.instructions || w.description || '',
-            type: w.typeMaintenance === 2 ? 'Préventif' : w.typeMaintenance === 4 ? 'Amélioratif' : 'Correctif',
-            priority: w.priorite === 1 ? 'Faible' : w.priorite === 2 ? 'Moyenne' : w.priorite === 3 ? 'Haute' : 'Critique',
-            status: mappedStatus,
-            createdDate: w.dateCreation || new Date().toISOString(),
-            startDate: w.dateDebutReelle || w.dateDebutPrevue || undefined,
-            endDate: w.dateFinReelle || w.dateFinPrevue || undefined,
-            technicianId: w.technicienId?.toString() || undefined,
-            // When statut=7, responsableId holds the chef's userId; otherwise it's the regular assignedBy
-            assignedBy: w.statut !== 7 ? (w.responsableId?.toString() || '') : '',
-            chefEquipeId: w.statut === 7 ? (w.responsableId?.toString() || undefined) : undefined,
-            durationMinutes: w.durationMinutes || 120,
-            diagnostic: w.diagnostic || undefined,
-            solution: w.solution || undefined,
-            partsUsed: [],
-            externalCost: w.coutSousTraitance || 0,
-            campaign: w.campagne?.nom || w.campagneNom || '',
-            campagneId: w.campagneId || undefined
-        };
-    });
-};
-
-
-export const fetchCampaigns = async (): Promise<Campaign[]> => {
-    const response = await axios.get(`${API_URL}/Campagnes`, getAuthHeaders());
-    return response.data.map((c: any) => ({
-        id: c.id?.toString(),
-        name: c.nom,
-        startDate: c.dateDebut,
-        endDate: c.dateFin,
-        status: c.etat === 2 ? 'En cours' : c.etat === 3 ? 'Terminée' : 'Planifiée'
-    }));
-};
-
-
-// ── Plans Préventifs API ───────────────────────────────────────────────────
-
-const mapPlan = (p: any): PlanPreventif => ({
-    id: p.id,
-    titre: p.titre || '',
-    description: p.description,
-    typeDeclenchement: p.typeDeclenchement as 1 | 2 | 3,
-    frequence: p.frequence || 0,
-    uniteMesure: p.uniteMesure,
-    derniereDate: p.derniereDate?.split('T')[0],
-    prochaineDate: p.prochaineDate?.split('T')[0],
-    actif: p.actif ?? true,
-    equipementId: p.equipementId,
-    equipementNom: p.equipementNom,
-    equipementFamille: p.equipementFamille,
-    taches: (p.taches || []).map((t: any): TachePreventive => ({
-        id: t.id,
-        description: t.description,
-        ordre: t.ordre,
-        dureeEstimeeMinutes: t.dureeEstimeeMinutes,
-        estObligatoire: t.estObligatoire ?? true,
-    }))
-});
-
-export const fetchPlansPreventifs = async (): Promise<PlanPreventif[]> => {
-    const res = await axios.get(`${API_URL}/PlansPreventif`, getAuthHeaders());
-    return res.data.map(mapPlan);
-};
-
-export const createPlanPreventif = async (payload: Omit<PlanPreventif, 'id'>): Promise<PlanPreventif> => {
-    const body = {
-        equipementId:      payload.equipementId,
-        titre:             payload.titre,
-        description:       payload.description,
-        typeDeclenchement: payload.typeDeclenchement,
-        frequence:         payload.frequence,
-        uniteMesure:       payload.uniteMesure,
-        derniereDate:      payload.derniereDate ? new Date(payload.derniereDate).toISOString() : null,
-        prochaineDate:     payload.prochaineDate ? new Date(payload.prochaineDate).toISOString() : null,
-        taches:            (payload.taches || []).map(t => ({
-            description:         t.description,
-            dureeEstimeeMinutes: t.dureeEstimeeMinutes ?? null,
-            estObligatoire:      t.estObligatoire,
-        }))
-    };
-    const res = await axios.post(`${API_URL}/PlansPreventif`, body, getAuthHeaders());
-    // Refetch the created plan by id
-    const created = await axios.get(`${API_URL}/PlansPreventif/${res.data.id}`, getAuthHeaders());
-    return mapPlan(created.data);
-};
-
-export const updatePlanPreventif = async (id: number, payload: Omit<PlanPreventif, 'id'>): Promise<void> => {
-    const body = {
-        equipementId:      payload.equipementId,
-        titre:             payload.titre,
-        description:       payload.description,
-        typeDeclenchement: payload.typeDeclenchement,
-        frequence:         payload.frequence,
-        uniteMesure:       payload.uniteMesure,
-        derniereDate:      payload.derniereDate ? new Date(payload.derniereDate).toISOString() : null,
-        prochaineDate:     payload.prochaineDate ? new Date(payload.prochaineDate).toISOString() : null,
-        taches:            (payload.taches || []).map(t => ({
-            description:         t.description,
-            dureeEstimeeMinutes: t.dureeEstimeeMinutes ?? null,
-            estObligatoire:      t.estObligatoire,
-        }))
-    };
-    await axios.put(`${API_URL}/PlansPreventif/${id}`, body, getAuthHeaders());
-};
-
-export const genererOTPreventif = async (planId: number): Promise<{ otId: number; numeroOT: string; prochaineDate: string }> => {
-    const res = await axios.post(`${API_URL}/PlansPreventif/${planId}/generer-ot`, {}, getAuthHeaders());
-    return res.data;
-};
-
-export const replanifierPlanPreventif = async (planId: number, nouvelleDate: string): Promise<void> => {
-    await axios.put(`${API_URL}/PlansPreventif/${planId}/replanifier`,
-        { nouvelleDate: new Date(nouvelleDate).toISOString() },
-        getAuthHeaders()
-    );
-};
-
-export const fetchTenants = async (): Promise<Tenant[]> => {
-    const response = await axios.get(`${API_URL}/Societes`, getAuthHeaders());
-    return response.data.map((s: any) => ({
-        id: s.codeTenant,
-        dbId: s.id,
-        name: s.nom,
-        domain: s.adresse || '',
-        status: s.isActive ? 'Active' : 'Suspended',
-        subscriptionPlan: s.subscriptionPlan || 'Basic',
-        createdAt: s.createdAt,
-        adminEmail: s.emailContact || '',
-        capacityTonsPerDay: s.capacityTonsPerDay || 450,
-        equipments: [],
-        workOrders: [],
-        incidents: [],
-        technicians: [],
-        parts: [],
-        suppliers: [],
-        campaigns: [],
-        users: []
-    }));
-};
-
-export const createTenantApi = async (tenantData: any): Promise<any> => {
-    const body = {
-        codeTenant: tenantData.id,
-        nom: tenantData.name,
-        adresse: tenantData.domain,
-        emailContact: tenantData.adminEmail,
-        subscriptionPlan: tenantData.subscriptionPlan,
-        capacityTonsPerDay: tenantData.capacityTonsPerDay || 450,
-        isActive: true
-    };
-    const response = await axios.post(`${API_URL}/Societes`, body, getAuthHeaders());
-    return response.data;
-};
-
-export const updateTenantApi = async (dbId: number, tenantData: any): Promise<any> => {
-    const body = {
-        id: dbId,
-        codeTenant: tenantData.id,
-        nom: tenantData.name,
-        adresse: tenantData.domain,
-        emailContact: tenantData.adminEmail,
-        subscriptionPlan: tenantData.subscriptionPlan,
-        capacityTonsPerDay: tenantData.capacityTonsPerDay || 450,
-        isActive: tenantData.status === 'Active'
-    };
-    const response = await axios.put(`${API_URL}/Societes/${dbId}`, body, getAuthHeaders());
-    return response.data;
-};
-
-// ── Equipment API ──────────────────────────────────────────────────────────────
-
-export const normalizeEquipmentStatus = (etat: any): Equipment['status'] => {
-    if (etat === null || etat === undefined) return 'En service';
-    const str = String(etat).trim().toLowerCase().replace(/[\s_-]/g, '');
-    if (str === '1' || str === '0' || str === 'enservice' || str === 'enattente') return 'En service';
-    if (str === '2' || str === 'enpanne') return 'En panne';
-    if (str === '3' || str === 'enmaintenance') return 'En maintenance';
-    if (str === '4' || str === 'horsservice') return 'Hors service';
-    return 'En service';
-};
-
-export const normalizeEquipmentCriticality = (crit: any): Equipment['criticality'] => {
-    if (crit === null || crit === undefined) return 'Moyenne';
-    const str = String(crit).trim().toLowerCase().replace(/[\s_-]/g, '');
-    if (str === '1' || str === 'faible' || str === 'low') return 'Faible';
-    if (str === '2' || str === 'moyenne' || str === 'medium') return 'Moyenne';
-    if (str === '3' || str === 'haute' || str === 'high') return 'Haute';
-    if (str === '4' || str === 'critique' || str === 'critical') return 'Critique';
-    return 'Moyenne';
-};
-
-export const mapCriticiteToInt = (c: any): number => {
-    if (c === null || c === undefined) return 2;
-    const str = String(c).trim().toLowerCase().replace(/[\s_-]/g, '');
-    if (str === '1' || str === 'faible' || str === 'low') return 1;
-    if (str === '2' || str === 'moyenne' || str === 'medium') return 2;
-    if (str === '3' || str === 'haute' || str === 'high') return 3;
-    if (str === '4' || str === 'critique' || str === 'critical') return 4;
-    return 2;
-};
-
-export const mapEtatToInt = (e: any): number => {
-    if (e === null || e === undefined) return 1;
-    const str = String(e).trim().toLowerCase().replace(/[\s_-]/g, '');
-    if (str === '1' || str === 'enservice' || str === '0') return 1;
-    if (str === '2' || str === 'enpanne') return 2;
-    if (str === '3' || str === 'enmaintenance') return 3;
-    if (str === '4' || str === 'horsservice') return 4;
-    if (str === '5' || str === 'enattente') return 5;
-    return 1;
-};
-
-export const updateEquipmentStatusApi = async (equipmentId: string, newStatus: Equipment['status']): Promise<void> => {
-    try {
-        // 1. Fetch current DTO
-        const res = await axios.get(`${API_URL}/Equipement/${equipmentId}`, getAuthHeaders());
-        const dto = res.data;
-
-        // 2. Map back to Entity structure expected by PUT
-        const entity = {
-            id: dto.id,
-            societeId: dto.societeId,
-            code: dto.code || '',
-            designation: dto.designation || '',
-            familleId: dto.familleId || 1,
-            localisationId: dto.localisationId,
-            marque: dto.marque,
-            modele: dto.modele,
-            numeroSerie: dto.numeroSerie,
-            dateAchat: dto.dateAchat,
-            dateMiseEnService: dto.dateMiseEnService,
-            dateFinGarantie: dto.dateFinGarantie,
-            criticite: mapCriticiteToInt(dto.criticite),
-            etat: mapEtatToInt(newStatus), 
-            fournisseurId: dto.fournisseurId,
-            photoUrl: dto.photoUrl,
-            notes: dto.notes
-        };
-
-        // 3. Update on backend
-        await axios.put(`${API_URL}/Equipement/${equipmentId}`, entity, getAuthHeaders());
-    } catch (err) {
-        console.error('Failed to update equipment status on backend', err);
-    }
-};
-
-export const createEquipmentApi = async (equipment: Partial<Equipment>): Promise<Equipment> => {
-    const entity = {
-        code: equipment.id || `EQ-${Date.now()}`,
-        designation: equipment.name || 'Nouvel Équipement',
-        familleId: 1, 
-        localisationId: equipment.localisationId || 1,
-        marque: equipment.brand || '',
-        modele: equipment.model || '',
-        numeroSerie: equipment.serialNumber || '',
-        dateAchat: equipment.purchaseDate ? equipment.purchaseDate.split('T')[0] : null,
-        dateMiseEnService: equipment.commissionDate ? equipment.commissionDate.split('T')[0] : new Date().toISOString().split('T')[0],
-        dateFinGarantie: equipment.endOfWarranty ? equipment.endOfWarranty.split('T')[0] : null,
-        criticite: mapCriticiteToInt(equipment.criticality || 'Moyenne'),
-        etat: mapEtatToInt(equipment.status || 'En service'),
-        fournisseurId: equipment.supplierId ? parseInt(equipment.supplierId, 10) : null,
-        photoUrl: equipment.photos?.[0] || '',
-        notes: ''
-    };
-    let response;
-    try {
-        response = await axios.post(`${API_URL}/Equipement`, entity, getAuthHeaders());
-        const resEntity = response.data;
-        return {
-            id: resEntity.id?.toString(),
-            code: resEntity.code || entity.code,
-            location: equipment.location || resEntity.localisationNom || '',
-            parentId: equipment.parentId,
-            name: resEntity.designation || resEntity.Designation,
-            category: equipment.category || 'Général',
-            subFamily: equipment.subFamily || '',
-            brand: resEntity.marque || resEntity.Marque || '',
-            model: resEntity.modele || resEntity.Modele || '',
-            serialNumber: resEntity.numeroSerie || resEntity.NumeroSerie || '',
-            supplierId: equipment.supplierId || '',
-            localisationId: equipment.localisationId,
-            commissionDate: resEntity.dateMiseEnService || resEntity.DateMiseEnService || new Date().toISOString(),
-            criticality: normalizeEquipmentCriticality(resEntity.criticite || equipment.criticality),
-            status: normalizeEquipmentStatus(resEntity.etat || equipment.status),
-            healthIndex: 100,
-            lastMaintenance: '',
-            nextMaintenance: '',
-            hoursCount: 0,
-            cycleCount: 0,
-            documents: [],
-            photos: resEntity.photoUrl ? [resEntity.photoUrl] : (resEntity.PhotoUrl ? [resEntity.PhotoUrl] : []),
-            sensors: [],
-            spareParts: resEntity.piecesIds?.map((id: number) => id.toString()) || []
-        };
-    } catch (error: any) {
-        console.warn('API Error (falling back to mock):', error.message);
-        // Fallback mock
-        return {
-            id: entity.code,
-            code: entity.code,
-            location: equipment.location || '',
-            parentId: equipment.parentId,
-            name: entity.designation,
-            category: equipment.category || 'Général',
-            subFamily: equipment.subFamily || '',
-            brand: entity.marque || '',
-            model: entity.modele || '',
-            serialNumber: entity.numeroSerie || '',
-            supplierId: equipment.supplierId || '',
-            localisationId: equipment.localisationId,
-            commissionDate: entity.dateMiseEnService || new Date().toISOString(),
-            criticality: equipment.criticality || 'Moyenne',
-            status: equipment.status || 'En service',
-            healthIndex: 100,
-            lastMaintenance: '',
-            nextMaintenance: '',
-            hoursCount: 0,
-            cycleCount: 0,
-            documents: [],
-            photos: entity.photoUrl ? [entity.photoUrl] : [],
-            sensors: [],
-            spareParts: []
-        };
-    }
-};
-
-export const updateEquipmentApi = async (equipmentId: string, equipment: Partial<Equipment>): Promise<void> => {
-    try {
-        const res = await axios.get(`${API_URL}/Equipement/${equipmentId}`, getAuthHeaders());
-        const dto = res.data;
-
-        const entity = {
-            id: dto.id,
-            societeId: dto.societeId,
-            code: equipment.id || dto.code || '',
-            designation: equipment.name || dto.designation || '',
-            familleId: dto.familleId || 1,
-            localisationId: equipment.localisationId || dto.localisationId,
-            marque: equipment.brand !== undefined ? equipment.brand : dto.marque,
-            modele: equipment.model !== undefined ? equipment.model : dto.modele,
-            numeroSerie: equipment.serialNumber !== undefined ? equipment.serialNumber : dto.numeroSerie,
-            dateAchat: equipment.purchaseDate !== undefined ? (equipment.purchaseDate ? equipment.purchaseDate.split('T')[0] : null) : dto.dateAchat,
-            dateMiseEnService: equipment.commissionDate !== undefined ? (equipment.commissionDate ? equipment.commissionDate.split('T')[0] : null) : dto.dateMiseEnService,
-            dateFinGarantie: equipment.endOfWarranty !== undefined ? (equipment.endOfWarranty ? equipment.endOfWarranty.split('T')[0] : null) : dto.dateFinGarantie,
-            criticite: equipment.criticality ? mapCriticiteToInt(equipment.criticality) : mapCriticiteToInt(dto.criticite),
-            etat: equipment.status ? mapEtatToInt(equipment.status) : mapEtatToInt(dto.etat), 
-            fournisseurId: equipment.supplierId ? parseInt(equipment.supplierId, 10) : dto.fournisseurId,
-            photoUrl: equipment.photos?.[0] || dto.photoUrl,
-            notes: dto.notes
-        };
-
-        await axios.put(`${API_URL}/Equipement/${equipmentId}`, entity, getAuthHeaders());
-    } catch (error: any) {
-        console.warn('API Error in updateEquipmentApi, mocking success:', error.message);
-        // Fallback to mock success (Redux will handle the state update locally)
-    }
-};
-
-export const linkPieceToEquipmentApi = async (equipmentId: string, pieceId: string): Promise<void> => {
-    try {
-        await axios.post(`${API_URL}/Equipement/${equipmentId}/pieces/${pieceId}`, {}, getAuthHeaders());
-    } catch (error: any) {
-        console.error('Failed to link piece to equipment', error);
-        throw new Error(error.response?.data?.message || 'Failed to link piece');
-    }
-};
-
-export const unlinkPieceFromEquipmentApi = async (equipmentId: string, pieceId: string): Promise<void> => {
-    try {
-        await axios.delete(`${API_URL}/Equipement/${equipmentId}/pieces/${pieceId}`, getAuthHeaders());
-    } catch (error: any) {
-        console.error('Failed to unlink piece from equipment', error);
-        throw new Error(error.response?.data?.message || 'Failed to unlink piece');
-    }
-};
-export const fetchEquipes = async (): Promise<any[]> => {
-    const response = await axios.get(`${API_URL}/Equipes`, getAuthHeaders());
-    return response.data.map((e: any) => ({
-        id: e.id?.toString(),
-        nom: e.nom,
-        description: e.description || "",
-        couleur: "bg-slate-500", // Not stored in backend
-        chefId: e.chefEquipeId?.toString(),
-        technicienIds: e.membres?.map((m: any) => m.id.toString()) || []
-    }));
-};
-
-export const createEquipeApi = async (equipe: any): Promise<any> => {
-    const payload = {
-        nom: equipe.nom,
-        description: equipe.description,
-        chefEquipeId: equipe.chefId ? parseInt(equipe.chefId) : null,
-        membreIds: equipe.technicienIds ? equipe.technicienIds.map((id: string) => parseInt(id)) : [],
-        societeId: 1
-    };
-    const response = await axios.post(`${API_URL}/Equipes`, payload, getAuthHeaders());
-    const e = response.data;
-    return {
-        id: e.id?.toString(),
-        nom: e.nom,
-        description: e.description || "",
-        couleur: "bg-slate-500",
-        chefId: e.chefEquipeId?.toString(),
-        technicienIds: e.membres?.map((m: any) => m.id.toString()) || []
-    };
-};
-
-export const updateEquipeApi = async (id: string, equipe: any): Promise<void> => {
-    const payload = {
-        nom: equipe.nom,
-        description: equipe.description,
-        chefEquipeId: equipe.chefId ? parseInt(equipe.chefId) : null,
-        membreIds: equipe.technicienIds ? equipe.technicienIds.map((id: string) => parseInt(id)) : [],
-        societeId: 1
-    };
-    await axios.put(`${API_URL}/Equipes/${id}`, payload, getAuthHeaders());
-};
-
-export const deleteEquipeApi = async (id: string): Promise<void> => {
-    await axios.delete(`${API_URL}/Equipes/${id}`, getAuthHeaders());
-};
-
-export const uploadDocumentApi = async (formData: FormData): Promise<DocumentInfo> => {
-    const token = localStorage.getItem('gmao_access_token');
-    const response = await axios.post(`${API_URL}/Document/upload`, formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data',
-            Authorization: `Bearer ${token}`
-        }
-    });
-    const d = response.data;
-    return {
-        id: d.id,
-        name: d.name,
-        type: d.type,
-        size: d.size,
-        url: d.url?.startsWith('http') ? d.url : `${BASE_URL}${d.url}`,
-        uploadedAt: d.createdAt
-    };
-};
-
-export const deleteDocumentApi = async (documentId: number): Promise<void> => {
-    await axios.delete(`${API_URL}/Document/${documentId}`, getAuthHeaders());
-};
-
-export const fetchEquipmentDocumentsApi = async (equipmentId: number): Promise<DocumentInfo[]> => {
-    const response = await axios.get(`${API_URL}/Document/equipement/${equipmentId}`, getAuthHeaders());
-    return response.data.map((d: any) => ({
-        id: d.id,
-        name: d.name,
-        type: d.type,
-        size: d.size,
-        url: d.url?.startsWith('http') ? d.url : `${BASE_URL}${d.url}`,
-        uploadedAt: d.createdAt
-    }));
-};
-
+/**
+ * ============================================================================
+ * MODULE PARTAGÉ : Passerelle API & Orchestration des Données Communes
+ * ============================================================================
+ * Ce fichier sert de passerelle centralisée (Facade) pour les données partagées
+ * entre les différents composants (Redux gmaoSlice, Initialisation des Tenants).
+ * 
+ * Les implémentations spécifiques sont désormais réparties dans leurs modules respectifs :
+ * - Équipements  -> src/features/company/equipments/api/equipment.api.ts
+ * - Fournisseurs -> src/features/company/suppliers/api/supplier.api.ts
+ * - Magasin/Stock-> src/features/company/inventory/api/inventory.api.ts
+ * - Incidents    -> src/features/company/incidents/api/incident.api.ts
+ * - Ordres Trav. -> src/features/company/workOrders/api/workOrder.api.ts
+ * - Campagnes    -> src/features/company/campaigns/api/campaign.api.ts
+ * - Équipes      -> src/features/company/equipes/api/equipe.api.ts
+ * - Utilisateurs -> src/features/company/users/api/users.api.ts
+ * - SuperAdmin   -> src/features/superAdmin/tenants/api/tenant.api.ts
+ * - Documents    -> src/shared/api/document.api.ts
+ */
+
+// ── 1. Équipements & Machines ───────────────────────────────────────────────
+export {
+  fetchEquipments,
+  createEquipmentApi,
+  updateEquipmentApi,
+  updateEquipmentStatusApi,
+  linkPieceToEquipmentApi,
+  unlinkPieceFromEquipmentApi,
+  normalizeEquipmentStatus,
+  normalizeEquipmentCriticality,
+  mapCriticiteToInt,
+  mapEtatToInt,
+  BASE_URL
+} from '@/features/company/equipments/api/equipment.api';
+
+// ── 2. Fournisseurs ────────────────────────────────────────────────────────
+export {
+  fetchSuppliers,
+  createSupplierApi,
+  updateSupplierApi,
+  deleteSupplierApi
+} from '@/features/company/suppliers/api/supplier.api';
+
+// ── 3. Pièces de Rechange & Mouvements de Stock ────────────────────────────
+export {
+  fetchParts,
+  createPartApi,
+  updatePartApi,
+  createMovementApi,
+  fetchMovements,
+  fetchPieceCategoriesApi,
+  createPieceCategoryApi
+} from '@/features/company/inventory/api/inventory.api';
+
+// ── 4. Incidents & Demandes d'Intervention ──────────────────────────────────
+export {
+  fetchIncidents,
+  createIncidentApi,
+  patchIncidentStatusApi
+} from '@/features/company/incidents/api/incident.api';
+export type { CreateIncidentPayload } from '@/features/company/incidents/api/incident.api';
+
+// ── 5. Ordres de Travail (Work Orders) ─────────────────────────────────────
+export {
+  fetchWorkOrders,
+  createWorkOrderApi,
+  patchWorkOrderStatusApi,
+  mapWorkOrderTypeToInt,
+  mapWorkOrderPriorityToInt
+} from '@/features/company/workOrders/api/workOrder.api';
+export type { CreateWorkOrderPayload } from '@/features/company/workOrders/api/workOrder.api';
+
+// ── 6. Campagnes Industrielles ─────────────────────────────────────────────
+export {
+  fetchCampaigns
+} from '@/features/company/campaigns/api/campaign.api';
+
+// ── 7. Utilisateurs & Techniciens ──────────────────────────────────────────
+export {
+  fetchTechnicians,
+  fetchUsers
+} from '@/features/company/users/api/users.api';
+
+// ── 8. Équipes de Maintenance ──────────────────────────────────────────────
+export {
+  fetchEquipes,
+  createEquipeApi,
+  updateEquipeApi,
+  deleteEquipeApi
+} from '@/features/company/equipes/api/equipe.api';
+
+// ── 9. Entreprises Multi-Tenant (SuperAdmin) ────────────────────────────────
+export {
+  fetchTenants,
+  createTenantApi,
+  updateTenantApi
+} from '@/features/superAdmin/tenants/api/tenant.api';
+
+// ── 10. Documents & Fichiers Joints ────────────────────────────────────────
+export {
+  uploadDocumentApi,
+  deleteDocumentApi,
+  fetchEquipmentDocumentsApi
+} from '@/shared/api/document.api';
+
+// ── 11. Plans Préventifs ───────────────────────────────────────────────────
+export {
+  getPlansPreventifs as fetchPlansPreventifs,
+  getPlansPreventifs,
+  getPlanPreventifById,
+  createPlan as createPlanPreventif,
+  createPlan,
+  updatePlan as updatePlanPreventif,
+  updatePlan,
+  deletePlan,
+  genererOT as genererOTPreventif,
+  genererOT,
+  replanifier as replanifierPlanPreventif,
+  replanifier
+} from '@/features/company/preventive/api/preventive.api';

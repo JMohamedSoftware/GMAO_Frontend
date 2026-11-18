@@ -6,30 +6,274 @@
  */
 
 import { apiClient } from '@/shared/services/apiClient';
+import { Equipment } from '@/shared/types/gmao';
 import { CreateEquipmentDto } from '../types/equipment.types';
 
-/**
- * Récupère tous les équipements de l'entreprise
- * GET /api/equipement
- */
-export const fetchEquipmentsApiCall = async () => {
-  const response = await apiClient.get('/api/equipement');
-  return response.data;
+const rawUrl = import.meta.env.VITE_API_URL || 'https://gmao-backend-a6r2.onrender.com';
+export const BASE_URL = rawUrl.replace(/\/api\/?$/, '');
+
+export const normalizeEquipmentStatus = (etat: any): Equipment['status'] => {
+  if (etat === null || etat === undefined) return 'En service';
+  const str = String(etat).trim().toLowerCase().replace(/[\s_-]/g, '');
+  if (str === '1' || str === '0' || str === 'enservice' || str === 'enattente') return 'En service';
+  if (str === '2' || str === 'enpanne') return 'En panne';
+  if (str === '3' || str === 'enmaintenance') return 'En maintenance';
+  if (str === '4' || str === 'horsservice') return 'Hors service';
+  return 'En service';
+};
+
+export const normalizeEquipmentCriticality = (crit: any): Equipment['criticality'] => {
+  if (crit === null || crit === undefined) return 'Moyenne';
+  const str = String(crit).trim().toLowerCase().replace(/[\s_-]/g, '');
+  if (str === '1' || str === 'faible' || str === 'low') return 'Faible';
+  if (str === '2' || str === 'moyenne' || str === 'medium') return 'Moyenne';
+  if (str === '3' || str === 'haute' || str === 'high') return 'Haute';
+  if (str === '4' || str === 'critique' || str === 'critical') return 'Critique';
+  return 'Moyenne';
+};
+
+export const mapCriticiteToInt = (c: any): number => {
+  if (c === null || c === undefined) return 2;
+  const str = String(c).trim().toLowerCase().replace(/[\s_-]/g, '');
+  if (str === '1' || str === 'faible' || str === 'low') return 1;
+  if (str === '2' || str === 'moyenne' || str === 'medium') return 2;
+  if (str === '3' || str === 'haute' || str === 'high') return 3;
+  if (str === '4' || str === 'critique' || str === 'critical') return 4;
+  return 2;
+};
+
+export const mapEtatToInt = (e: any): number => {
+  if (e === null || e === undefined) return 1;
+  const str = String(e).trim().toLowerCase().replace(/[\s_-]/g, '');
+  if (str === '1' || str === 'enservice' || str === '0') return 1;
+  if (str === '2' || str === 'enpanne') return 2;
+  if (str === '3' || str === 'enmaintenance') return 3;
+  if (str === '4' || str === 'horsservice') return 4;
+  if (str === '5' || str === 'enattente') return 5;
+  return 1;
 };
 
 /**
- * Récupère un équipement par son ID
- * GET /api/equipement/{id}
+ * Récupère tous les équipements pour Redux
+ * GET /api/Equipement
  */
-export const fetchEquipmentByIdApiCall = async (id: number | string) => {
-  const response = await apiClient.get(`/api/equipement/${id}`);
-  return response.data;
+export const fetchEquipments = async (): Promise<Equipment[]> => {
+  const response = await apiClient.get('/api/Equipement');
+  return response.data.map((e: any) => ({
+    id: e.id?.toString(),
+    code: e.code || '',
+    name: e.designation,
+    location: e.localisationNom || '',
+    category: e.familleNom || 'Autre',
+    subFamily: e.familleNom || 'Autre',
+    brand: e.marque || '',
+    model: e.modele || '',
+    serialNumber: e.numeroSerie || '',
+    supplierId: e.fournisseurId?.toString(),
+    purchaseDate: e.dateAchat,
+    endOfWarranty: e.dateFinGarantie,
+    commissionDate: e.dateMiseEnService || new Date().toISOString(),
+    localisationId: e.localisationId,
+    localisation: e.localisationNom ? { id: e.localisationId, nom: e.localisationNom } : undefined,
+    criticality: normalizeEquipmentCriticality(e.criticite),
+    status: normalizeEquipmentStatus(e.etat),
+    healthIndex: 100,
+    lastMaintenance: e.updatedAt || new Date().toISOString(),
+    nextMaintenance: new Date().toISOString(),
+    hoursCount: e.hoursCount || 0,
+    cycleCount: 0,
+    documents: e.documents?.map((d: any) => ({
+      id: d.id,
+      name: d.name || d.nom,
+      type: d.type || 'autre',
+      size: d.size || '0 KB',
+      url: d.url?.startsWith('http') ? d.url : `${BASE_URL}${d.url}`,
+      uploadedAt: d.createdAt
+    })) || [],
+    photos: e.photoUrl ? [e.photoUrl] : [],
+    sensors: [],
+    spareParts: e.piecesIds?.map((id: number) => id.toString()) || [],
+    parentId: e.parentEquipementId ? e.parentEquipementId.toString() : undefined
+  }));
 };
 
 /**
  * Crée un nouvel équipement
- * POST /api/equipement
+ * POST /api/Equipement
  */
+export const createEquipmentApi = async (equipment: Partial<Equipment>): Promise<Equipment> => {
+  const entity = {
+    code: equipment.id || `EQ-${Date.now()}`,
+    designation: equipment.name || 'Nouvel Équipement',
+    familleId: 1, 
+    localisationId: equipment.localisationId || 1,
+    marque: equipment.brand || '',
+    modele: equipment.model || '',
+    numeroSerie: equipment.serialNumber || '',
+    dateAchat: equipment.purchaseDate ? equipment.purchaseDate.split('T')[0] : null,
+    dateMiseEnService: equipment.commissionDate ? equipment.commissionDate.split('T')[0] : new Date().toISOString().split('T')[0],
+    dateFinGarantie: equipment.endOfWarranty ? equipment.endOfWarranty.split('T')[0] : null,
+    criticite: mapCriticiteToInt(equipment.criticality || 'Moyenne'),
+    etat: mapEtatToInt(equipment.status || 'En service'),
+    fournisseurId: equipment.supplierId ? parseInt(equipment.supplierId, 10) : null,
+    photoUrl: equipment.photos?.[0] || '',
+    notes: ''
+  };
+  try {
+    const response = await apiClient.post('/api/Equipement', entity);
+    const resEntity = response.data;
+    return {
+      id: resEntity.id?.toString(),
+      code: resEntity.code || entity.code,
+      location: equipment.location || resEntity.localisationNom || '',
+      parentId: equipment.parentId,
+      name: resEntity.designation || resEntity.Designation,
+      category: equipment.category || 'Général',
+      subFamily: equipment.subFamily || '',
+      brand: resEntity.marque || resEntity.Marque || '',
+      model: resEntity.modele || resEntity.Modele || '',
+      serialNumber: resEntity.numeroSerie || resEntity.NumeroSerie || '',
+      supplierId: equipment.supplierId || '',
+      localisationId: equipment.localisationId,
+      commissionDate: resEntity.dateMiseEnService || resEntity.DateMiseEnService || new Date().toISOString(),
+      criticality: normalizeEquipmentCriticality(resEntity.criticite || equipment.criticality),
+      status: normalizeEquipmentStatus(resEntity.etat || equipment.status),
+      healthIndex: 100,
+      lastMaintenance: '',
+      nextMaintenance: '',
+      hoursCount: resEntity.hoursCount || 0,
+      cycleCount: 0,
+      documents: [],
+      photos: resEntity.photoUrl ? [resEntity.photoUrl] : (resEntity.PhotoUrl ? [resEntity.PhotoUrl] : []),
+      sensors: [],
+      spareParts: resEntity.piecesIds?.map((id: number) => id.toString()) || []
+    };
+  } catch (error: any) {
+    console.warn('API Error (falling back to local):', error.message);
+    return {
+      id: entity.code,
+      code: entity.code,
+      location: equipment.location || '',
+      parentId: equipment.parentId,
+      name: entity.designation,
+      category: equipment.category || 'Général',
+      subFamily: equipment.subFamily || '',
+      brand: entity.marque || '',
+      model: entity.modele || '',
+      serialNumber: entity.numeroSerie || '',
+      supplierId: equipment.supplierId || '',
+      localisationId: equipment.localisationId,
+      commissionDate: entity.dateMiseEnService || new Date().toISOString(),
+      criticality: equipment.criticality || 'Moyenne',
+      status: equipment.status || 'En service',
+      healthIndex: 100,
+      lastMaintenance: '',
+      nextMaintenance: '',
+      hoursCount: 0,
+      cycleCount: 0,
+      documents: [],
+      photos: entity.photoUrl ? [entity.photoUrl] : [],
+      sensors: [],
+      spareParts: []
+    };
+  }
+};
+
+/**
+ * Met à jour un équipement
+ * PUT /api/Equipement/{id}
+ */
+export const updateEquipmentApi = async (equipmentId: string, equipment: Partial<Equipment>): Promise<void> => {
+  try {
+    const res = await apiClient.get(`/api/Equipement/${equipmentId}`);
+    const dto = res.data;
+
+    const entity = {
+      id: dto.id,
+      societeId: dto.societeId,
+      code: equipment.id || dto.code || '',
+      designation: equipment.name || dto.designation || '',
+      familleId: dto.familleId || 1,
+      localisationId: equipment.localisationId || dto.localisationId,
+      marque: equipment.brand !== undefined ? equipment.brand : dto.marque,
+      modele: equipment.model !== undefined ? equipment.model : dto.modele,
+      numeroSerie: equipment.serialNumber !== undefined ? equipment.serialNumber : dto.numeroSerie,
+      dateAchat: equipment.purchaseDate !== undefined ? (equipment.purchaseDate ? equipment.purchaseDate.split('T')[0] : null) : dto.dateAchat,
+      dateMiseEnService: equipment.commissionDate !== undefined ? (equipment.commissionDate ? equipment.commissionDate.split('T')[0] : null) : dto.dateMiseEnService,
+      dateFinGarantie: equipment.endOfWarranty !== undefined ? (equipment.endOfWarranty ? equipment.endOfWarranty.split('T')[0] : null) : dto.dateFinGarantie,
+      criticite: equipment.criticality ? mapCriticiteToInt(equipment.criticality) : mapCriticiteToInt(dto.criticite),
+      etat: equipment.status ? mapEtatToInt(equipment.status) : mapEtatToInt(dto.etat), 
+      fournisseurId: equipment.supplierId ? parseInt(equipment.supplierId, 10) : dto.fournisseurId,
+      photoUrl: equipment.photos?.[0] || dto.photoUrl,
+      notes: dto.notes
+    };
+
+    await apiClient.put(`/api/Equipement/${equipmentId}`, entity);
+  } catch (error: any) {
+    console.warn('API Error in updateEquipmentApi:', error.message);
+  }
+};
+
+/**
+ * Met à jour le statut opérationnel d'un équipement
+ */
+export const updateEquipmentStatusApi = async (equipmentId: string, newStatus: Equipment['status']): Promise<void> => {
+  try {
+    const res = await apiClient.get(`/api/Equipement/${equipmentId}`);
+    const dto = res.data;
+
+    const entity = {
+      id: dto.id,
+      societeId: dto.societeId,
+      code: dto.code || '',
+      designation: dto.designation || '',
+      familleId: dto.familleId || 1,
+      localisationId: dto.localisationId,
+      marque: dto.marque,
+      modele: dto.modele,
+      numeroSerie: dto.numeroSerie,
+      dateAchat: dto.dateAchat,
+      dateMiseEnService: dto.dateMiseEnService,
+      dateFinGarantie: dto.dateFinGarantie,
+      criticite: mapCriticiteToInt(dto.criticite),
+      etat: mapEtatToInt(newStatus), 
+      fournisseurId: dto.fournisseurId,
+      photoUrl: dto.photoUrl,
+      notes: dto.notes
+    };
+
+    await apiClient.put(`/api/Equipement/${equipmentId}`, entity);
+  } catch (err) {
+    console.error('Failed to update equipment status on backend', err);
+  }
+};
+
+/**
+ * Associe une pièce de rechange à une machine
+ * POST /api/Equipement/{equipmentId}/pieces/{pieceId}
+ */
+export const linkPieceToEquipmentApi = async (equipmentId: string, pieceId: string): Promise<void> => {
+  await apiClient.post(`/api/Equipement/${equipmentId}/pieces/${pieceId}`, {});
+};
+
+/**
+ * Dissocie une pièce de rechange d'une machine
+ * DELETE /api/Equipement/{equipmentId}/pieces/{pieceId}
+ */
+export const unlinkPieceFromEquipmentApi = async (equipmentId: string, pieceId: string): Promise<void> => {
+  await apiClient.delete(`/api/Equipement/${equipmentId}/pieces/${pieceId}`);
+};
+
+export const fetchEquipmentsApiCall = async () => {
+  const response = await apiClient.get('/api/Equipement');
+  return response.data;
+};
+
+export const fetchEquipmentByIdApiCall = async (id: number | string) => {
+  const response = await apiClient.get(`/api/Equipement/${id}`);
+  return response.data;
+};
+
 export const createEquipmentApiCall = async (dto: CreateEquipmentDto) => {
   const payload = {
     code: dto.code || `EQ-${Date.now()}`,
@@ -44,23 +288,15 @@ export const createEquipmentApiCall = async (dto: CreateEquipmentDto) => {
     notes: dto.notes || '',
     hoursCount: dto.hoursCount || 0
   };
-  const response = await apiClient.post('/api/equipement', payload);
+  const response = await apiClient.post('/api/Equipement', payload);
   return response.data;
 };
 
-/**
- * Met à jour un équipement
- * PUT /api/equipement/{id}
- */
 export const updateEquipmentApiCall = async (id: number | string, data: any) => {
-  const response = await apiClient.put(`/api/equipement/${id}`, data);
+  const response = await apiClient.put(`/api/Equipement/${id}`, data);
   return response.data;
 };
 
-/**
- * Supprime un équipement
- * DELETE /api/equipement/{id}
- */
 export const deleteEquipmentApiCall = async (id: number | string) => {
-  await apiClient.delete(`/api/equipement/${id}`);
+  await apiClient.delete(`/api/Equipement/${id}`);
 };

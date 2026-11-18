@@ -6,10 +6,26 @@
  */
 
 import { apiClient } from '@/shared/services/apiClient';
+import { Campaign } from '@/shared/types/gmao';
 import { Campagne, CreateCampagneDto, UpdateCampagneDto, EtatCampagne } from '../types/campaign.types';
 
 /**
- * Récupère toutes les campagnes de l'entreprise
+ * Récupère toutes les campagnes pour l'état global Redux
+ * GET /api/Campagnes
+ */
+export const fetchCampaigns = async (): Promise<Campaign[]> => {
+  const response = await apiClient.get('/api/Campagnes');
+  return response.data.map((c: any) => ({
+    id: c.id?.toString(),
+    name: c.nom,
+    startDate: c.dateDebut,
+    endDate: c.dateFin,
+    status: c.etat === 2 ? 'En cours' : c.etat === 3 ? 'Terminée' : 'Planifiée'
+  }));
+};
+
+/**
+ * Récupère toutes les campagnes typées
  * GET /api/Campagnes
  */
 export const fetchCampaignsApiCall = async (): Promise<Campagne[]> => {

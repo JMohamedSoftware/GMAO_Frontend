@@ -7,13 +7,18 @@
  */
 
 import { apiClient } from '@/shared/services/apiClient';
+import { Incident } from '@/shared/types/gmao';
 import { CreateIncidentDto, IncidentUrgency } from '../types/incident.types';
 
-/**
- * Convertit le niveau d'urgence textuel vers l'entier enum backend :
- * 1: Basse, 2: Normale, 3: Haute, 4: Urgente (Critique)
- */
-export const mapUrgencyToInt = (urgency: IncidentUrgency): number => {
+export interface CreateIncidentPayload {
+  equipmentId: string;
+  description: string;
+  urgency: string;
+  demandeurId?: number;
+  photo?: string;
+}
+
+export const mapUrgencyToInt = (urgency: IncidentUrgency | string): number => {
   switch (urgency) {
     case 'Faible':   return 1;
     case 'Haute':    return 3;
@@ -22,10 +27,6 @@ export const mapUrgencyToInt = (urgency: IncidentUrgency): number => {
   }
 };
 
-/**
- * Convertit le statut textuel vers l'entier enum backend StatutDemande :
- * 1: EnAttente, 2: Validee, 3: Rejetee, 4: TransformeeEnOT, 5: Cloturee
- */
 export const mapIncidentStatusToInt = (status: string): number => {
   switch (status) {
     case 'Validé':           return 2;
@@ -36,28 +37,106 @@ export const mapIncidentStatusToInt = (status: string): number => {
   }
 };
 
+const intToUrgency = (n: number): Incident['urgency'] => {
+  switch (n) {
+    case 1:  return 'Faible';
+    case 3:  return 'Haute';
+    case 4:  return 'Critique';
+    default: return 'Moyenne';
+  }
+};
+
+const intToStatus = (n: number): Incident['status'] => {
+  switch (n) {
+    case 2:  return 'Validé';
+    case 3:  return 'Rejeté';
+    case 4:  return 'Transformé en OT';
+    case 5:  return 'Clos';
+    default: return 'Nouveau';
+  }
+};
+
 /**
- * Récupère toutes les demandes d'intervention de la société
+ * Récupère toutes les demandes d'intervention pour Redux
  * GET /api/Incidents
  */
+export const fetchIncidents = async (): Promise<Incident[]> => {
+  const response = await apiClient.get('/api/Incidents');
+  return response.data.map((i: any) => ({
+    id: i.id?.toString(),
+    equipmentId: i.equipementId?.toString(),
+    reportedBy: i.demandeurId?.toString(),
+    reportedDate: i.datePanne,
+    urgency: intToUrgency(i.priorite),
+    status: intToStatus(i.statut),
+    description: i.description,
+    photo: i.photoUrl || undefined,
+    commentaireRejet: i.commentaireRejet || undefined,
+  }));
+};
+
+/**
+ * Crée un nouvel incident
+ * POST /api/Incidents
+ */
+export const createIncidentApi = async (payload: CreateIncidentPayload): Promise<Incident> => {
+  const body = {
+    equipementId: parseInt(payload.equipmentId, 10),
+    demandeurId: payload.demandeurId || 1,
+    datePanne: new Date().toISOString(),
+    description: payload.description,
+    priorite: mapUrgencyToInt(payload.urgency),
+    statut: 1,
+    photoUrl: payload.photo || null,
+  };
+  const response = await apiClient.post('/api/Incidents', body);
+  const i = response.data;
+  return {
+    id: i.id?.toString(),
+    equipmentId: i.equipementId?.toString(),
+    reportedBy: i.demandeurId?.toString(),
+    reportedDate: i.datePanne || new Date().toISOString(),
+    urgency: payload.urgency as Incident['urgency'],
+    status: 'Nouveau',
+    description: i.description,
+    photo: i.photoUrl || undefined,
+  };
+};
+
+/**
+ * Met à jour le statut d'un incident
+ * PUT /api/Incidents/{id}
+ */
+export const patchIncidentStatusApi = async (
+  id: string,
+  status: Incident['status'],
+  fullIncident: Incident,
+  commentaireRejet?: string
+): Promise<void> => {
+  const body = {
+    id: parseInt(id, 10),
+    equipementId: parseInt(fullIncident.equipmentId, 10),
+    demandeurId: parseInt(fullIncident.reportedBy, 10) || 1,
+    datePanne: fullIncident.reportedDate,
+    description: fullIncident.description,
+    priorite: mapUrgencyToInt(fullIncident.urgency),
+    statut: mapIncidentStatusToInt(status),
+    photoUrl: fullIncident.photo || null,
+    commentaireRejet: commentaireRejet || null,
+  };
+  await apiClient.put(`/api/Incidents/${id}`, body);
+};
+
 export const fetchIncidentsApiCall = async () => {
   const response = await apiClient.get('/api/Incidents');
   return response.data;
 };
 
-/**
- * Récupère un incident par son ID
- * GET /api/Incidents/{id}
- */
 export const fetchIncidentByIdApiCall = async (id: number | string) => {
   const response = await apiClient.get(`/api/Incidents/${id}`);
   return response.data;
 };
 
-/**
- * Déclare une nouvelle panne machine sur le backend
- * POST /api/Incidents
- */
 export const createIncidentApiCall = async (dto: CreateIncidentDto) => {
   const userStr = localStorage.getItem('gmao_current_user');
   const userObj = userStr ? JSON.parse(userStr) : null;
@@ -69,7 +148,7 @@ export const createIncidentApiCall = async (dto: CreateIncidentDto) => {
     datePanne: new Date().toISOString(),
     description: dto.description,
     priorite: mapUrgencyToInt(dto.urgency),
-    statut: 1, // EnAttente
+    statut: 1,
     photoUrl: dto.photoUrl || null,
     commentaireRejet: null
   };
@@ -78,10 +157,6 @@ export const createIncidentApiCall = async (dto: CreateIncidentDto) => {
   return response.data;
 };
 
-/**
- * Met à jour le statut d'un incident (ex: Validé, Rejeté, Clos)
- * PUT /api/Incidents/{id}
- */
 export const updateIncidentStatusApiCall = async (
   id: number | string, 
   status: string, 
@@ -96,10 +171,6 @@ export const updateIncidentStatusApiCall = async (
   return response.data;
 };
 
-/**
- * Supprime un incident
- * DELETE /api/Incidents/{id}
- */
 export const deleteIncidentApiCall = async (id: number | string) => {
   await apiClient.delete(`/api/Incidents/${id}`);
 };

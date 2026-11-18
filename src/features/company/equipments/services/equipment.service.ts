@@ -1,6 +1,6 @@
 import { apiClient } from '@/shared/services/apiClient';
 import { Equipment } from '@/shared/types/gmao';
-import { normalizeEquipmentCriticality, normalizeEquipmentStatus } from '@/shared/api/dataFetch.api';
+import { normalizeEquipmentCriticality, normalizeEquipmentStatus } from '../api/equipment.api';
 
 export const equipmentService = {
   getAll: async (): Promise<Equipment[]> => {

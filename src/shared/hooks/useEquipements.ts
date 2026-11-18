@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Equipment } from '../types/gmao';
 import { equipementService } from '../services/equipement.service';
-import { createEquipmentApi, updateEquipmentApi, updateEquipmentStatusApi } from '../api/dataFetch.api';
+import { createEquipmentApi, updateEquipmentApi, updateEquipmentStatusApi } from '@/features/company/equipments/api/equipment.api';
 
 export const useEquipements = () => {
   const [equipments, setEquipments] = useState<Equipment[]>([]);
