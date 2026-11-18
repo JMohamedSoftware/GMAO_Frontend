@@ -61,10 +61,14 @@ export const updateCampaignApiCall = async (id: number, dto: UpdateCampagneDto):
 
 /**
  * Clôture et archive une campagne
- * PUT /api/Campagnes/{id}
+ * POST /api/Campagnes/{id}/cloturer
  */
 export const cloturerCampaignApiCall = async (id: number): Promise<void> => {
-  await apiClient.put(`/api/Campagnes/${id}`, { etat: EtatCampagne.Terminee });
+  try {
+    await apiClient.post(`/api/Campagnes/${id}/cloturer`);
+  } catch {
+    await apiClient.put(`/api/Campagnes/${id}`, { id, etat: EtatCampagne.Terminee });
+  }
 };
 
 /**
