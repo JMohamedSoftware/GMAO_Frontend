@@ -97,15 +97,23 @@ function AppContent() {
     }
     if (target.startsWith('equipment-detail:')) {
       const eqId = target.split(':')[1];
-      const eq = equipments.find(e => e.id === eqId);
+      const eq = equipments.find(e => String(e.id) === String(eqId) || (e.code && e.code === eqId));
       if (eq) {
         setSelectedEqFromDash(eq);
+        setCurrentScreen('equipment');
+      } else {
         setCurrentScreen('equipment');
       }
     } else if (target.startsWith('workorder-detail:')) {
       const otId = target.split(':')[1];
       setSelectedOtFromUrl(otId);
       setCurrentScreen('workorders');
+    } else if (target.startsWith('incident-detail:')) {
+      setCurrentScreen('corrective');
+    } else if (target.startsWith('stock-detail:') || target.startsWith('inventory')) {
+      setCurrentScreen('inventory');
+    } else if (target.startsWith('supplier-detail:') || target.startsWith('suppliers')) {
+      setCurrentScreen('suppliers');
     } else if (target.startsWith('workorder-new:')) {
       const eqId = target.split(':')[1];
       setNewWorkOrderEqId(eqId);
