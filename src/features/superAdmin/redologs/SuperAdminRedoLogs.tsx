@@ -26,14 +26,24 @@ export interface RedoLogItem {
   canRollback: boolean;
 }
 
-export const SuperAdminRedoLogs: React.FC = () => {
+interface SuperAdminRedoLogsProps {
+  selectedTenantId?: string;
+}
+
+export const SuperAdminRedoLogs: React.FC<SuperAdminRedoLogsProps> = ({ selectedTenantId = 'ALL' }) => {
   const { tenants } = useGmao();
   const [redoLogs, setRedoLogs] = useState<RedoLogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [tenantFilter, setTenantFilter] = useState('ALL');
+  const [tenantFilter, setTenantFilter] = useState<string>(selectedTenantId);
   const [entityFilter, setEntityFilter] = useState('ALL');
   const [actionFilter, setActionFilter] = useState('ALL');
+
+  useEffect(() => {
+    if (selectedTenantId) {
+      setTenantFilter(selectedTenantId);
+    }
+  }, [selectedTenantId]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Rollback confirmation modal state

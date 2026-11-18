@@ -60,8 +60,23 @@ export interface MonitoringTenant {
   };
 }
 
-export const SuperAdminMonitoring: React.FC = () => {
-  const [selectedTenantId, setSelectedTenantId] = useState<string>('mon-001');
+interface SuperAdminMonitoringProps {
+  selectedTenantId?: string;
+}
+
+export const SuperAdminMonitoring: React.FC<SuperAdminMonitoringProps> = ({ selectedTenantId: initialSelectedTenantId }) => {
+  const [selectedTenantId, setSelectedTenantId] = useState<string>(
+    initialSelectedTenantId && initialSelectedTenantId !== 'ALL'
+      ? (initialSelectedTenantId.startsWith('mon-') ? initialSelectedTenantId : `mon-${initialSelectedTenantId}`)
+      : 'mon-001'
+  );
+
+  useEffect(() => {
+    if (initialSelectedTenantId && initialSelectedTenantId !== 'ALL') {
+      const formatted = initialSelectedTenantId.startsWith('mon-') ? initialSelectedTenantId : `mon-${initialSelectedTenantId}`;
+      setSelectedTenantId(formatted);
+    }
+  }, [initialSelectedTenantId]);
   const [searchTerm, setSearchTerm] = useState('');
   const [planFilter, setPlanFilter] = useState('All');
   const [activeTab, setActiveTab] = useState<'Aperçu' | 'Détails' | 'Sites' | 'Utilisateurs' | 'Stockage'>('Aperçu');

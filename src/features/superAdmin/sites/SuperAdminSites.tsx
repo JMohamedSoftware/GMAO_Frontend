@@ -39,12 +39,19 @@ import factoryPlanImg from '@/shared/assets/images/factory_plan.jpg';
 
 interface SuperAdminSitesProps {
   onNavigateTab?: (tab: string) => void;
+  selectedCompanyName?: string;
 }
 
-export const SuperAdminSites: React.FC<SuperAdminSitesProps> = () => {
+export const SuperAdminSites: React.FC<SuperAdminSitesProps> = ({ onNavigateTab, selectedCompanyName }) => {
   const [viewMode, setViewMode] = useState<'table' | 'map'>('table');
   const [selectedSiteId, setSelectedSiteId] = useState<string>('sit-001');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(selectedCompanyName && selectedCompanyName !== 'ALL' ? selectedCompanyName : '');
+
+  useEffect(() => {
+    if (selectedCompanyName) {
+      setSearchTerm(selectedCompanyName !== 'ALL' ? selectedCompanyName : '');
+    }
+  }, [selectedCompanyName]);
   const [statusFilter, setStatusFilter] = useState<'All' | 'Actif' | 'Maintenance' | 'Inactif'>('All');
   const [regionFilter, setRegionFilter] = useState<string>('All');
   const [activeTab, setActiveTab] = useState<'Aperçu' | 'Équipements' | 'Utilisateurs' | 'Maintenance' | 'Documents'>('Aperçu');

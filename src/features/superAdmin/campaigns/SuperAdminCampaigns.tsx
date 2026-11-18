@@ -23,13 +23,23 @@ interface CampaignItem {
   tonnagePrevu?: number;
 }
 
-export const SuperAdminCampaigns: React.FC = () => {
+interface SuperAdminCampaignsProps {
+  selectedTenantId?: string;
+}
+
+export const SuperAdminCampaigns: React.FC<SuperAdminCampaignsProps> = ({ selectedTenantId = 'ALL' }) => {
   const { impersonateTenant, tenants } = useGmao();
   const [campaigns, setCampaigns] = useState<CampaignItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [tenantFilter, setTenantFilter] = useState<string>('ALL');
+  const [tenantFilter, setTenantFilter] = useState<string>(selectedTenantId);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+
+  useEffect(() => {
+    if (selectedTenantId) {
+      setTenantFilter(selectedTenantId);
+    }
+  }, [selectedTenantId]);
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignItem | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 

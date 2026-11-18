@@ -67,11 +67,21 @@ export interface UserItem {
   }[];
 }
 
-export const SuperAdminUsers: React.FC = () => {
+interface SuperAdminUsersProps {
+  selectedCompanyName?: string;
+}
+
+export const SuperAdminUsers: React.FC<SuperAdminUsersProps> = ({ selectedCompanyName }) => {
   const [selectedUserId, setSelectedUserId] = useState<string>('5');
   const [searchTerm, setSearchTerm] = useState('');
-  const [companyFilter, setCompanyFilter] = useState('All');
+  const [companyFilter, setCompanyFilter] = useState(selectedCompanyName && selectedCompanyName !== 'ALL' ? selectedCompanyName : 'All');
   const [roleFilter, setRoleFilter] = useState('All');
+
+  useEffect(() => {
+    if (selectedCompanyName) {
+      setCompanyFilter(selectedCompanyName !== 'ALL' ? selectedCompanyName : 'All');
+    }
+  }, [selectedCompanyName]);
   const [statusFilter, setStatusFilter] = useState('All');
   const [activeTab, setActiveTab] = useState<'Informations' | 'Rôles & Accès' | 'Sites' | 'Activité' | 'Sécurité'>('Informations');
   const [currentPage, setCurrentPage] = useState(1);
