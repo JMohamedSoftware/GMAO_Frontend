@@ -1,7 +1,48 @@
+/**
+ * ============================================================================
+ * ÉTAT GLOBAL REDUX : GMAO Store Slice (Données Dynamiques Centralisées)
+ * ============================================================================
+ * Gère l'état global partagé de l'application :
+ * - Session utilisateur et tenant connecté
+ * - Synchronisation asynchrone avec le backend REST
+ * - Cache réactif pour les données partagées (Équipements, OTs, Stock, Incidents)
+ */
+
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { Tenant, User, Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount, Equipe } from '@/shared/types/gmao';
-import { AppRole } from '@/shared/permissions';
-import { fetchEquipments, fetchSuppliers, fetchParts, fetchIncidents, fetchWorkOrders, fetchCampaigns, fetchTechnicians, fetchUsers, fetchTenants, createTenantApi, updateTenantApi, createIncidentApi, patchIncidentStatusApi, CreateIncidentPayload, createWorkOrderApi, CreateWorkOrderPayload, patchWorkOrderStatusApi, updateEquipmentStatusApi, createEquipmentApi, updateEquipmentApi, createPartApi, updatePartApi, createMovementApi, fetchMovements, fetchEquipes, createEquipeApi, updateEquipeApi, deleteEquipeApi, createSupplierApi, updateSupplierApi, deleteSupplierApi } from '@/shared/api/dataFetch.api';
+import { 
+  fetchEquipments, 
+  fetchSuppliers, 
+  fetchParts, 
+  fetchIncidents, 
+  fetchWorkOrders, 
+  fetchCampaigns, 
+  fetchTechnicians, 
+  fetchUsers, 
+  fetchTenants, 
+  createTenantApi, 
+  updateTenantApi, 
+  createIncidentApi, 
+  patchIncidentStatusApi, 
+  CreateIncidentPayload, 
+  createWorkOrderApi, 
+  CreateWorkOrderPayload, 
+  patchWorkOrderStatusApi, 
+  updateEquipmentStatusApi, 
+  createEquipmentApi, 
+  updateEquipmentApi, 
+  createPartApi, 
+  updatePartApi, 
+  createMovementApi, 
+  fetchMovements, 
+  fetchEquipes, 
+  createEquipeApi, 
+  updateEquipeApi, 
+  deleteEquipeApi, 
+  createSupplierApi, 
+  updateSupplierApi, 
+  deleteSupplierApi 
+} from '@/shared/api/dataFetch.api';
 
 interface GmaoState {
   tenants: Tenant[];
@@ -13,33 +54,6 @@ interface GmaoState {
   rolePermissions: Record<string, any>;
   notifications: Notification[];
 }
-
-const getInitialTenants = (): Tenant[] => {
-  // We removed reading from localStorage to avoid loading old mock data.
-  // The app will now always start with empty data and wait for the backend.
-  return [
-    {
-      id: 'tenant-midi',
-      name: 'Conserverie du Midi S.A.',
-      domain: 'midi.com',
-      status: 'Active',
-      subscriptionPlan: 'Enterprise',
-      createdAt: '2026-01-10T12:00:00Z',
-      adminEmail: 'admin@midi.com',
-      capacityTonsPerDay: 450,
-      equipments: [],
-      workOrders: [],
-      incidents: [],
-      technicians: [],
-      parts: [],
-      suppliers: [],
-      campaigns: [],
-      equipes: [],
-      users: [],
-      movementLogs: []
-    }
-  ];
-};
 
 const getInitialImpersonatedTenant = (): string | null => {
   try {
@@ -54,16 +68,19 @@ const getInitialImpersonatedTenant = (): string | null => {
   }
 };
 
+// État initial 100% dynamique (aucune donnée en dur)
 const initialState: GmaoState = {
-  tenants: getInitialTenants(),
-  currentTenantId: localStorage.getItem('gmao_current_tenant_id') || 'tenant-midi',
+  tenants: [],
+  currentTenantId: localStorage.getItem('gmao_current_tenant_id') || null,
   impersonatedTenantId: getInitialImpersonatedTenant(),
   currentUser: localStorage.getItem('gmao_current_user') ? JSON.parse(localStorage.getItem('gmao_current_user') as string) : null,
   darkMode: localStorage.getItem('gmao_dark_mode') ? JSON.parse(localStorage.getItem('gmao_dark_mode') as string) : false,
-  selectedCampaign: 'Campagne 2026',
+  selectedCampaign: '',
   rolePermissions: {},
   notifications: []
 };
+
+// ─── THUNKS ASYNCHRONES (Backend API Sync) ───────────────────────────────────
 
 export const fetchTenantsAsync = createAsyncThunk(
   'gmao/fetchTenants',
@@ -137,12 +154,10 @@ export const fetchTenantDataAsync = createAsyncThunk(
   }
 );
 
-/** POST /api/Incidents — create a new incident on the backend, then sync to Redux */
 export const createIncidentAsync = createAsyncThunk(
   'gmao/createIncident',
   async (payload: CreateIncidentPayload) => {
     const incident = await createIncidentApi(payload);
-    // If critical or high, update equipment status
     if (incident.urgency === 'Critique' || incident.urgency === 'Haute') {
       await updateEquipmentStatusApi(incident.equipmentId, 'En panne');
     }
@@ -150,7 +165,6 @@ export const createIncidentAsync = createAsyncThunk(
   }
 );
 
-/** PUT /api/Incidents/{id} — update status on backend, then sync to Redux */
 export const updateIncidentStatusAsync = createAsyncThunk(
   'gmao/updateIncidentStatus',
   async (payload: { id: string; status: Incident['status']; fullIncident: Incident; workOrderId?: string; commentaireRejet?: string }) => {
@@ -159,16 +173,13 @@ export const updateIncidentStatusAsync = createAsyncThunk(
   }
 );
 
-/** POST /api/Equipement — create a new equipment on the backend, then sync to Redux */
 export const createEquipmentAsync = createAsyncThunk(
   'gmao/createEquipment',
   async (payload: Partial<Equipment>) => {
-    const equipment = await createEquipmentApi(payload);
-    return equipment;
+    return await createEquipmentApi(payload);
   }
 );
 
-/** PUT /api/Equipement/{id} — update an equipment on the backend, then sync to Redux */
 export const updateEquipmentAsync = createAsyncThunk(
   'gmao/updateEquipment',
   async (payload: { id: string; updates: Partial<Equipment> }) => {
@@ -177,12 +188,10 @@ export const updateEquipmentAsync = createAsyncThunk(
   }
 );
 
-/** POST /api/OrdresTravail — create a new Work Order on the backend, then sync to Redux */
 export const createWorkOrderAsync = createAsyncThunk(
   'gmao/createWorkOrder',
   async (payload: CreateWorkOrderPayload & { incidentId?: string }) => {
     const workOrder = await createWorkOrderApi(payload);
-    // If it's a corrective work order or high/critical priority, update equipment status to En panne
     if (payload.type === 'Correctif' || payload.priority === 'Critique' || payload.priority === 'Haute') {
       await updateEquipmentStatusApi(payload.equipmentId, 'En panne');
     }
@@ -190,7 +199,6 @@ export const createWorkOrderAsync = createAsyncThunk(
   }
 );
 
-/** PUT /api/OrdresTravail/{id} — update status/data on backend, then sync to Redux */
 export const updateWorkOrderStatusAsync = createAsyncThunk(
   'gmao/updateWorkOrderStatus',
   async (payload: { id: string; status: WorkOrder['status']; fullOt: WorkOrder; updates?: Partial<WorkOrder> }) => {
@@ -204,7 +212,6 @@ export const updateWorkOrderStatusAsync = createAsyncThunk(
       throw new Error(`${code}${serverMsg || 'Erreur réseau'}`);
     }
     
-    // Equipment status is already synced by the backend; this is a best-effort refresh
     try {
       if (payload.status === 'En cours') {
         await updateEquipmentStatusApi(payload.fullOt.equipmentId, 'En maintenance');
@@ -243,10 +250,56 @@ export const updatePartAsync = createAsyncThunk(
 export const createMovementAsync = createAsyncThunk(
   'gmao/createMovement',
   async (payload: { pieceId: string, qty: number, type: 'in' | 'out', otId?: string, reason?: string, userId: string }) => {
-    const created = await createMovementApi(payload);
-    return created;
+    return await createMovementApi(payload);
   }
 );
+
+export const createEquipeAsync = createAsyncThunk(
+  'gmao/createEquipe',
+  async (payload: Omit<Equipe, 'id'>) => {
+    return await createEquipeApi(payload);
+  }
+);
+
+export const updateEquipeAsync = createAsyncThunk(
+  'gmao/updateEquipe',
+  async (payload: Equipe) => {
+    await updateEquipeApi(payload.id, payload);
+    return payload;
+  }
+);
+
+export const deleteEquipeAsync = createAsyncThunk(
+  'gmao/deleteEquipe',
+  async (id: string) => {
+    await deleteEquipeApi(id);
+    return id;
+  }
+);
+
+export const createSupplierAsync = createAsyncThunk(
+  'gmao/createSupplier',
+  async (payload: Supplier) => {
+    return await createSupplierApi(payload);
+  }
+);
+
+export const updateSupplierAsync = createAsyncThunk(
+  'gmao/updateSupplier',
+  async (payload: { id: string; supplier: Partial<Supplier> }) => {
+    return await updateSupplierApi(payload.id, payload.supplier);
+  }
+);
+
+export const deleteSupplierAsync = createAsyncThunk(
+  'gmao/deleteSupplier',
+  async (id: string) => {
+    await deleteSupplierApi(id);
+    return id;
+  }
+);
+
+// ─── SLICE REDUX ────────────────────────────────────────────────────────────
 
 export const gmaoSlice = createSlice({
   name: 'gmao',
@@ -294,7 +347,7 @@ export const gmaoSlice = createSlice({
     },
     logout: (state) => {
       state.currentUser = null;
-      state.currentTenantId = 'tenant-midi';
+      state.currentTenantId = null;
       state.impersonatedTenantId = null;
       try {
         localStorage.removeItem('gmao_impersonated_tenant_id');
@@ -302,8 +355,8 @@ export const gmaoSlice = createSlice({
         localStorage.removeItem('gmao_session');
         localStorage.removeItem('gmao_access_token');
         localStorage.removeItem('gmao_refresh_token');
+        localStorage.removeItem('gmao_current_tenant_id');
       } catch {}
-      localStorage.setItem('gmao_current_tenant_id', 'tenant-midi');
     },
     impersonateTenant: (state, action: PayloadAction<string | null>) => {
       if (action.payload && action.payload !== 'null' && action.payload !== 'undefined') {
@@ -358,10 +411,7 @@ export const gmaoSlice = createSlice({
         tenant.equipments.push({
           ...action.payload,
           healthIndex: 100, hoursCount: 0, cycleCount: 0,
-          sensors: [
-            { name: 'Température', value: 20.0, unit: '°C', status: 'normal', history: [20.0] },
-            { name: 'Vibration', value: 0.5, unit: 'mm/s', status: 'normal', history: [0.5] }
-          ]
+          sensors: []
         });
       }
     },
@@ -404,7 +454,8 @@ export const gmaoSlice = createSlice({
     addIncident: (state, action: PayloadAction<Omit<Incident, 'id' | 'reportedDate' | 'status'>>) => {
       const tenant = state.tenants.find(t => t.id === state.currentTenantId);
       if (tenant) {
-        const newId = `DI-2026-${String(tenant.incidents.length + 1).padStart(3, '0')}`;
+        const currentYear = new Date().getFullYear();
+        const newId = `DI-${currentYear}-${String(tenant.incidents.length + 1).padStart(3, '0')}`;
         tenant.incidents.unshift({
           ...action.payload, id: newId, reportedDate: new Date().toISOString(), status: 'Nouveau'
         });
@@ -428,7 +479,8 @@ export const gmaoSlice = createSlice({
       const tenant = state.tenants.find(t => t.id === state.currentTenantId);
       if (tenant) {
         const { ot, incidentId } = action.payload;
-        const newId = `OT-2026-${String(tenant.workOrders.length + 1).padStart(3, '0')}`;
+        const currentYear = new Date().getFullYear();
+        const newId = `OT-${currentYear}-${String(tenant.workOrders.length + 1).padStart(3, '0')}`;
         tenant.workOrders.unshift({
           ...ot, id: newId, status: 'En attente', createdDate: new Date().toISOString(), partsUsed: [], durationMinutes: 0, externalCost: 0
         });
@@ -453,7 +505,6 @@ export const gmaoSlice = createSlice({
           ot.status = action.payload.status;
           if (action.payload.updates) Object.assign(ot, action.payload.updates);
           
-          // Notify Chef d'équipe when assigned by Responsable
           if (ot.status === 'Affecté Chef' && ot.chefEquipeId) {
             state.notifications.unshift({
               id: `NOT-${Date.now()}`,
@@ -467,7 +518,6 @@ export const gmaoSlice = createSlice({
             });
           }
 
-          // Notify Technicien when assigned by Chef d'équipe
           if (ot.status === 'Affecté' && ot.technicianId) {
             state.notifications.unshift({
               id: `NOT-${Date.now() + 1}`,
@@ -520,7 +570,6 @@ export const gmaoSlice = createSlice({
             otId: action.payload.otId
           });
 
-          // Also update partsUsed on the OT directly for immediate UI feedback
           if (action.payload.otId) {
             const ot = tenant.workOrders.find(o => o.id === action.payload.otId);
             if (ot) {
@@ -581,7 +630,6 @@ export const gmaoSlice = createSlice({
       }
     },
 
-    // ─── Équipes CRUD ──────────────────────────────────────────────────────
     addEquipe: (state, action: PayloadAction<Omit<Equipe, 'id'>>) => {
       const tenant = state.tenants.find(t => t.id === state.currentTenantId);
       if (tenant) {
@@ -604,7 +652,9 @@ export const gmaoSlice = createSlice({
     },
 
     syncToLocalStorage: (state) => {
-      localStorage.setItem('gmao_tenants_v8', JSON.stringify(state.tenants));
+      if (state.tenants && state.tenants.length > 0) {
+        localStorage.setItem('gmao_tenants_v8', JSON.stringify(state.tenants));
+      }
     }
   },
   extraReducers: (builder) => {
@@ -637,10 +687,8 @@ export const gmaoSlice = createSlice({
       }
 
       if (tenant) {
-        // Correctly set equipments array (even if empty []) so mock data does not linger
         tenant.equipments = action.payload.equipments || [];
         tenant.suppliers = action.payload.suppliers || [];
-        // Always refresh parts (stock may have changed after consuming parts)
         tenant.parts = action.payload.parts || [];
         tenant.incidents = action.payload.incidents || [];
         tenant.workOrders = action.payload.workOrders || [];
@@ -650,7 +698,13 @@ export const gmaoSlice = createSlice({
         tenant.equipes = action.payload.equipes || [];
         if (action.payload.movements) tenant.movementLogs = action.payload.movements;
 
-        // Always recompute partsUsed from movementLogs for each OT
+        // Sélection dynamique de la campagne en cours si non définie
+        if (!state.selectedCampaign && tenant.campaigns.length > 0) {
+          const activeCamp = tenant.campaigns.find(c => c.status === 'En cours') || tenant.campaigns[0];
+          state.selectedCampaign = activeCamp.name;
+        }
+
+        // Recalcul des pièces consommées par OT
         tenant.workOrders.forEach(ot => {
           const consumedParts = tenant!.movementLogs
             .filter(m => m.otId === ot.id && m.type === 'out')
@@ -702,12 +756,10 @@ export const gmaoSlice = createSlice({
       }
     });
 
-    // When a new incident is created on the backend, prepend it to local state
     builder.addCase(createIncidentAsync.fulfilled, (state, action) => {
       const tenant = state.tenants.find(t => t.id === state.currentTenantId);
       if (tenant) {
         tenant.incidents.unshift(action.payload);
-        // Mark equipment as En panne for critical/high urgency
         if (action.payload.urgency === 'Critique' || action.payload.urgency === 'Haute') {
           const eq = tenant.equipments.find(e => e.id === action.payload.equipmentId);
           if (eq) { eq.status = 'En panne'; eq.healthIndex = 30; }
@@ -715,7 +767,6 @@ export const gmaoSlice = createSlice({
       }
     });
 
-    // When an incident status is updated on the backend, mirror it in local state
     builder.addCase(updateIncidentStatusAsync.fulfilled, (state, action) => {
       const tenant = state.tenants.find(t => t.id === state.currentTenantId);
       if (tenant) {
@@ -727,12 +778,10 @@ export const gmaoSlice = createSlice({
       }
     });
 
-    // When a new OT is created on the backend, prepend it and update linked incident
     builder.addCase(createWorkOrderAsync.fulfilled, (state, action) => {
       const tenant = state.tenants.find(t => t.id === state.currentTenantId);
       if (tenant) {
         tenant.workOrders.unshift(action.payload.workOrder);
-        // Transition the linked incident to "Transformé en OT"
         if (action.payload.incidentId) {
           const inc = tenant.incidents.find(i => i.id === action.payload.incidentId);
           if (inc) {
@@ -740,7 +789,6 @@ export const gmaoSlice = createSlice({
             inc.workOrderId = action.payload.workOrder.id;
           }
         }
-        // Notify the assigned technician
         if (action.payload.workOrder.technicianId) {
           state.notifications.unshift({
             id: `NOT-${Date.now()}`,
@@ -753,7 +801,6 @@ export const gmaoSlice = createSlice({
             targetUserId: action.payload.workOrder.technicianId,
           });
         }
-        // If it's a corrective work order, mark equipment as "En panne" in local state
         if (action.payload.type === 'Correctif' || action.payload.workOrder.type === 'Correctif') {
           const eqId = action.payload.equipmentId || action.payload.workOrder.equipmentId;
           const eq = tenant.equipments.find(e => e.id === eqId);
@@ -765,7 +812,6 @@ export const gmaoSlice = createSlice({
       }
     });
 
-    // When an OT status is updated on the backend, mirror it in local state
     builder.addCase(updateWorkOrderStatusAsync.fulfilled, (state, action) => {
       const tenant = state.tenants.find(t => t.id === state.currentTenantId);
       if (tenant) {
@@ -774,13 +820,12 @@ export const gmaoSlice = createSlice({
           ot.status = action.payload.status;
           if (action.payload.updates) Object.assign(ot, action.payload.updates);
           
-          // Notify Chef d'équipe when Responsable assigns them
           if (ot.status === 'Affecté Chef' && ot.chefEquipeId) {
             state.notifications.unshift({
               id: `NOT-${Date.now()}`,
               type: 'workorder',
               severity: 'info',
-              title: '💻 OT à planifier',
+              title: '📋 OT à planifier',
               message: `L'OT « ${ot.title} » vous a été confié. Affectez un technicien.`,
               date: new Date().toISOString(),
               read: false,
@@ -788,7 +833,6 @@ export const gmaoSlice = createSlice({
             });
           }
 
-          // Notify Technicien when Chef d'équipe assigns them
           if (ot.status === 'Affecté' && ot.technicianId) {
             state.notifications.unshift({
               id: `NOT-${Date.now() + 1}`,
@@ -819,7 +863,7 @@ export const gmaoSlice = createSlice({
         }
       }
     });
-    // Equipment actions
+
     builder.addCase(createEquipmentAsync.fulfilled, (state, action) => {
       const tenant = state.tenants.find(t => t.id === state.currentTenantId);
       if (tenant) {
@@ -837,7 +881,6 @@ export const gmaoSlice = createSlice({
       }
     });
 
-    // Parts actions
     builder.addCase(createPartAsync.fulfilled, (state, action) => {
       const tenant = state.tenants.find(t => t.id === state.currentTenantId);
       if (tenant && action.payload) {
@@ -862,7 +905,6 @@ export const gmaoSlice = createSlice({
       }
     });
 
-    // ─── Equipes actions ──────────────────────────────────────────────────────
     builder.addCase(createEquipeAsync.fulfilled, (state, action) => {
       const tenant = state.tenants.find(t => t.id === state.currentTenantId);
       if (tenant) {
@@ -886,7 +928,6 @@ export const gmaoSlice = createSlice({
       }
     });
 
-    // ─── Suppliers actions ────────────────────────────────────────────────────
     builder.addCase(createSupplierAsync.fulfilled, (state, action) => {
       const tenant = state.tenants.find(t => t.id === state.currentTenantId);
       if (tenant) {
@@ -911,7 +952,6 @@ export const gmaoSlice = createSlice({
         tenant.suppliers = tenant.suppliers.filter(s => s.id !== action.payload);
       }
     });
-
   }
 });
 
@@ -924,50 +964,5 @@ export const {
   addEquipe, updateEquipe, deleteEquipe,
   syncToLocalStorage, impersonateTenant, setTenantStatus
 } = gmaoSlice.actions;
-
-export const createEquipeAsync = createAsyncThunk(
-  'gmao/createEquipe',
-  async (payload: Omit<Equipe, 'id'>) => {
-    return await createEquipeApi(payload);
-  }
-);
-
-export const updateEquipeAsync = createAsyncThunk(
-  'gmao/updateEquipe',
-  async (payload: Equipe) => {
-    await updateEquipeApi(payload.id, payload);
-    return payload;
-  }
-);
-
-export const deleteEquipeAsync = createAsyncThunk(
-  'gmao/deleteEquipe',
-  async (id: string) => {
-    await deleteEquipeApi(id);
-    return id;
-  }
-);
-
-export const createSupplierAsync = createAsyncThunk(
-  'gmao/createSupplier',
-  async (payload: Supplier) => {
-    return await createSupplierApi(payload);
-  }
-);
-
-export const updateSupplierAsync = createAsyncThunk(
-  'gmao/updateSupplier',
-  async (payload: { id: string; supplier: Partial<Supplier> }) => {
-    return await updateSupplierApi(payload.id, payload.supplier);
-  }
-);
-
-export const deleteSupplierAsync = createAsyncThunk(
-  'gmao/deleteSupplier',
-  async (id: string) => {
-    await deleteSupplierApi(id);
-    return id;
-  }
-);
 
 export default gmaoSlice.reducer;
