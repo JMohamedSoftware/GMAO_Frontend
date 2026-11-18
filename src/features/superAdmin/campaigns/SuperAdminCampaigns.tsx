@@ -38,107 +38,59 @@ export const SuperAdminCampaigns: React.FC = () => {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const defaultMockCampaigns: CampaignItem[] = [
-    {
-      id: 1,
-      nom: 'Campagne Tomates 2026',
-      description: 'Campagne principale de haute saison estivale - Transformation concentré double et concassé.',
-      dateDebut: '2026-07-01',
-      dateFin: '2026-10-31',
-      etat: 'EnCours',
-      societeId: 1,
-      societeNom: 'Usine Tomates POMODORO',
-      societeCode: 'tenant-midi',
-      otCount: 42,
-      incidentsCount: 18,
-      tonnagePrevu: 45000
-    },
-    {
-      id: 2,
-      nom: 'Campagne Tomates 2025',
-      description: 'Campagne saisonnière précédente - Clôturée avec archivage des historiques et bilans matière.',
-      dateDebut: '2025-07-01',
-      dateFin: '2025-09-30',
-      etat: 'Cloturee',
-      societeId: 1,
-      societeNom: 'Usine Tomates POMODORO',
-      societeCode: 'tenant-midi',
-      otCount: 128,
-      incidentsCount: 64,
-      tonnagePrevu: 38000
-    },
-    {
-      id: 3,
-      nom: 'Campagne Estivale 2026 (Mateur)',
-      description: 'Ligne 1 & 2 concentrateurs haute cadence.',
-      dateDebut: '2026-06-15',
-      dateFin: '2026-10-15',
-      etat: 'EnCours',
-      societeId: 2,
-      societeNom: 'Agro-Industrie Du Sud (SICAM)',
-      societeCode: 'agro-sicam',
-      otCount: 86,
-      incidentsCount: 32,
-      tonnagePrevu: 65000
-    },
-    {
-      id: 4,
-      nom: 'Campagne Clôturée 2025 (Mateur)',
-      description: 'Historique de production annuelle 2025.',
-      dateDebut: '2025-06-01',
-      dateFin: '2025-09-30',
-      etat: 'Cloturee',
-      societeId: 2,
-      societeNom: 'Agro-Industrie Du Sud (SICAM)',
-      societeCode: 'agro-sicam',
-      otCount: 210,
-      incidentsCount: 85,
-      tonnagePrevu: 58000
-    },
-    {
-      id: 5,
-      nom: 'Campagne Tomate Pelée 2026',
-      description: 'Ligne de mise en boîte de tomates entières pelées et jus.',
-      dateDebut: '2026-07-10',
-      dateFin: '2026-11-05',
-      etat: 'EnCours',
-      societeId: 3,
-      societeNom: 'Conserverie Carthage SARL',
-      societeCode: 'carthage-agro',
-      otCount: 29,
-      incidentsCount: 11,
-      tonnagePrevu: 24000
-    },
-    {
-      id: 6,
-      nom: 'Campagne Prévisionnelle 2027',
-      description: 'Préparation des plannings de maintenance hivernale.',
-      dateDebut: '2027-06-01',
-      dateFin: '2027-10-01',
-      etat: 'Planifiee',
-      societeId: 1,
-      societeNom: 'Usine Tomates POMODORO',
-      societeCode: 'tenant-midi',
-      otCount: 0,
-      incidentsCount: 0,
-      tonnagePrevu: 50000
-    }
-  ];
+  const generateDynamicCampaigns = (): CampaignItem[] => {
+    if (!tenants || tenants.length === 0) return [];
+    const list: CampaignItem[] = [];
+    tenants.forEach((t, idx) => {
+      // Campagne active en cours
+      list.push({
+        id: idx * 2 + 1,
+        nom: `Campagne Tomates 2026`,
+        description: `Campagne principale de haute saison estivale - Transformation concentré double et concassé pour ${t.name}.`,
+        dateDebut: '2026-07-01',
+        dateFin: '2026-10-31',
+        etat: 'EnCours',
+        societeId: Number(t.id) || idx + 1,
+        societeNom: t.name,
+        societeCode: t.code || `tenant-${t.id}`,
+        otCount: Math.round(((Array.isArray(t.equipments) ? t.equipments.length : 15) * 0.45) + 10),
+        incidentsCount: Math.round(((Array.isArray(t.equipments) ? t.equipments.length : 15) * 0.18) + 3),
+        tonnagePrevu: (t.capacityTonsPerDay ? t.capacityTonsPerDay * 90 : 45000)
+      });
+      // Campagne archivée 2025
+      list.push({
+        id: idx * 2 + 2,
+        nom: `Campagne Tomates 2025`,
+        description: `Campagne saisonnière précédente clôturée et archivée pour ${t.name}.`,
+        dateDebut: '2025-07-01',
+        dateFin: '2025-09-30',
+        etat: 'Cloturee',
+        societeId: Number(t.id) || idx + 1,
+        societeNom: t.name,
+        societeCode: t.code || `tenant-${t.id}`,
+        otCount: Math.round(((Array.isArray(t.equipments) ? t.equipments.length : 15) * 1.1) + 25),
+        incidentsCount: Math.round(((Array.isArray(t.equipments) ? t.equipments.length : 15) * 0.5) + 12),
+        tonnagePrevu: (t.capacityTonsPerDay ? t.capacityTonsPerDay * 80 : 38000)
+      });
+    });
+    return list;
+  };
 
   const fetchCampaigns = async () => {
     setLoading(true);
     try {
-      const data = await superAdminApi.getCampaigns(defaultMockCampaigns);
+      const fallback = generateDynamicCampaigns();
+      const data = await superAdminApi.getCampaigns(fallback);
       if (data && data.length > 0) {
         setCampaigns(data.map((c: any) => ({
           ...c,
           etat: c.etat === 'EnCours' || c.etat === '1' ? 'EnCours' : (c.etat === 'Cloturee' || c.etat === '2' ? 'Cloturee' : 'Planifiee')
         })));
       } else {
-        setCampaigns(defaultMockCampaigns);
+        setCampaigns(fallback);
       }
     } catch {
-      setCampaigns(defaultMockCampaigns);
+      setCampaigns(generateDynamicCampaigns());
     } finally {
       setLoading(false);
     }
@@ -313,16 +265,16 @@ export const SuperAdminCampaigns: React.FC = () => {
             />
           </div>
 
-          {/* Filter Usine */}
+          {/* Filter Usine (100% Dynamique) */}
           <select
             value={tenantFilter}
             onChange={(e) => setTenantFilter(e.target.value)}
             className="px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
           >
-            <option value="ALL">Toutes les Usines</option>
-            <option value="1">Usine Tomates POMODORO</option>
-            <option value="2">Agro-Industrie Du Sud (SICAM)</option>
-            <option value="3">Conserverie Carthage SARL</option>
+            <option value="ALL">Toutes les Usines ({tenants?.length || 0})</option>
+            {tenants?.map(t => (
+              <option key={t.id} value={String(t.id)}>{t.name}</option>
+            ))}
           </select>
 
           {/* Filter Statut */}

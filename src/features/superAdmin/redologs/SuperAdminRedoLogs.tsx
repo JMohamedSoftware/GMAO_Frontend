@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useGmao } from '@/shared/hooks/useGmao';
 import { superAdminApi } from '../api/superAdmin.api';
 import { 
   RotateCcw, History, AlertTriangle, ShieldCheck, CheckCircle2, 
@@ -26,6 +27,7 @@ export interface RedoLogItem {
 }
 
 export const SuperAdminRedoLogs: React.FC = () => {
+  const { tenants } = useGmao();
   const [redoLogs, setRedoLogs] = useState<RedoLogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -43,128 +45,88 @@ export const SuperAdminRedoLogs: React.FC = () => {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const defaultMockLogs: RedoLogItem[] = [
-    {
-      id: 'TX-90412',
-      timestamp: '2026-11-18 18:24:12',
-      tenantId: 1,
-      tenantName: 'Usine Tomates POMODORO',
-      authorName: 'Karim Ben Salah',
-      authorRole: 'Technicien Électromécanicien',
-      authorAvatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80',
-      entityType: 'Équipement',
-      entityId: 'EQ-002',
-      entityName: 'Groupe Évaporateur Concentrateur N°1',
-      actionType: 'UPDATE',
-      fieldName: 'Statut & Santé',
-      oldValue: "Statut: 'En panne' • Indice santé: 35%",
-      newValue: "Statut: 'Opérationnel' • Indice santé: 92%",
-      isRollbacked: false,
-      canRollback: true
-    },
-    {
-      id: 'TX-90411',
-      timestamp: '2026-11-18 17:58:05',
-      tenantId: 1,
-      tenantName: 'Usine Tomates POMODORO',
-      authorName: 'Sami Mansouri',
-      authorRole: 'Responsable Maintenance',
-      authorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-      entityType: 'Ordre de Travail',
-      entityId: 'OT-2026-003',
-      entityName: 'Remplacement garniture mécanique pompe pâteuse',
-      actionType: 'UPDATE',
-      fieldName: 'Priorité & Affectation',
-      oldValue: "Priorité: 'Moyenne' • Assigné: 'Non assigné'",
-      newValue: "Priorité: 'Critique' • Assigné: 'Karim Ben Salah'",
-      isRollbacked: false,
-      canRollback: true
-    },
-    {
-      id: 'TX-90410',
-      timestamp: '2026-11-18 16:42:30',
-      tenantId: 1,
-      tenantName: 'Usine Tomates POMODORO',
-      authorName: 'Leila Farhat',
-      authorRole: 'Magasinière Centrale',
-      authorAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
-      entityType: 'Pièce de Stock',
-      entityId: 'PR-ROUL-6204',
-      entityName: 'Roulement à billes SKF 6204-2RSH',
-      actionType: 'UPDATE',
-      fieldName: 'Stock Physique',
-      oldValue: 'Stock: 14 pièces',
-      newValue: 'Stock: 2 pièces (Alerte seuil minimum)',
-      isRollbacked: false,
-      canRollback: true
-    },
-    {
-      id: 'TX-90409',
-      timestamp: '2026-11-18 15:15:19',
-      tenantId: 2,
-      tenantName: 'Agro-Industrie Du Sud (SICAM)',
-      authorName: 'Mohamed Ben Amor',
-      authorRole: "Chef d'Équipe Ligne 2",
-      authorAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
-      entityType: 'Incident',
-      entityId: 'INC-2026-089',
-      entityName: "Fuite vapeur sur vanne d'admission cuiseur",
-      actionType: 'CREATE',
-      fieldName: 'Déclaration Panne',
-      oldValue: 'N/A (Création)',
-      newValue: 'Incident déclaré avec urgence Haute sur Cuiseur C-02',
-      isRollbacked: false,
-      canRollback: true
-    },
-    {
-      id: 'TX-90408',
-      timestamp: '2026-11-18 13:02:44',
-      tenantId: 1,
-      tenantName: 'Usine Tomates POMODORO',
-      authorName: 'Admin Système',
-      authorRole: 'SuperAdmin',
-      authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-      entityType: 'Campagne',
-      entityId: 'CAMP-2025',
-      entityName: 'Campagne Tomates 2025',
-      actionType: 'UPDATE',
-      fieldName: 'État Clôture',
-      oldValue: "État: 'En cours'",
-      newValue: "État: 'Clôturée' (Mode Archive verrouillé)",
-      isRollbacked: false,
-      canRollback: true
-    },
-    {
-      id: 'TX-90407',
-      timestamp: '2026-11-18 11:20:10',
-      tenantId: 3,
-      tenantName: 'Conserverie Carthage SARL',
-      authorName: 'Yassine Khelifi',
-      authorRole: 'Admin Entreprise',
-      authorAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-      entityType: 'Utilisateur',
-      entityId: 'USR-89',
-      entityName: 'Anis Gharbi (Technicien)',
-      actionType: 'DELETE',
-      fieldName: 'Compte Utilisateur',
-      oldValue: 'Compte actif (Technicien Ligne Pelée)',
-      newValue: 'Compte désactivé et archivé',
-      isRollbacked: true,
-      canRollback: false
-    }
-  ];
+  const generateDynamicRedoLogs = (): RedoLogItem[] => {
+    if (!tenants || tenants.length === 0) return [];
+    const list: RedoLogItem[] = [];
+    const now = new Date();
+
+    tenants.forEach((t, idx) => {
+      const tId = Number(t.id) || idx + 1;
+      const tName = t.name;
+
+      list.push({
+        id: `TX-${90412 - idx * 4}`,
+        timestamp: new Date(now.getTime() - (idx * 25 + 12) * 60000).toISOString().replace('T', ' ').slice(0, 19),
+        tenantId: tId,
+        tenantName: tName,
+        authorName: idx === 0 ? 'Karim Ben Salah' : (idx === 1 ? 'Mohamed Ben Amor' : 'Sonia Trabelsi'),
+        authorRole: idx === 0 ? 'Technicien Électromécanicien' : "Responsable Maintenance",
+        authorAvatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150',
+        entityType: 'Équipement',
+        entityId: `EQ-00${idx + 2}`,
+        entityName: `Ligne de Concentration & Cuiseur N°${idx + 1}`,
+        actionType: 'UPDATE',
+        fieldName: 'Statut & Santé',
+        oldValue: "Statut: 'En panne' • Indice santé: 35%",
+        newValue: "Statut: 'Opérationnel' • Indice santé: 92%",
+        isRollbacked: false,
+        canRollback: true
+      });
+
+      list.push({
+        id: `TX-${90411 - idx * 4}`,
+        timestamp: new Date(now.getTime() - (idx * 35 + 38) * 60000).toISOString().replace('T', ' ').slice(0, 19),
+        tenantId: tId,
+        tenantName: tName,
+        authorName: idx === 0 ? 'Sami Mansouri' : 'Admin Local',
+        authorRole: 'Chef de Maintenance',
+        authorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+        entityType: 'Ordre de Travail',
+        entityId: `OT-2026-00${idx + 3}`,
+        entityName: `Révision vanne vapeur et pompe principale`,
+        actionType: 'UPDATE',
+        fieldName: 'Priorité & Affectation',
+        oldValue: "Priorité: 'Moyenne' • Assigné: 'Non assigné'",
+        newValue: "Priorité: 'Critique' • Assigné: 'Équipe d'astreinte'",
+        isRollbacked: false,
+        canRollback: true
+      });
+
+      list.push({
+        id: `TX-${90410 - idx * 4}`,
+        timestamp: new Date(now.getTime() - (idx * 45 + 75) * 60000).toISOString().replace('T', ' ').slice(0, 19),
+        tenantId: tId,
+        tenantName: tName,
+        authorName: 'Leila Farhat',
+        authorRole: 'Gestionnaire Stock',
+        authorAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150',
+        entityType: 'Pièce de Stock',
+        entityId: `PR-ROUL-${6204 + idx}`,
+        entityName: `Roulement haute température SKF-${6204 + idx}`,
+        actionType: 'UPDATE',
+        fieldName: 'Stock Physique',
+        oldValue: 'Stock: 14 pièces',
+        newValue: 'Stock: 2 pièces (Alerte seuil minimum)',
+        isRollbacked: false,
+        canRollback: true
+      });
+    });
+
+    return list;
+  };
 
   const fetchLogs = async () => {
     setLoading(true);
     try {
-      const data = await superAdminApi.getRedoLogs(undefined, defaultMockLogs);
+      const fallback = generateDynamicRedoLogs();
+      const data = await superAdminApi.getRedoLogs(undefined, fallback);
       if (data && data.length > 0) {
         setRedoLogs(data);
       } else {
-        setRedoLogs(defaultMockLogs);
+        setRedoLogs(fallback);
       }
     } catch {
-      setRedoLogs(defaultMockLogs);
+      setRedoLogs(generateDynamicRedoLogs());
     } finally {
       setLoading(false);
     }
@@ -402,16 +364,16 @@ export const SuperAdminRedoLogs: React.FC = () => {
             />
           </div>
 
-          {/* Filter Usine */}
+          {/* Filter Usine (100% Dynamique) */}
           <select
             value={tenantFilter}
             onChange={(e) => setTenantFilter(e.target.value)}
             className="px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
           >
-            <option value="ALL">Toutes les Usines</option>
-            <option value="1">Usine Tomates POMODORO</option>
-            <option value="2">Agro-Industrie Du Sud (SICAM)</option>
-            <option value="3">Conserverie Carthage SARL</option>
+            <option value="ALL">Toutes les Usines ({tenants?.length || 0})</option>
+            {tenants?.map(t => (
+              <option key={t.id} value={String(t.id)}>{t.name}</option>
+            ))}
           </select>
 
           {/* Filter Entité */}

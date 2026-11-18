@@ -226,12 +226,16 @@ export interface Tenant {
   id: string;
   dbId?: number;
   name: string;
+  code?: string;
+  logo?: string;
   domain: string;
   status: 'Pending' | 'Active' | 'Suspended';
   subscriptionPlan: 'Basic' | 'Premium' | 'Enterprise';
   createdAt: string;
   adminEmail: string;
   capacityTonsPerDay: number;
+  storageUsed?: number;
+  storageUsedGb?: number;
   
   // Isolated Database
   equipments: Equipment[];
