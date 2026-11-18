@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Save, Check } from 'lucide-react';
 import { PERMISSIONS, getPermissionScope, hasScopedPermission } from '@/shared/permissions';
-import { apiClient } from '@/shared/services/apiClient';
+import { roleService, RoleDto } from './services/role.service';
 
 export const RoleSettings: React.FC = () => {
   const [roles, setRoles] = useState<any[]>([]);
@@ -26,9 +26,9 @@ export const RoleSettings: React.FC = () => {
 
   const fetchRoles = async () => {
     try {
-      const res = await apiClient.get('/api/Settings/Roles');
+      const data = await roleService.getRoles();
       // Filter out admin roles so they cannot be modified by the user
-      const filteredRoles = res.data.filter((r: any) =>
+      const filteredRoles = data.filter((r: RoleDto) =>
         !['Administrateur', 'SuperAdmin'].includes(r.nom)
       );
       setRoles(filteredRoles);
@@ -112,9 +112,7 @@ export const RoleSettings: React.FC = () => {
     setSaving(true);
     setSuccessMsg('');
     try {
-      await apiClient.post(`/api/Settings/Roles/${selectedRole.id}/Permissions`, {
-        permissions: selectedRole.permissions
-      });
+      await roleService.updateRolePermissions(selectedRole.id, selectedRole.permissions);
       setSuccessMsg('Permissions sauvegardées avec succès.');
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch (e) {
