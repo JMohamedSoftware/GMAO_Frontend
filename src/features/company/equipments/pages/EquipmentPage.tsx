@@ -143,6 +143,17 @@ export const Equipment: React.FC<EquipmentProps> = ({
   const activeEquipment = equipments.find(e => e.id === selectedEqId);
 
   const handleSave = async () => {
+    if (!formData.name?.trim()) {
+      alert("Le nom de l'équipement est obligatoire.");
+      return;
+    }
+
+    // LOI MÉTIER : Une machine doit obligatoirement être rattachée à une usine / localisation
+    if (!formData.localisationId) {
+      alert("Loi Métier GMAO : Impossible d'enregistrer une machine sans l'affecter à une Usine ou un Atelier (Localisation obligatoire).");
+      return;
+    }
+
     try {
       if (isAdding) {
         const addedEq = await addEquipment(formData as any);
@@ -169,7 +180,7 @@ export const Equipment: React.FC<EquipmentProps> = ({
       category: '',
       status: 'En service',
       criticality: 'Moyenne',
-      localisationId: selectedGeoNode ? selectedGeoNode.id : undefined,
+      localisationId: selectedGeoNode ? selectedGeoNode.id : (geoTree.length > 0 ? geoTree[0].id : undefined),
       photos: []
     });
   };
