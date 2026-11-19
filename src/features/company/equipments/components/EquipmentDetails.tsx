@@ -413,12 +413,19 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                 </h3>
                 <div className="grid grid-cols-[140px_1fr] gap-y-4 text-[13px]">
                   <label className="text-slate-500 font-medium self-center">Emplacement <span className="text-rose-500">*</span></label>
-                  <select value={(isEditing || isAdding) ? formData.localisationId || '' : activeEquipment?.localisationId || ''} onChange={e => onSetFormData({...formData, localisationId: e.target.value ? Number(e.target.value) : undefined})} className="w-full text-[13px] px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 outline-none focus:ring-2 focus:ring-primary/20 font-medium text-slate-800 appearance-none">
-                    <option value="">-- Sélectionnez --</option>
-                    {flatLocalisations.map(loc => (
-                      <option key={loc.id} value={loc.id}>{'\u00A0'.repeat(loc.depth * 3)}{loc.depth > 0 ? '└ ' : ''}{loc.nom}</option>
-                    ))}
-                  </select>
+                  <div>
+                    <select value={(isEditing || isAdding) ? formData.localisationId || '' : activeEquipment?.localisationId || ''} onChange={e => onSetFormData({...formData, localisationId: e.target.value ? Number(e.target.value) : undefined})} className="w-full text-[13px] px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 outline-none focus:ring-2 focus:ring-primary/20 font-medium text-slate-800 appearance-none">
+                      <option value="">{flatLocalisations.length === 0 ? '-- Aucun emplacement disponible --' : '-- Non assigné --'}</option>
+                      {flatLocalisations.map(loc => (
+                        <option key={loc.id} value={loc.id}>{'\u00A0'.repeat(loc.depth * 3)}{loc.depth > 0 ? '└ ' : ''}{loc.nom}</option>
+                      ))}
+                    </select>
+                    {flatLocalisations.length === 0 && (
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1 font-medium">
+                        ⚠️ Aucune localisation configurée. L'équipement sera enregistré comme « Non assigné ». Vous pouvez créer vos usines et ateliers dans le menu Localisations.
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

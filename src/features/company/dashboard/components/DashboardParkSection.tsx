@@ -152,10 +152,10 @@ const DynamicTreeNodeItem: React.FC<{
             <span className="w-4 h-4 shrink-0" />
           )}
 
-          {isRoot ? (
+          {node.type === 'unassigned' ? (
+            <Layers className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+          ) : isRoot ? (
             <Factory className="w-4 h-4 text-blue-600 shrink-0" />
-          ) : node.type === 'unassigned' ? (
-            <Layers className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           ) : isExpanded ? (
             <FolderOpen className="w-3.5 h-3.5 text-amber-500 shrink-0" />
           ) : (
@@ -310,7 +310,7 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
       if (unassignedEqs.length > 0) {
         roots.push({
           id: 'unassigned-root',
-          name: 'Autres / Non assignés',
+          name: 'Équipements non assignés (Sans emplacement)',
           type: 'unassigned',
           level: 0,
           equipments: unassignedEqs,
@@ -321,46 +321,53 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
       return roots;
     }
 
-    // Dynamic grouping by equipment Location / Atelier (NOT category/family!)
-    const locMap = new Map<string, Equipment[]>();
-    equipments.forEach(eq => {
-      const locName = eq.localisation?.nom || (eq as any).localisationNom || eq.location?.trim() || 'usine';
-      if (!locMap.has(locName)) locMap.set(locName, []);
-      locMap.get(locName)!.push(eq);
-    });
-
-    const rootSiteName = `Site Principal - ${companyName}`;
-
-    if (locMap.size > 0) {
-      const locNodes: TreeNodeData[] = Array.from(locMap.entries()).map(([locName, eqs], idx) => ({
-        id: `loc-fallback-${idx}-${locName}`,
-        name: locName,
-        type: 'localisation',
-        level: 1,
-        equipments: eqs,
-        subNodes: []
-      }));
-
-      return [{
-        id: 'company-site-root',
-        name: rootSiteName,
-        type: 'root',
-        level: 0,
-        equipments: [],
-        subNodes: locNodes
-      }];
+    // Si aucune arborescence de localisation n'est créée dans la base :
+    // Ne JAMAIS inventer de faux dossier "usine" ni de faux site "Site Principal" !
+    if (equipments.length === 0) {
+      return [];
     }
 
-    // Default clean site node for newly created company
-    return [{
-      id: 'company-site-root',
-      name: rootSiteName,
-      type: 'root',
-      level: 0,
-      equipments: [],
-      subNodes: []
-    }];
-  }, [geoTree, equipments, companyName]);
+    const unassignedEqs: Equipment[] = [];
+    const locMap = new Map<string, Equipment[]>();
+
+    equipments.forEach(eq => {
+      const customLoc = (eq.localisation?.nom || (eq as any).localisationNom || eq.location || '').trim();
+      if (customLoc && customLoc.toLowerCase() !== 'usine') {
+        if (!locMap.has(customLoc)) locMap.set(customLoc, []);
+        locMap.get(customLoc)!.push(eq);
+      } else {
+        unassignedEqs.push(eq);
+      }
+    });
+
+    const roots: TreeNodeData[] = [];
+
+    // Nœuds pour les emplacements explicitement renseignés en texte réel
+    locMap.forEach((eqs, locName) => {
+      roots.push({
+        id: `loc-custom-${locName}`,
+        name: locName,
+        type: 'localisation',
+        level: 0,
+        equipments: eqs,
+        subNodes: []
+      });
+    });
+
+    // Équipements orphelins (sans emplacement)
+    if (unassignedEqs.length > 0) {
+      roots.push({
+        id: 'unassigned-root',
+        name: 'Équipements non assignés (Sans emplacement)',
+        type: 'unassigned',
+        level: 0,
+        equipments: unassignedEqs,
+        subNodes: []
+      });
+    }
+
+    return roots;
+  }, [geoTree, equipments]);
 
   // Expand all level 0 and level 1 nodes by default
   useEffect(() => {
@@ -609,7 +616,7 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
                   {activeMachine.name}
                 </h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
-                  {activeMachine.localisation?.nom || (activeMachine as any).localisationNom || 'usine'}
+                  {activeMachine.localisation?.nom || (activeMachine as any).localisationNom || (activeMachine.location?.trim() && activeMachine.location.trim().toLowerCase() !== 'usine' ? activeMachine.location : 'Emplacement non défini')}
                   {activeMachine.code && activeMachine.code !== activeMachine.name ? ` • Code : ${activeMachine.code}` : ''}
                 </p>
               </div>
