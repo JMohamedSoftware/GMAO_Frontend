@@ -952,9 +952,9 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({ activeTab = 'dashboard' 
           />
         )}
 
-        {activeTab === 'billing' && <SuperAdminBilling />}
-        {activeTab === 'invoices' && <SuperAdminInvoices />}
-        {activeTab === 'logs' && <SuperAdminLogs />}
+        {activeTab === 'billing' && <SuperAdminBilling selectedTenantId={selectedTenantId} />}
+        {activeTab === 'invoices' && <SuperAdminInvoices selectedTenantId={selectedTenantId} />}
+        {activeTab === 'logs' && <SuperAdminLogs selectedTenantId={selectedTenantId} />}
         {activeTab === 'settings' && <SuperAdminSettings />}
       </div>
 

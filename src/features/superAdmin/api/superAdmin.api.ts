@@ -381,8 +381,10 @@ export const superAdminApi = {
     }),
 
   // 7. Invoices (Facturation)
-  getInvoices: (fallback?: InvoiceDto[]) =>
-    safeApiCall<InvoiceDto[]>('/superadmin/invoices', undefined, fallback),
+  getInvoices: (societeId?: number, fallback?: InvoiceDto[]) => {
+    const query = societeId && societeId > 0 ? `?societeId=${societeId}` : '';
+    return safeApiCall<InvoiceDto[]>(`/superadmin/invoices${query}`, undefined, fallback);
+  },
 
   createInvoice: (invoice: Partial<InvoiceDto>) =>
     safeApiCall<InvoiceDto>('/superadmin/invoices', {
@@ -405,14 +407,16 @@ export const superAdminApi = {
   getMonitoring: (fallback?: MonitoringDto) =>
     safeApiCall<MonitoringDto>('/superadmin/monitoring', undefined, fallback),
 
-  // 9. Logs
-  getLogs: (params?: { niveau?: string; categorie?: string; search?: string }, fallback?: AuditLogDto[]) => {
+  // 9. Logs (Audit & Sécurité Enterprise)
+  getLogs: (params?: { niveau?: string; categorie?: string; search?: string; societeId?: number; societeNom?: string }, fallback?: any[]) => {
     const searchParams = new URLSearchParams();
     if (params?.niveau) searchParams.set('niveau', params.niveau);
     if (params?.categorie) searchParams.set('categorie', params.categorie);
     if (params?.search) searchParams.set('search', params.search);
+    if (params?.societeId) searchParams.set('societeId', String(params.societeId));
+    if (params?.societeNom) searchParams.set('societeNom', params.societeNom);
     const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
-    return safeApiCall<AuditLogDto[]>(`/superadmin/logs${query}`, undefined, fallback);
+    return safeApiCall<any[]>(`/superadmin/logs${query}`, undefined, fallback);
   },
 
   createLog: (log: Partial<AuditLogDto>) =>

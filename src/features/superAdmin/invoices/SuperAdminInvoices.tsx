@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useGmao } from '@/shared/hooks/useGmao';
 import { superAdminApi } from '../api/superAdmin.api';
 import {
   Receipt,
@@ -56,12 +57,24 @@ export interface InvoiceItem {
   period: string;
 }
 
-export const SuperAdminInvoices: React.FC = () => {
+interface SuperAdminInvoicesProps {
+  selectedTenantId?: string;
+}
+
+export const SuperAdminInvoices: React.FC<SuperAdminInvoicesProps> = ({ selectedTenantId = 'ALL' }) => {
+  const { tenants } = useGmao();
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string>('1');
   const [searchTerm, setSearchTerm] = useState('');
+  const [companyFilter, setCompanyFilter] = useState<string>(selectedTenantId);
   const [statusFilter, setStatusFilter] = useState('All');
   const [planFilter, setPlanFilter] = useState('All');
   const [dateFilter, setDateFilter] = useState('All');
+
+  useEffect(() => {
+    if (selectedTenantId) {
+      setCompanyFilter(selectedTenantId);
+    }
+  }, [selectedTenantId]);
   const [selectedYear, setSelectedYear] = useState('2026');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -94,12 +107,16 @@ export const SuperAdminInvoices: React.FC = () => {
         inv.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
         inv.contact.toLowerCase().includes(searchTerm.toLowerCase());
 
+      const matchCompany = companyFilter === 'ALL' ||
+        inv.company.toLowerCase().includes(companyFilter.toLowerCase()) ||
+        (tenants?.some(t => String(t.id) === companyFilter && inv.company.toLowerCase().includes(t.name.toLowerCase())));
+
       const matchStatus = statusFilter === 'All' || inv.status === statusFilter;
       const matchPlan = planFilter === 'All' || inv.plan === planFilter;
 
-      return matchSearch && matchStatus && matchPlan;
+      return matchSearch && matchCompany && matchStatus && matchPlan;
     });
-  }, [invoices, searchTerm, statusFilter, planFilter]);
+  }, [invoices, searchTerm, companyFilter, statusFilter, planFilter, tenants]);
 
   // Checkbox handlers
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -725,15 +742,32 @@ export const SuperAdminInvoices: React.FC = () => {
               {/* Filters row */}
               <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
                 {/* Search */}
-                <div className="relative flex-1 md:w-56">
+                <div className="relative flex-1 md:w-48">
                   <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type="text"
-                    placeholder="Rechercher une facture, une entreprise..."
+                    placeholder="Rechercher une facture..."
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
                     className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none"
                   />
+                </div>
+
+                {/* SÉLECTEUR SOCIÉTÉ (ENTREPRISE) */}
+                <div className="relative">
+                  <select
+                    value={companyFilter}
+                    onChange={e => setCompanyFilter(e.target.value)}
+                    className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 appearance-none pr-7 cursor-pointer"
+                  >
+                    <option value="ALL">🌐 Toutes les Entreprises</option>
+                    {tenants?.map(t => (
+                      <option key={t.id} value={t.name}>
+                        🏭 {t.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 </div>
 
                 {/* Status select */}

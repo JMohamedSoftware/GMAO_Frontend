@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useGmao } from '@/shared/hooks/useGmao';
 import { superAdminApi } from '../api/superAdmin.api';
 import {
   ShieldCheck,
@@ -33,12 +34,24 @@ import {
 } from 'lucide-react';
 import tomateImg from '@/shared/assets/images/tomate.jpg';
 
-export const SuperAdminBilling: React.FC = () => {
+interface SuperAdminBillingProps {
+  selectedTenantId?: string;
+}
+
+export const SuperAdminBilling: React.FC<SuperAdminBillingProps> = ({ selectedTenantId = 'ALL' }) => {
+  const { tenants } = useGmao();
   const [selectedSubId, setSelectedSubId] = useState<string>('sub-001');
   const [searchTerm, setSearchTerm] = useState('');
+  const [companyFilter, setCompanyFilter] = useState<string>(selectedTenantId);
   const [planFilter, setPlanFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [dateFilter, setDateFilter] = useState('All');
+
+  useEffect(() => {
+    if (selectedTenantId) {
+      setCompanyFilter(selectedTenantId);
+    }
+  }, [selectedTenantId]);
   const [activeTab, setActiveTab] = useState<'Détails' | 'Utilisation' | 'Factures' | 'Historique' | 'Utilisateurs' | 'Sites'>('Détails');
   const [currentPage, setCurrentPage] = useState(1);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -62,11 +75,14 @@ export const SuperAdminBilling: React.FC = () => {
       const matchesSearch = s.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
         s.manager.toLowerCase().includes(searchTerm.toLowerCase()) ||
         s.plan.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCompany = companyFilter === 'ALL' ||
+        s.company.toLowerCase().includes(companyFilter.toLowerCase()) ||
+        (tenants?.some(t => String(t.id) === companyFilter && s.company.toLowerCase().includes(t.name.toLowerCase())));
       const matchesPlan = planFilter === 'All' || s.plan === planFilter;
       const matchesStatus = statusFilter === 'All' || s.status === statusFilter;
-      return matchesSearch && matchesPlan && matchesStatus;
+      return matchesSearch && matchesCompany && matchesPlan && matchesStatus;
     });
-  }, [subscriptions, searchTerm, planFilter, statusFilter]);
+  }, [subscriptions, searchTerm, companyFilter, planFilter, statusFilter, tenants]);
 
   const activeSub = useMemo(() => {
     return subscriptions.find(s => s.id === selectedSubId) || subscriptions[0];
