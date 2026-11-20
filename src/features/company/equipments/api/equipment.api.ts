@@ -53,6 +53,20 @@ export const mapEtatToInt = (e: any): number => {
   return 1;
 };
 
+export const resolveFamilleId = (cat?: string): number => {
+  if (!cat) return 1;
+  const c = cat.toLowerCase().trim();
+  if (c.includes('chaud') || c.includes('chod')) return 2; // Chaudières
+  if (c.includes('pomp')) return 1; // Pompes
+  if (c.includes('convoy')) return 3; // Convoyeurs
+  if (c.includes('compress')) return 4; // Compresseurs
+  if (c.includes('moteur')) return 5; // Moteurs
+  if (c.includes('frigo') || c.includes('refrig') || c.includes('réfrig')) return 6; // Réfrigération
+  if (c.includes('steril') || c.includes('stéril') || c.includes('autoclave')) return 7; // Stérilisateurs
+  if (c.includes('rempliss') || c.includes('dos')) return 8; // Remplisseuses
+  return 1;
+};
+
 /**
  * Récupère tous les équipements pour Redux
  * GET /api/Equipement
@@ -64,8 +78,8 @@ export const fetchEquipments = async (): Promise<Equipment[]> => {
     code: e.code || '',
     name: e.designation,
     location: e.localisationNom || '',
-    category: e.familleNom || 'Autre',
-    subFamily: e.familleNom || 'Autre',
+    category: e.familleNom || e.category || 'Autre',
+    subFamily: e.familleNom || e.category || 'Autre',
     brand: e.marque || '',
     model: e.modele || '',
     serialNumber: e.numeroSerie || '',
@@ -103,9 +117,12 @@ export const fetchEquipments = async (): Promise<Equipment[]> => {
  */
 export const createEquipmentApi = async (equipment: Partial<Equipment>): Promise<Equipment> => {
   const entity = {
-    code: equipment.id || `EQ-${Date.now()}`,
+    code: equipment.id || equipment.code || `EQ-${Date.now()}`,
     designation: equipment.name || 'Nouvel Équipement',
-    familleId: 1, 
+    name: equipment.name,
+    familleId: resolveFamilleId(equipment.category), 
+    familleNom: equipment.category || 'Pompes',
+    category: equipment.category || 'Pompes',
     localisationId: equipment.localisationId || 1,
     marque: equipment.brand || '',
     modele: equipment.model || '',
@@ -128,8 +145,8 @@ export const createEquipmentApi = async (equipment: Partial<Equipment>): Promise
       location: equipment.location || resEntity.localisationNom || '',
       parentId: equipment.parentId,
       name: resEntity.designation || resEntity.Designation,
-      category: equipment.category || 'Général',
-      subFamily: equipment.subFamily || '',
+      category: resEntity.familleNom || resEntity.category || equipment.category || 'Général',
+      subFamily: equipment.subFamily || resEntity.familleNom || '',
       brand: resEntity.marque || resEntity.Marque || '',
       model: resEntity.modele || resEntity.Modele || '',
       serialNumber: resEntity.numeroSerie || resEntity.NumeroSerie || '',
@@ -193,7 +210,10 @@ export const updateEquipmentApi = async (equipmentId: string, equipment: Partial
       societeId: dto.societeId,
       code: equipment.id || dto.code || '',
       designation: equipment.name || dto.designation || '',
-      familleId: dto.familleId || 1,
+      name: equipment.name,
+      familleId: equipment.category ? resolveFamilleId(equipment.category) : (dto.familleId || 1),
+      familleNom: equipment.category || dto.familleNom || '',
+      category: equipment.category || dto.familleNom || '',
       localisationId: equipment.localisationId || dto.localisationId,
       marque: equipment.brand !== undefined ? equipment.brand : dto.marque,
       modele: equipment.model !== undefined ? equipment.model : dto.modele,

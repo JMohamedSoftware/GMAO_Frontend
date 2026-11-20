@@ -1,6 +1,6 @@
 import { apiClient } from '@/shared/services/apiClient';
 import { Equipment } from '@/shared/types/gmao';
-import { normalizeEquipmentCriticality, normalizeEquipmentStatus } from '../api/equipment.api';
+import { normalizeEquipmentCriticality, normalizeEquipmentStatus, resolveFamilleId } from '../api/equipment.api';
 
 export const equipmentService = {
   getAll: async (): Promise<Equipment[]> => {
@@ -9,8 +9,8 @@ export const equipmentService = {
     return response.data.map((dto: any) => ({
       id: dto.id.toString(),
       name: dto.designation,
-      category: dto.familleNom,
-      subFamily: dto.familleNom,
+      category: dto.familleNom || dto.category || 'Autre',
+      subFamily: dto.familleNom || dto.category || 'Autre',
       brand: dto.marque || '',
       model: dto.modele || '',
       serialNumber: dto.numeroSerie || '',
@@ -40,8 +40,8 @@ export const equipmentService = {
     return {
       id: dto.id.toString(),
       name: dto.designation,
-      category: dto.familleNom,
-      subFamily: dto.familleNom,
+      category: dto.familleNom || dto.category || 'Autre',
+      subFamily: dto.familleNom || dto.category || 'Autre',
       brand: dto.marque || '',
       model: dto.modele || '',
       serialNumber: dto.numeroSerie || '',
@@ -66,9 +66,12 @@ export const equipmentService = {
 
   create: async (equipment: Partial<Equipment>): Promise<Equipment> => {
     const dto = {
-      code: equipment.code || `EQ-${Date.now()}`,
+      code: equipment.code || equipment.id || `EQ-${Date.now()}`,
       designation: equipment.name,
-      familleId: 1,
+      name: equipment.name,
+      familleId: resolveFamilleId(equipment.category),
+      familleNom: equipment.category || 'Pompes',
+      category: equipment.category || 'Pompes',
       localisationId: equipment.localisationId || 1,
       marque: equipment.brand,
       modele: equipment.model,
@@ -82,7 +85,13 @@ export const equipmentService = {
   },
 
   update: async (id: string, equipment: Partial<Equipment>): Promise<void> => {
-    const response = await apiClient.put(`/api/equipement/${id}`, equipment);
+    const payload = {
+      ...equipment,
+      familleId: equipment.category ? resolveFamilleId(equipment.category) : undefined,
+      familleNom: equipment.category,
+      category: equipment.category
+    };
+    const response = await apiClient.put(`/api/equipement/${id}`, payload);
     return response.data;
   },
 
