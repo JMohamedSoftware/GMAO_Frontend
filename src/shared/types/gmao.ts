@@ -104,6 +104,7 @@ export interface Incident {
   status: 'Nouveau' | 'Validé' | 'Rejeté' | 'Clos' | 'Transformé en OT';
   photo?: string;
   workOrderId?: string;
+  commentaireRejet?: string;
 }
 
 export interface Technician {

@@ -15,6 +15,7 @@ export interface CreateIncidentPayload {
   description: string;
   urgency: string;
   demandeurId?: number;
+  reportedBy?: string;
   photo?: string;
 }
 
@@ -80,9 +81,14 @@ export const fetchIncidents = async (): Promise<Incident[]> => {
  * POST /api/Incidents
  */
 export const createIncidentApi = async (payload: CreateIncidentPayload): Promise<Incident> => {
+  const userStr = localStorage.getItem('gmao_current_user');
+  const userObj = userStr ? JSON.parse(userStr) : null;
+  const currentUserId = userObj?.id && /^\d+$/.test(String(userObj.id)) ? parseInt(userObj.id, 10) : undefined;
+  const resolvedDemandeurId = payload.demandeurId || currentUserId || 1;
+
   const body = {
     equipementId: parseInt(payload.equipmentId, 10),
-    demandeurId: payload.demandeurId || 1,
+    demandeurId: resolvedDemandeurId,
     datePanne: new Date().toISOString(),
     description: payload.description,
     priorite: mapUrgencyToInt(payload.urgency),
@@ -94,13 +100,36 @@ export const createIncidentApi = async (payload: CreateIncidentPayload): Promise
   return {
     id: i.id?.toString(),
     equipmentId: i.equipementId?.toString(),
-    reportedBy: i.demandeurId?.toString(),
+    reportedBy: i.demandeurId?.toString() || payload.reportedBy || (resolvedDemandeurId ? resolvedDemandeurId.toString() : '1'),
     reportedDate: i.datePanne || new Date().toISOString(),
     urgency: payload.urgency as Incident['urgency'],
     status: 'Nouveau',
     description: i.description,
     photo: i.photoUrl || undefined,
   };
+};
+
+/**
+ * Réaffecte le demandeur / déclarant d'un incident
+ * PUT /api/Incidents/{id}
+ */
+export const updateIncidentDemandeurApi = async (
+  incidentId: string,
+  demandeurId: number,
+  fullIncident: Incident
+): Promise<void> => {
+  const body = {
+    id: parseInt(incidentId, 10),
+    equipementId: parseInt(fullIncident.equipmentId, 10),
+    demandeurId,
+    datePanne: fullIncident.reportedDate,
+    description: fullIncident.description,
+    priorite: mapUrgencyToInt(fullIncident.urgency),
+    statut: mapIncidentStatusToInt(fullIncident.status),
+    photoUrl: fullIncident.photo || null,
+    commentaireRejet: fullIncident.commentaireRejet || null,
+  };
+  await apiClient.put(`/api/Incidents/${incidentId}`, body);
 };
 
 /**

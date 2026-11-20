@@ -22,6 +22,7 @@ export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreate
     users, 
     addIncident, 
     updateIncidentStatus,
+    reassignIncidentReporter,
     isCampaignClosed,
     campaignIncidents,
     campaignWorkOrders,
@@ -251,6 +252,7 @@ export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreate
         onOpenCreateOtWithIncident={onOpenCreateOtWithIncident}
         onNavigate={onNavigate}
         users={users}
+        onReassignReporter={reassignIncidentReporter}
       />
 
       {/* Add Incident Modal */}

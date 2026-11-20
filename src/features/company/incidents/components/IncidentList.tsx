@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Incident, Equipment, UserAccount } from '@/shared/types/gmao';
-import { AlertCircle, User, Clock, Check, X, ArrowRight, FileText, Loader2 } from 'lucide-react';
+import { AlertCircle, User, Clock, Check, X, ArrowRight, FileText, Loader2, Edit2 } from 'lucide-react';
 import { PERMISSIONS } from '@/shared/permissions';
 import { incidentDisplayNum } from '@/shared/utils/displayNumbers';
 
@@ -18,13 +18,16 @@ interface IncidentListProps {
   onOpenCreateOtWithIncident: (inc: Incident) => void;
   onNavigate: (screen: string) => void;
   users: UserAccount[];
+  onReassignReporter?: (incidentId: string, demandeurId: number) => Promise<void> | void;
 }
 
 export const IncidentList: React.FC<IncidentListProps> = ({
   columns, getColumnIncidents, allIncidents, equipments, getUrgencyColor, can,
   isProduction, isTechnicien, updateIncidentStatus, updatingIds,
-  onOpenCreateOtWithIncident, onNavigate, users
+  onOpenCreateOtWithIncident, onNavigate, users, onReassignReporter
 }) => {
+  const [editingReporterIncId, setEditingReporterIncId] = useState<string | null>(null);
+  const [isReassigning, setIsReassigning] = useState(false);
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
       {columns.map(column => {
@@ -142,11 +145,53 @@ export const IncidentList: React.FC<IncidentListProps> = ({
                             Signalé : {timeElapsedStr}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <img src={avatarUrl} alt="Avatar" className="w-4 h-4 rounded-full ring-1 ring-slate-200 dark:ring-slate-700" />
-                          <span className="text-[9px] font-bold text-slate-600 dark:text-slate-400 leading-none">
-                            Déclaré par : {reporterName}
-                          </span>
+                        <div className="flex items-center justify-between gap-1">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <img src={avatarUrl} alt="Avatar" className="w-4 h-4 rounded-full ring-1 ring-slate-200 dark:ring-slate-700 flex-shrink-0" />
+                            {editingReporterIncId === inc.id ? (
+                              <select
+                                autoFocus
+                                disabled={isReassigning}
+                                value={reporterUser?.id || inc.reportedBy || ''}
+                                onChange={async (e) => {
+                                  const val = parseInt(e.target.value, 10);
+                                  if (!isNaN(val) && onReassignReporter) {
+                                    setIsReassigning(true);
+                                    try {
+                                      await onReassignReporter(inc.id, val);
+                                    } finally {
+                                      setIsReassigning(false);
+                                    }
+                                  }
+                                  setEditingReporterIncId(null);
+                                }}
+                                onBlur={() => setEditingReporterIncId(null)}
+                                className="text-[9px] font-bold p-1 rounded border border-blue-400 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 outline-none w-full"
+                              >
+                                <option value="">-- Choisir le déclarant --</option>
+                                {users.map(u => (
+                                  <option key={u.id} value={u.id}>
+                                    {u.name} {u.role ? `(${u.role})` : ''}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <span className="text-[9px] font-bold text-slate-600 dark:text-slate-400 leading-none truncate" title={reporterName}>
+                                Déclaré par : {reporterName}
+                              </span>
+                            )}
+                          </div>
+
+                          {can(PERMISSIONS.INCIDENT_UPDATE) && editingReporterIncId !== inc.id && onReassignReporter && (
+                            <button
+                              type="button"
+                              onClick={() => setEditingReporterIncId(inc.id)}
+                              title="Corriger / modifier le déclarant de cette panne"
+                              className="p-0.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 rounded transition-colors"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </button>
+                          )}
                         </div>
                       </div>
 

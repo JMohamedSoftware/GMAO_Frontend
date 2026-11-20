@@ -6,6 +6,7 @@ import { Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, User
 import { useEffect } from 'react';
 import { fetchTenantDataAsync } from '@/app/gmaoSlice';
 import { useAuth } from '@/features/auth';
+import { updateIncidentDemandeurApi } from '@/features/company/incidents/api/incident.api';
 
 export const useGmao = () => {
   const dispatch = useAppDispatch();
@@ -190,12 +191,22 @@ export const useGmao = () => {
     },
     updateEquipmentStatus: (id: string, status: Equipment['status'], healthIndex?: number) => dispatch(actions.updateEquipmentStatus({id, status, healthIndex})),
     deleteEquipment: (id: string) => dispatch(actions.deleteEquipment(id)),
-    addIncident: async (inc: Omit<Incident, 'id' | 'reportedDate' | 'status'>) => {
+    addIncident: async (inc: Omit<Incident, 'id' | 'reportedDate' | 'status'> & { reportedBy?: string; demandeurId?: number }) => {
+      const userStr = localStorage.getItem('gmao_current_user');
+      const userObj = userStr ? JSON.parse(userStr) : null;
+      const currentUserId = userObj?.id && /^\d+$/.test(String(userObj.id)) 
+        ? parseInt(userObj.id, 10) 
+        : (state.currentUser?.id && /^\d+$/.test(String(state.currentUser.id)) ? parseInt(state.currentUser.id, 10) : undefined);
+
+      const resolvedDemandeurId = inc.demandeurId || (inc.reportedBy && /^\d+$/.test(inc.reportedBy) ? parseInt(inc.reportedBy, 10) : currentUserId);
+
       const result = await dispatch(createIncidentAsync({
         equipmentId: inc.equipmentId,
         description: inc.description,
         urgency: inc.urgency,
-        photo: inc.photo
+        photo: inc.photo,
+        demandeurId: resolvedDemandeurId,
+        reportedBy: inc.reportedBy || state.currentUser?.name
       }));
       return result;
     },
@@ -209,6 +220,14 @@ export const useGmao = () => {
       }
       const result = await dispatch(updateIncidentStatusAsync({ id, status, fullIncident, workOrderId }));
       return result;
+    },
+    reassignIncidentReporter: async (incidentId: string, demandeurId: number) => {
+      const activeTenantLocal = state.tenants.find(t => t.id === (state.impersonatedTenantId || state.currentTenantId));
+      const fullIncident = activeTenantLocal?.incidents.find(i => i.id === incidentId);
+      if (fullIncident) {
+        await updateIncidentDemandeurApi(incidentId, demandeurId, fullIncident);
+        await dispatch(fetchTenantDataAsync(true));
+      }
     },
     addWorkOrder: (ot: Omit<WorkOrder, 'id' | 'createdDate' | 'status' | 'partsUsed' | 'durationMinutes' | 'externalCost'>, incidentId?: string) => dispatch(actions.addWorkOrder({ot, incidentId})),
     updateWorkOrderStatus: async (id: string, status: WorkOrder['status'], updates?: Partial<WorkOrder>) => {
