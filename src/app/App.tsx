@@ -8,6 +8,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useGmao } from '@/shared/hooks/useGmao';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { fetchTenantDataAsync, fetchTenantsAsync, syncToLocalStorage } from '@/app/gmaoSlice';
 import { Equipment as EqType, Incident as IncType } from '@/shared/types/gmao';
 import { MainLayout } from '@/shared/layouts/MainLayout';
 import { IncidentModalProvider } from '@/context/IncidentModalContext';
@@ -16,6 +18,25 @@ import { AppRoutes } from '@/routes';
 
 function AppContent() {
   const { currentUser, equipments, impersonatedTenantId } = useGmao();
+  const dispatch = useAppDispatch();
+  const tenants = useAppSelector(s => s.gmao.tenants);
+
+  // Synchronisation globale unique au démarrage et lors d'un switch de tenant
+  useEffect(() => {
+    if (currentUser) {
+      dispatch(fetchTenantDataAsync());
+      if (currentUser.role === 'SuperAdmin') {
+        dispatch(fetchTenantsAsync());
+      }
+    }
+  }, [currentUser?.id, impersonatedTenantId, dispatch]);
+
+  // Persistance localStorage unique au niveau racine
+  useEffect(() => {
+    if (tenants && tenants.length > 0) {
+      dispatch(syncToLocalStorage());
+    }
+  }, [tenants, dispatch]);
   
   // Navigation State
   const [currentScreen, setCurrentScreen] = useState<string>(() => {

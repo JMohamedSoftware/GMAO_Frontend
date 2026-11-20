@@ -9,8 +9,9 @@
  */
 
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
-import { Tenant, User, Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount, Equipe } from '@/shared/types/gmao';
+import { Tenant, User, Equipment, Incident, WorkOrder, SparePart, Supplier, Notification, UserAccount, Equipe, Technician } from '@/shared/types/gmao';
 import { 
+  fetchBootstrapDataApi,
   fetchEquipments, 
   fetchSuppliers, 
   fetchParts, 
@@ -80,12 +81,40 @@ const initialState: GmaoState = {
   notifications: []
 };
 
-// ─── THUNKS ASYNCHRONES (Backend API Sync) ───────────────────────────────────
+// ─── THUNKS ASYNCHRONES (Backend API Sync avec Déduplication & Singleton) ─────────────
 
-export const fetchTenantsAsync = createAsyncThunk(
+let activeTenantsPromise: Promise<any> | null = null;
+let lastTenantsFetchTime = 0;
+
+let activeTenantDataPromise: Promise<any> | null = null;
+let lastTenantDataFetchTime = 0;
+const FETCH_COOLDOWN_MS = 6000; // 6 seconds debounce window
+
+export const fetchTenantsAsync = createAsyncThunk<Tenant[], boolean | { force?: boolean } | void>(
   'gmao/fetchTenants',
-  async () => {
-    return await fetchTenants();
+  async (arg) => {
+    if (activeTenantsPromise) {
+      return await activeTenantsPromise;
+    }
+    activeTenantsPromise = (async () => {
+      try {
+        const res = await fetchTenants();
+        lastTenantsFetchTime = Date.now();
+        return res;
+      } finally {
+        activeTenantsPromise = null;
+      }
+    })();
+    return await activeTenantsPromise;
+  },
+  {
+    condition: (arg) => {
+      const isForce = typeof arg === 'boolean' ? arg : !!arg?.force;
+      if (isForce) return true;
+      if (activeTenantsPromise) return false;
+      if (Date.now() - lastTenantsFetchTime < FETCH_COOLDOWN_MS) return false;
+      return true;
+    }
   }
 );
 
@@ -135,22 +164,78 @@ export const updateTenantAsync = createAsyncThunk(
   }
 );
 
-export const fetchTenantDataAsync = createAsyncThunk(
+export const fetchTenantDataAsync = createAsyncThunk<
+  {
+    equipments: Equipment[];
+    suppliers: Supplier[];
+    parts: SparePart[];
+    incidents: Incident[];
+    workOrders: WorkOrder[];
+    campaigns: any[];
+    technicians: Technician[];
+    users: UserAccount[];
+    movements: any[];
+    equipes: any[];
+  },
+  boolean | { force?: boolean } | void
+>(
   'gmao/fetchTenantData',
-  async () => {
-    const [equipments, suppliers, parts, incidents, workOrders, campaigns, technicians, users, movements, equipes] = await Promise.all([
-      fetchEquipments(),
-      fetchSuppliers(),
-      fetchParts(),
-      fetchIncidents(),
-      fetchWorkOrders(),
-      fetchCampaigns(),
-      fetchTechnicians(),
-      fetchUsers(),
-      fetchMovements(),
-      fetchEquipes(),
-    ]);
-    return { equipments, suppliers, parts, incidents, workOrders, campaigns, technicians, users, movements, equipes };
+  async (arg) => {
+    if (activeTenantDataPromise) {
+      return await activeTenantDataPromise;
+    }
+
+    activeTenantDataPromise = (async () => {
+      try {
+        // 1. Tenter l'endpoint bootstrap agrégé ultra-rapide (1 seule requête réseau)
+        const bootstrapResult = await fetchBootstrapDataApi();
+        if (bootstrapResult) {
+          lastTenantDataFetchTime = Date.now();
+          return bootstrapResult;
+        }
+
+        // 2. Repli résilient par requêtes modulaires parallèles si bootstrap non disponible
+        const [
+          equipments,
+          suppliers,
+          parts,
+          incidents,
+          workOrders,
+          campaigns,
+          technicians,
+          users,
+          movements,
+          equipes
+        ] = await Promise.all([
+          fetchEquipments().catch(e => { console.warn('[fetchEquipments failed]', e); return []; }),
+          fetchSuppliers().catch(e => { console.warn('[fetchSuppliers failed]', e); return []; }),
+          fetchParts().catch(e => { console.warn('[fetchParts failed]', e); return []; }),
+          fetchIncidents().catch(e => { console.warn('[fetchIncidents failed]', e); return []; }),
+          fetchWorkOrders().catch(e => { console.warn('[fetchWorkOrders failed]', e); return []; }),
+          fetchCampaigns().catch(e => { console.warn('[fetchCampaigns failed]', e); return []; }),
+          fetchTechnicians().catch(e => { console.warn('[fetchTechnicians failed]', e); return []; }),
+          fetchUsers().catch(e => { console.warn('[fetchUsers failed]', e); return []; }),
+          fetchMovements().catch(e => { console.warn('[fetchMovements failed]', e); return []; }),
+          fetchEquipes().catch(e => { console.warn('[fetchEquipes failed]', e); return []; }),
+        ]);
+
+        lastTenantDataFetchTime = Date.now();
+        return { equipments, suppliers, parts, incidents, workOrders, campaigns, technicians, users, movements, equipes };
+      } finally {
+        activeTenantDataPromise = null;
+      }
+    })();
+
+    return await activeTenantDataPromise;
+  },
+  {
+    condition: (arg) => {
+      const isForce = typeof arg === 'boolean' ? arg : !!arg?.force;
+      if (isForce) return true;
+      if (activeTenantDataPromise) return false;
+      if (Date.now() - lastTenantDataFetchTime < FETCH_COOLDOWN_MS) return false;
+      return true;
+    }
   }
 );
 

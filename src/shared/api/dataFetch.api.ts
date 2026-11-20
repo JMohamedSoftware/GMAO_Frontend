@@ -118,3 +118,239 @@ export {
   replanifier as replanifierPlanPreventif,
   replanifier
 } from '@/features/company/preventive/api/preventive.api';
+
+// ── 12. Fast Aggregated Bootstrap Endpoint ──────────────────────────────────
+import { apiClient } from '@/shared/services/apiClient';
+import { Equipment, Incident, WorkOrder, SparePart, Supplier, Technician, UserAccount } from '@/shared/types/gmao';
+import { normalizeEquipmentStatus, normalizeEquipmentCriticality } from '@/features/company/equipments/api/equipment.api';
+
+export const fetchBootstrapDataApi = async (): Promise<{
+  equipments: Equipment[];
+  suppliers: Supplier[];
+  parts: SparePart[];
+  incidents: Incident[];
+  workOrders: WorkOrder[];
+  campaigns: any[];
+  technicians: Technician[];
+  users: UserAccount[];
+  movements: any[];
+  equipes: any[];
+} | null> => {
+  try {
+    const res = await apiClient.get('/api/Maintenance/bootstrap');
+    const data = res.data;
+    if (!data) return null;
+
+    const catList = data.pieceCategories || [];
+
+    const equipments: Equipment[] = (data.equipments || []).map((e: any) => ({
+      id: e.id?.toString(),
+      code: e.code || '',
+      name: e.designation,
+      location: e.localisationNom || '',
+      category: e.familleNom || e.category || 'Autre',
+      subFamily: e.familleNom || e.category || 'Autre',
+      brand: e.marque || '',
+      model: e.modele || '',
+      serialNumber: e.numeroSerie || '',
+      supplierId: e.fournisseurId?.toString(),
+      purchaseDate: e.dateAchat,
+      endOfWarranty: e.dateFinGarantie,
+      commissionDate: e.dateMiseEnService || new Date().toISOString(),
+      localisationId: e.localisationId,
+      localisation: e.localisationNom ? { id: e.localisationId, nom: e.localisationNom } : undefined,
+      criticality: normalizeEquipmentCriticality(e.criticite),
+      status: normalizeEquipmentStatus(e.etat),
+      healthIndex: 100,
+      lastMaintenance: e.updatedAt || new Date().toISOString(),
+      nextMaintenance: new Date().toISOString(),
+      hoursCount: e.hoursCount || 0,
+      cycleCount: 0,
+      documents: e.documents || []
+    }));
+
+    const suppliers: Supplier[] = (data.suppliers || []).map((s: any) => ({
+      id: s.id?.toString(),
+      name: s.nom,
+      contact: s.contact || '',
+      email: s.email || '',
+      phone: s.telephone || '',
+      address: s.adresse || '',
+      rating: 5,
+      contracts: []
+    }));
+
+    const parts: SparePart[] = (data.parts || []).map((p: any) => {
+      const cat = catList.find((c: any) => c.id === p.famillePieceId);
+      return {
+        id: p.id?.toString(),
+        ref: p.reference,
+        name: p.designation,
+        category: cat ? cat.nom : 'Autre',
+        supplierId: p.fournisseurId?.toString() || '',
+        stockCurrent: p.stockActuel || 0,
+        stockMin: p.stockMinimum || 0,
+        stockMax: p.stockMaximum || 100,
+        unitPrice: p.prixUnitaire || 0,
+        location: p.emplacement || '',
+        unit: p.unite || 'Unité',
+        usedIn: [],
+        criticality: 'Moyenne' as const,
+        autoReorder: (p.stockActuel || 0) <= (p.stockMinimum || 0)
+      };
+    });
+
+    const intToUrgency = (n: number): Incident['urgency'] => {
+      switch (n) {
+        case 1:  return 'Faible';
+        case 3:  return 'Haute';
+        case 4:  return 'Critique';
+        default: return 'Moyenne';
+      }
+    };
+
+    const intToStatus = (n: number): Incident['status'] => {
+      switch (n) {
+        case 2:  return 'Validé';
+        case 3:  return 'Rejeté';
+        case 4:  return 'Transformé en OT';
+        case 5:  return 'Clos';
+        default: return 'Nouveau';
+      }
+    };
+
+    const incidents: Incident[] = (data.incidents || []).map((i: any) => ({
+      id: i.id?.toString(),
+      equipmentId: i.equipementId?.toString(),
+      reportedBy: i.demandeurId?.toString(),
+      reportedDate: i.datePanne,
+      urgency: intToUrgency(i.priorite),
+      status: intToStatus(i.statut),
+      description: i.description,
+      photo: i.photoUrl || undefined,
+      commentaireRejet: i.commentaireRejet || undefined,
+    }));
+
+    const workOrders: WorkOrder[] = (data.workOrders || []).map((w: any) => {
+      let mappedStatus: WorkOrder['status'] = 'Brouillon';
+      if (w.statut === 1) mappedStatus = 'Brouillon';
+      else if (w.statut === 2) mappedStatus = w.technicienId ? 'Affecté' : 'En attente';
+      else if (w.statut === 7) mappedStatus = 'Affecté Chef';
+      else if (w.statut === 3) mappedStatus = 'En cours';
+      else if (w.statut === 4) mappedStatus = 'Suspendu';
+      else if (w.statut === 5) mappedStatus = 'Terminé';
+      else if (w.statut === 6) mappedStatus = 'Clôturé';
+
+      let mappedType: WorkOrder['type'] = 'Correctif';
+      if (w.type === 2) mappedType = 'Préventif';
+      else if (w.type === 3) mappedType = 'Prédictif';
+      else if (w.type === 4) mappedType = 'Amélioratif';
+
+      let mappedPriority: WorkOrder['priority'] = 'Moyenne';
+      if (w.priorite === 1) mappedPriority = 'Faible';
+      else if (w.priorite === 3) mappedPriority = 'Haute';
+      else if (w.priorite === 4) mappedPriority = 'Critique';
+
+      return {
+        id: w.numeroOT || `OT-${w.id}`,
+        dbId: w.id,
+        incidentId: w.demandeId?.toString() || undefined,
+        equipmentId: w.equipementId?.toString() || '',
+        type: mappedType,
+        title: w.titre || w.description?.substring(0, 30) || 'Intervention',
+        description: w.description || '',
+        priority: mappedPriority,
+        status: mappedStatus,
+        assignedTechnicianId: w.technicienId?.toString() || undefined,
+        responsableId: w.responsableId,
+        createdDate: w.dateCreation,
+        scheduledDate: w.dateDebutPrevue || undefined,
+        closedDate: w.dateFinReelle || undefined,
+        estimatedDuration: w.tempsEstimeHeures || 1,
+        actualDuration: w.tempsPasseHeures || undefined,
+        partsUsed: [],
+        diagnostic: w.diagnostic || undefined,
+        solution: w.solution || undefined,
+        cost: w.coutTotal || 0,
+        campagneId: w.campagneId,
+        campagne: w.campagne ? {
+          id: w.campagne.id,
+          nom: w.campagne.nom,
+          annee: w.campagne.annee,
+          dateDebut: w.campagne.dateDebut,
+          dateFin: w.campagne.dateFin,
+          etat: w.campagne.etat
+        } : undefined
+      };
+    });
+
+    const campaigns = (data.campaigns || []).map((c: any) => ({
+      id: c.id?.toString(),
+      name: c.nom,
+      startDate: c.dateDebut,
+      endDate: c.dateFin,
+      status: c.etat === 2 ? 'En cours' : c.etat === 3 ? 'Terminée' : 'Planifiée'
+    }));
+
+    const equipes = (data.equipes || []).map((e: any) => ({
+      id: e.id?.toString(),
+      nom: e.nom,
+      description: e.description || '',
+      couleur: 'bg-slate-500',
+      chefId: e.chefEquipeId?.toString(),
+      technicienIds: e.membres?.map((m: any) => m.id.toString()) || []
+    }));
+
+    const rawUsers = data.users || [];
+    const technicians: Technician[] = rawUsers
+      .filter((u: any) => u.roleId === 4 && u.isActive !== false)
+      .map((u: any) => ({
+        id: u.id?.toString(),
+        name: `${u.prenom} ${u.nom}`.trim(),
+        role: 'Électromécanicien',
+        qualification: 'Technicien de Maintenance',
+        skills: [],
+        status: 'Disponible',
+        hourlyRate: 0,
+        avatar: u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(`${u.prenom}+${u.nom}`)}&background=e11d48&color=fff&size=150`
+      }));
+
+    const users: UserAccount[] = rawUsers
+      .filter((u: any) => u.role?.nom !== 'SuperAdmin' && u.roleId !== 7)
+      .map((u: any) => ({
+        id: u.id?.toString(),
+        name: `${u.prenom} ${u.nom}`.trim(),
+        email: u.email,
+        role: u.role?.nom || 'Utilisateur',
+        status: u.isActive !== false ? 'Actif' : 'Inactif',
+        avatar: u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(`${u.prenom}+${u.nom}`)}&background=e11d48&color=fff&size=150`,
+        phone: u.telephone,
+        createdAt: u.createdAt
+      }));
+
+    const movements = (data.movements || []).map((m: any) => ({
+      id: `MVT-${new Date(m.date || Date.now()).getFullYear()}-${(m.id || 0).toString().padStart(3, '0')}`,
+      date: m.date,
+      partRef: m.piece?.reference || m.pieceId?.toString(),
+      qty: m.quantite,
+      type: m.type === 1 ? 'in' : 'out',
+      reason: m.motif || (m.type === 1 ? 'Achat/Retour' : 'Maintenance/Sortie')
+    }));
+
+    return {
+      equipments,
+      suppliers,
+      parts,
+      incidents,
+      workOrders,
+      campaigns,
+      technicians,
+      users,
+      movements,
+      equipes
+    };
+  } catch (err) {
+    console.warn('[Bootstrap API] Falling back to modular API fetches:', err);
+    return null;
+  }
+};

@@ -12,20 +12,6 @@ export const useGmao = () => {
   const state = useAppSelector(s => s.gmao);
   const { currentUser: authUser } = useAuth();
 
-  useEffect(() => {
-    if (state.currentUser) {
-      dispatch(fetchTenantDataAsync());
-      if (state.currentUser.role === 'SuperAdmin') {
-        dispatch(fetchTenantsAsync());
-      }
-    }
-  }, [state.currentUser, dispatch]);
-
-  // Sync to local storage manually or via middleware. We'll do a simple effect for tenants:
-  useEffect(() => {
-    dispatch(actions.syncToLocalStorage());
-  }, [state.tenants, dispatch]);
-
   const activeTenantId = state.impersonatedTenantId || state.currentTenantId;
   const activeTenant = state.tenants.find(t => t.id === activeTenantId);
 
@@ -307,7 +293,9 @@ export const useGmao = () => {
     },
     impersonateTenant: (id: string | null) => {
       dispatch(actions.impersonateTenant(id));
-    }
+    },
+    refreshTenantData: (force = true) => dispatch(fetchTenantDataAsync(force)),
+    refreshTenants: (force = true) => dispatch(fetchTenantsAsync(force))
   };
 };
 
