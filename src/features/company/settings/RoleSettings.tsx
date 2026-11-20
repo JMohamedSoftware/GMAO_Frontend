@@ -13,11 +13,14 @@ export const RoleSettings: React.FC = () => {
   // Define modules and their permissions for the matrix
   const permissionMatrix = [
     { module: 'Dashboard', perms: [PERMISSIONS.DASHBOARD_VIEW] },
+    { module: 'Incidents (Pannes)', perms: [PERMISSIONS.INCIDENT_VIEW, PERMISSIONS.INCIDENT_CREATE, PERMISSIONS.INCIDENT_UPDATE, PERMISSIONS.INCIDENT_DELETE, PERMISSIONS.INCIDENT_VALIDATE] },
     { module: 'Equipements', perms: [PERMISSIONS.EQUIPMENT_VIEW, PERMISSIONS.EQUIPMENT_CREATE, PERMISSIONS.EQUIPMENT_UPDATE, PERMISSIONS.EQUIPMENT_DELETE] },
-    { module: 'Correctif', perms: [PERMISSIONS.WORKORDER_VIEW, PERMISSIONS.WORKORDER_CREATE, PERMISSIONS.WORKORDER_UPDATE, PERMISSIONS.WORKORDER_DELETE, PERMISSIONS.WORKORDER_EXECUTE] },
+    { module: 'Ordres de Travail (OT)', perms: [PERMISSIONS.WORKORDER_VIEW, PERMISSIONS.WORKORDER_CREATE, PERMISSIONS.WORKORDER_UPDATE, PERMISSIONS.WORKORDER_DELETE, PERMISSIONS.WORKORDER_EXECUTE] },
     { module: 'Préventif', perms: [PERMISSIONS.PREVENTIVE_VIEW, PERMISSIONS.PREVENTIVE_CREATE, PERMISSIONS.PREVENTIVE_UPDATE, PERMISSIONS.PREVENTIVE_DELETE, PERMISSIONS.PREVENTIVE_EXECUTE] },
     { module: 'Stock & Pièces', perms: [PERMISSIONS.INVENTORY_VIEW, PERMISSIONS.INVENTORY_CREATE, PERMISSIONS.INVENTORY_UPDATE, PERMISSIONS.INVENTORY_DELETE] },
-    { module: 'Utilisateurs', perms: [PERMISSIONS.USER_VIEW, PERMISSIONS.USER_CREATE, PERMISSIONS.USER_UPDATE, PERMISSIONS.USER_DELETE] },
+    { module: 'Fournisseurs', perms: [PERMISSIONS.SUPPLIER_VIEW, PERMISSIONS.SUPPLIER_CREATE, PERMISSIONS.SUPPLIER_UPDATE, PERMISSIONS.SUPPLIER_DELETE] },
+    { module: 'Rapports & Stats', perms: [PERMISSIONS.REPORT_VIEW, PERMISSIONS.REPORT_CREATE, PERMISSIONS.REPORT_EXPORT] },
+    { module: 'Utilisateurs & Équipes', perms: [PERMISSIONS.USER_VIEW, PERMISSIONS.USER_CREATE, PERMISSIONS.USER_UPDATE, PERMISSIONS.USER_DELETE] },
   ];
 
   useEffect(() => {
@@ -82,7 +85,7 @@ export const RoleSettings: React.FC = () => {
     if (!basePerm || !selectedRole) return null;
 
     // Modules that support scoped permissions
-    const supportsScope = moduleName === 'Correctif' || moduleName === 'Préventif';
+    const supportsScope = moduleName === 'Correctif' || moduleName === 'Préventif' || moduleName === 'Ordres de Travail (OT)' || moduleName === 'Incidents (Pannes)';
 
     if (supportsScope) {
       const currentScope = getPermissionScope(selectedRole.permissions, basePerm);
@@ -185,9 +188,9 @@ export const RoleSettings: React.FC = () => {
                   <td className="py-3 text-center">
                     {renderPermissionControl(row.module, row.perms.find(p => p.endsWith('DELETE')))}
                   </td>
-                  {/* Execute */}
+                  {/* Execute / Validate / Export */}
                   <td className="py-3 text-center">
-                    {renderPermissionControl(row.module, row.perms.find(p => p.endsWith('EXECUTE')))}
+                    {renderPermissionControl(row.module, row.perms.find(p => p.endsWith('EXECUTE') || p.endsWith('VALIDATE') || p.endsWith('EXPORT')))}
                   </td>
                 </tr>
               ))}

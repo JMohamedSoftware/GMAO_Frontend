@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useGmao } from '@/shared/hooks/useGmao';
+import { usePermissions } from '@/shared/hooks/usePermissions';
+import { PERMISSIONS } from '@/shared/permissions';
 import { Equipment } from '@/shared/types/gmao';
 
 import { DashboardHeader } from '../components/DashboardHeader';
@@ -27,9 +29,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
     campaignWorkOrders,
     campaignIncidents
   } = useGmao();
+
+  const { can } = usePermissions();
+
+  const canViewEquipments = can(PERMISSIONS.EQUIPMENT_VIEW);
+  const canViewWorkOrders = can(PERMISSIONS.WORKORDER_VIEW);
+  const canViewIncidents = can(PERMISSIONS.INCIDENT_VIEW);
+  const canCreateIncidents = can(PERMISSIONS.INCIDENT_CREATE);
+  const canViewReports = can(PERMISSIONS.REPORT_VIEW);
   
   // View toggle: 'supervision' (Image 2 style) or 'map' (Image 3/4 style)
   const [activeView, setActiveView] = useState<'supervision' | 'map'>('supervision');
+
+  // If user has no permission to view equipments, force supervision view
+  const effectiveActiveView = !canViewEquipments ? 'supervision' : activeView;
   
   // Selected equipment in the park / tree section
   const [selectedEq, setSelectedEq] = useState<Equipment | null>(null);
@@ -70,8 +83,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
     <div className="flex flex-col gap-6 animate-[fadeIn_0.3s_ease-out]">
       {/* 1. Header with Title & Date & Campagne */}
       <DashboardHeader
-        activeView={activeView}
+        activeView={effectiveActiveView}
         setActiveView={setActiveView}
+        canViewEquipments={canViewEquipments}
       />
 
       {/* 2. Actions rapides supérieures */}
@@ -89,10 +103,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
         totalLaborCost={totalLaborCost}
         totalPartsCost={totalPartsCost}
         totalMaintCost={totalMaintCost}
+        canViewEquipments={canViewEquipments}
+        canViewWorkOrders={canViewWorkOrders}
+        canViewIncidents={canViewIncidents}
+        canViewReports={canViewReports}
       />
 
       {/* 4. Main Body: Supervision (Image 2) or Factory Map (Image 3 & 4) */}
-      {activeView === 'supervision' ? (
+      {effectiveActiveView === 'supervision' ? (
         <>
           {/* 3-Column Core: Arborescence (Left), Machine Card (Center), DIs & OTs (Right) */}
           <DashboardParkSection
@@ -104,6 +122,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
             onNavigate={onNavigate}
             onSelectEquipment={onSelectEquipment}
             onOpenDeclareIncident={() => setIsDeclareModalOpen(true)}
+            canViewEquipments={canViewEquipments}
+            canViewWorkOrders={canViewWorkOrders}
+            canViewIncidents={canViewIncidents}
+            canCreateIncidents={canCreateIncidents}
           />
 
           {/* Bottom Analytics: Donut Status, OT Bar Chart, Top 5 Sollicités */}
@@ -111,6 +133,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
             equipments={equipments}
             workOrders={currentOrders}
             onNavigate={onNavigate}
+            canViewEquipments={canViewEquipments}
+            canViewWorkOrders={canViewWorkOrders}
           />
         </>
       ) : (

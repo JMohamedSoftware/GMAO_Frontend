@@ -39,6 +39,10 @@ interface DashboardParkSectionProps {
   onNavigate: (screen: string) => void;
   onSelectEquipment: (eq: Equipment) => void;
   onOpenDeclareIncident: () => void;
+  canViewEquipments?: boolean;
+  canViewWorkOrders?: boolean;
+  canViewIncidents?: boolean;
+  canCreateIncidents?: boolean;
 }
 
 interface TreeNodeData {
@@ -232,11 +236,22 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
   setSelectedEq,
   onNavigate,
   onSelectEquipment,
-  onOpenDeclareIncident
+  onOpenDeclareIncident,
+  canViewEquipments = true,
+  canViewWorkOrders = true,
+  canViewIncidents = true,
+  canCreateIncidents = true
 }) => {
   const [treeSearch, setTreeSearch] = useState('');
   const [col3Tab, setCol3Tab] = useState<'di' | 'ot'>('di');
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+
+  // Strictly enforce tab based on permissions
+  const effectiveCol3Tab: 'di' | 'ot' = (!canViewIncidents && canViewWorkOrders)
+    ? 'ot'
+    : (canViewIncidents && !canViewWorkOrders)
+    ? 'di'
+    : col3Tab;
 
   const { currentUser, currentTenantId, tenants, selectedCampaign } = useGmao();
   const currentTenant = tenants.find(t => t.id === currentTenantId);
@@ -496,275 +511,311 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
   const recentDis = incidents.slice(0, 5);
   const recentOts = workOrders.slice(0, 5);
 
+  if (!canViewEquipments && !canViewIncidents && !canViewWorkOrders) {
+    return null;
+  }
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
       
-      {/* COLUMN 1: Arborescence technique du parc (4 cols) */}
-      <div className="lg:col-span-4 bg-white dark:bg-slate-850 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-        <div>
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
-              <FolderTree className="w-4 h-4 text-blue-600" />
-              Arborescence technique du parc
-            </h3>
-            <div className="flex items-center gap-2">
+      {/* COLUMN 1: Arborescence technique du parc (4 cols) - Only if canViewEquipments */}
+      {canViewEquipments && (
+        <div className="lg:col-span-4 bg-white dark:bg-slate-850 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                <FolderTree className="w-4 h-4 text-blue-600" />
+                Arborescence technique du parc
+              </h3>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={toggleExpandAll}
+                  className="text-[10px] font-bold text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center gap-0.5 cursor-pointer"
+                  title={isAllExpanded ? "Tout replier" : "Tout déplier"}
+                >
+                  <ChevronsUpDown className="w-3 h-3" />
+                  {isAllExpanded ? 'Replier' : 'Déplier'}
+                </button>
+                <button
+                  onClick={() => onNavigate('equipment')}
+                  className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5 cursor-pointer"
+                >
+                  Voir tout <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+
+            {/* Search box */}
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <input
+                type="text"
+                value={treeSearch}
+                onChange={(e) => setTreeSearch(e.target.value)}
+                placeholder="Rechercher par nom, code ou zone..."
+                className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs outline-none focus:border-blue-500 font-medium"
+              />
+            </div>
+
+            {/* Tree Structure */}
+            <div className="space-y-1 overflow-y-auto max-h-[380px] pr-1">
+              {locsLoading && dynamicTreeNodes.length === 0 ? (
+                <div className="py-8 flex flex-col items-center justify-center text-xs text-slate-400 gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                  <span>Chargement de l'arborescence...</span>
+                </div>
+              ) : filteredTreeNodes.length === 0 ? (
+                <div className="py-8 text-center text-xs text-slate-400">
+                  <Search className="w-6 h-6 mx-auto mb-2 text-slate-300 opacity-60" />
+                  <p className="font-semibold">Aucun équipement trouvé</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">pour "{treeSearch}"</p>
+                </div>
+              ) : (
+                filteredTreeNodes.map(node => (
+                  <DynamicTreeNodeItem
+                    key={node.id}
+                    node={node}
+                    level={0}
+                    expandedNodes={expandedNodes}
+                    onToggle={toggleNode}
+                    selectedEqId={activeMachine ? activeMachine.id : undefined}
+                    onSelectEquipment={(eq) => setSelectedEq(eq)}
+                    treeSearch={treeSearch}
+                    getStatusBadge={getStatusBadge}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Tree Footer stats */}
+          <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 font-medium">
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+              {equipments.length} équipements gérés
+            </span>
+            <span className="text-[10px] text-slate-400 font-semibold">
+              {locsLoading ? 'Synchronisation...' : `${dynamicTreeNodes.length} branche${dynamicTreeNodes.length > 1 ? 's' : ''}`}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* COLUMN 2: Machine Preview Card (or Empty State) - Only if canViewEquipments */}
+      {canViewEquipments && (
+        <div className="lg:col-span-4 bg-white dark:bg-slate-850 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+          {activeMachine ? (
+            <>
+              <div>
+                {/* Machine Photo with Status Badge */}
+                <div className="aspect-[16/10] w-full rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 relative mb-3 border border-slate-100 dark:border-slate-800">
+                  <img
+                    src={(activeMachine as any).photos?.[0] || (activeMachine as any).photo || machineDefaultImg}
+                    alt={activeMachine.name}
+                    className="w-full h-full object-cover"
+                  />
+                  <span
+                    className={`absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-md ${
+                      activeMachine.status === 'En service'
+                        ? 'bg-emerald-600 text-white'
+                        : activeMachine.status === 'En maintenance'
+                        ? 'bg-amber-600 text-white'
+                        : 'bg-rose-600 text-white shadow-rose-500/40 animate-pulse'
+                    }`}
+                  >
+                    {activeMachine.status === 'En service' ? 'En service' : activeMachine.status === 'En maintenance' ? 'En maintenance' : activeMachine.status === 'En panne' ? 'En panne' : 'Hors service'}
+                  </span>
+
+                  {/* Campagne Badge */}
+                  <span className="absolute bottom-2.5 left-2.5 px-2 py-0.5 rounded-md text-[9px] font-extrabold bg-slate-900/80 text-white backdrop-blur-sm">
+                    {selectedCampaign || 'Campagne en cours'}
+                  </span>
+                </div>
+
+                {/* Machine Header */}
+                <div className="mb-3">
+                  <h4 className="text-base font-black text-slate-800 dark:text-white leading-tight">
+                    {activeMachine.name}
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
+                    {activeMachine.localisation?.nom || (activeMachine as any).localisationNom || (activeMachine.location?.trim() && activeMachine.location.trim().toLowerCase() !== 'usine' ? activeMachine.location : 'Emplacement non défini')}
+                    {activeMachine.code && activeMachine.code !== activeMachine.name ? ` • Code : ${activeMachine.code}` : ''}
+                  </p>
+                </div>
+
+                {/* Radial Health Index Donut */}
+                <div className="flex items-center gap-4 p-3 bg-slate-50/80 dark:bg-slate-900/40 rounded-xl border border-slate-100 dark:border-slate-800 mb-3">
+                  <div className="relative w-14 h-14 shrink-0 flex items-center justify-center">
+                    <svg viewBox="0 0 36 36" className="w-14 h-14 -rotate-90">
+                      <path
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        fill="none"
+                        stroke="#E2E8F0"
+                        strokeWidth="3.5"
+                        className="dark:stroke-slate-800"
+                      />
+                      <path
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        fill="none"
+                        stroke={activeMachine.status === 'En panne' ? '#EF4444' : activeMachine.status === 'En maintenance' ? '#F59E0B' : '#10B981'}
+                        strokeWidth="3.5"
+                        strokeDasharray={`${activeMachine.healthIndex || (activeMachine.status === 'En panne' ? 25 : 88)}, 100`}
+                      />
+                    </svg>
+                    <div className="absolute text-center">
+                      <span className="text-xs font-black text-slate-800 dark:text-white leading-none">
+                        {activeMachine.healthIndex || (activeMachine.status === 'En panne' ? 25 : 88)}%
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider block">
+                      Indice Santé Machine
+                    </span>
+                    <span className="text-sm font-black text-slate-800 dark:text-white">
+                      {activeMachine.hoursCount ? `${activeMachine.hoursCount} h` : '—'}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-medium block">
+                      Heures de fonctionnement
+                    </span>
+                  </div>
+                </div>
+
+                {/* Technical Specs Grid with MTBF & MTTR */}
+                <div className="grid grid-cols-2 gap-2 text-xs mb-1">
+                  <div className="p-2 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
+                    <span className="text-[9px] uppercase font-bold text-slate-400 block">Criticité</span>
+                    <span className={`font-bold text-xs ${
+                      activeMachine.criticality === 'Critique' || activeMachine.criticality === 'Haute'
+                        ? 'text-rose-600 dark:text-rose-400'
+                        : activeMachine.criticality === 'Moyenne'
+                        ? 'text-amber-600 dark:text-amber-400'
+                        : 'text-emerald-600 dark:text-emerald-400'
+                    }`}>
+                      {activeMachine.criticality || 'Moyenne'}
+                    </span>
+                  </div>
+                  <div className="p-2 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
+                    <span className="text-[9px] uppercase font-bold text-slate-400 block">Disponibilité</span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400 text-xs">
+                      {machineDispo !== null ? `${machineDispo}%` : '—'}
+                    </span>
+                  </div>
+                  <div className="p-2 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
+                    <span className="text-[9px] uppercase font-bold text-slate-400 block">MTBF machine</span>
+                    <span className="font-bold text-indigo-600 dark:text-indigo-400 text-xs">
+                      {machineMtbf !== null ? `${machineMtbf} h` : '—'}
+                    </span>
+                  </div>
+                  <div className="p-2 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
+                    <span className="text-[9px] uppercase font-bold text-slate-400 block">MTTR moyen</span>
+                    <span className="font-bold text-cyan-600 dark:text-cyan-400 text-xs">
+                      {machineMttr !== null ? `${machineMttr} h` : '—'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* View Details Button */}
               <button
-                onClick={toggleExpandAll}
-                className="text-[10px] font-bold text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center gap-0.5 cursor-pointer"
-                title={isAllExpanded ? "Tout replier" : "Tout déplier"}
+                onClick={() => {
+                  onSelectEquipment(activeMachine);
+                  onNavigate('equipment');
+                }}
+                className="w-full mt-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
               >
-                <ChevronsUpDown className="w-3 h-3" />
-                {isAllExpanded ? 'Replier' : 'Déplier'}
+                <ExternalLink className="w-3.5 h-3.5" />
+                Accéder à la fiche machine
               </button>
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center text-center p-6 my-auto min-h-[380px]">
+              <div className="w-16 h-16 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-4 shadow-sm border border-blue-100 dark:border-blue-900/40">
+                <Factory className="w-8 h-8" />
+              </div>
+              <h4 className="text-base font-black text-slate-800 dark:text-white mb-1.5">
+                Parc machines vide
+              </h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mb-6 leading-relaxed">
+                Bienvenue sur votre espace GMAO. Aucun équipement n'est encore enregistré pour <span className="font-bold text-slate-700 dark:text-slate-300">{companyName}</span>.
+              </p>
               <button
                 onClick={() => onNavigate('equipment')}
+                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                Ajouter votre premier équipement
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* COLUMN 3: Demandes d'intervention (DI) & Ordres de Travail (OT) (Section 6 & 7) - Full width if no equipment view */}
+      <div className={`${canViewEquipments ? 'lg:col-span-4' : 'lg:col-span-12'} bg-white dark:bg-slate-850 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between`}>
+        <div>
+          {/* Header with Switcher Tabs */}
+          <div className="flex justify-between items-center mb-3">
+            {canViewIncidents && canViewWorkOrders ? (
+              <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-900 rounded-xl">
+                <button
+                  onClick={() => setCol3Tab('di')}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    effectiveCol3Tab === 'di'
+                      ? 'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  Pannes (DI)
+                </button>
+                <button
+                  onClick={() => setCol3Tab('ot')}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    effectiveCol3Tab === 'ot'
+                      ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  Ordres Travail (OT)
+                </button>
+              </div>
+            ) : canViewIncidents ? (
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold">
+                  <AlertTriangle className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">
+                    Pannes & Demandes d'Intervention (DI)
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-medium">Supervision en direct des pannes d'usine</p>
+                </div>
+              </div>
+            ) : canViewWorkOrders ? (
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
+                  <Wrench className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">
+                    Ordres de Travail (OT)
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-medium">Suivi des interventions techniques</p>
+                </div>
+              </div>
+            ) : null}
+
+            {((effectiveCol3Tab === 'di' && canViewIncidents) || (effectiveCol3Tab === 'ot' && canViewWorkOrders)) && (
+              <button
+                onClick={() => onNavigate(effectiveCol3Tab === 'di' ? 'corrective' : 'workorders')}
                 className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5 cursor-pointer"
               >
                 Voir tout <ArrowRight className="w-3 h-3" />
               </button>
-            </div>
-          </div>
-
-          {/* Search box */}
-          <div className="relative mb-3">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-            <input
-              type="text"
-              value={treeSearch}
-              onChange={(e) => setTreeSearch(e.target.value)}
-              placeholder="Rechercher par nom, code ou zone..."
-              className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs outline-none focus:border-blue-500 font-medium"
-            />
-          </div>
-
-          {/* Tree Structure */}
-          <div className="space-y-1 overflow-y-auto max-h-[380px] pr-1">
-            {locsLoading && dynamicTreeNodes.length === 0 ? (
-              <div className="py-8 flex flex-col items-center justify-center text-xs text-slate-400 gap-2">
-                <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
-                <span>Chargement de l'arborescence...</span>
-              </div>
-            ) : filteredTreeNodes.length === 0 ? (
-              <div className="py-8 text-center text-xs text-slate-400">
-                <Search className="w-6 h-6 mx-auto mb-2 text-slate-300 opacity-60" />
-                <p className="font-semibold">Aucun équipement trouvé</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">pour "{treeSearch}"</p>
-              </div>
-            ) : (
-              filteredTreeNodes.map(node => (
-                <DynamicTreeNodeItem
-                  key={node.id}
-                  node={node}
-                  level={0}
-                  expandedNodes={expandedNodes}
-                  onToggle={toggleNode}
-                  selectedEqId={activeMachine ? activeMachine.id : undefined}
-                  onSelectEquipment={(eq) => setSelectedEq(eq)}
-                  treeSearch={treeSearch}
-                  getStatusBadge={getStatusBadge}
-                />
-              ))
             )}
           </div>
-        </div>
 
-        {/* Tree Footer stats */}
-        <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 font-medium">
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-            {equipments.length} équipements gérés
-          </span>
-          <span className="text-[10px] text-slate-400 font-semibold">
-            {locsLoading ? 'Synchronisation...' : `${dynamicTreeNodes.length} branche${dynamicTreeNodes.length > 1 ? 's' : ''}`}
-          </span>
-        </div>
-      </div>
-
-      {/* COLUMN 2: Machine Preview Card (or Empty State) */}
-      <div className="lg:col-span-4 bg-white dark:bg-slate-850 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-        {activeMachine ? (
-          <>
-            <div>
-              {/* Machine Photo with Status Badge */}
-              <div className="aspect-[16/10] w-full rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 relative mb-3 border border-slate-100 dark:border-slate-800">
-                <img
-                  src={(activeMachine as any).photos?.[0] || (activeMachine as any).photo || machineDefaultImg}
-                  alt={activeMachine.name}
-                  className="w-full h-full object-cover"
-                />
-                <span
-                  className={`absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-md ${
-                    activeMachine.status === 'En service'
-                      ? 'bg-emerald-600 text-white'
-                      : activeMachine.status === 'En maintenance'
-                      ? 'bg-amber-600 text-white'
-                      : 'bg-rose-600 text-white shadow-rose-500/40 animate-pulse'
-                  }`}
-                >
-                  {activeMachine.status === 'En service' ? 'En service' : activeMachine.status === 'En maintenance' ? 'En maintenance' : activeMachine.status === 'En panne' ? 'En panne' : 'Hors service'}
-                </span>
-
-                {/* Campagne Badge */}
-                <span className="absolute bottom-2.5 left-2.5 px-2 py-0.5 rounded-md text-[9px] font-extrabold bg-slate-900/80 text-white backdrop-blur-sm">
-                  {selectedCampaign || 'Campagne en cours'}
-                </span>
-              </div>
-
-              {/* Machine Header */}
-              <div className="mb-3">
-                <h4 className="text-base font-black text-slate-800 dark:text-white leading-tight">
-                  {activeMachine.name}
-                </h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
-                  {activeMachine.localisation?.nom || (activeMachine as any).localisationNom || (activeMachine.location?.trim() && activeMachine.location.trim().toLowerCase() !== 'usine' ? activeMachine.location : 'Emplacement non défini')}
-                  {activeMachine.code && activeMachine.code !== activeMachine.name ? ` • Code : ${activeMachine.code}` : ''}
-                </p>
-              </div>
-
-              {/* Radial Health Index Donut */}
-              <div className="flex items-center gap-4 p-3 bg-slate-50/80 dark:bg-slate-900/40 rounded-xl border border-slate-100 dark:border-slate-800 mb-3">
-                <div className="relative w-14 h-14 shrink-0 flex items-center justify-center">
-                  <svg viewBox="0 0 36 36" className="w-14 h-14 -rotate-90">
-                    <path
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none"
-                      stroke="#E2E8F0"
-                      strokeWidth="3.5"
-                      className="dark:stroke-slate-800"
-                    />
-                    <path
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none"
-                      stroke={activeMachine.status === 'En panne' ? '#EF4444' : activeMachine.status === 'En maintenance' ? '#F59E0B' : '#10B981'}
-                      strokeWidth="3.5"
-                      strokeDasharray={`${activeMachine.healthIndex || (activeMachine.status === 'En panne' ? 25 : 88)}, 100`}
-                    />
-                  </svg>
-                  <div className="absolute text-center">
-                    <span className="text-xs font-black text-slate-800 dark:text-white leading-none">
-                      {activeMachine.healthIndex || (activeMachine.status === 'En panne' ? 25 : 88)}%
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider block">
-                    Indice Santé Machine
-                  </span>
-                  <span className="text-sm font-black text-slate-800 dark:text-white">
-                    {activeMachine.hoursCount ? `${activeMachine.hoursCount} h` : '—'}
-                  </span>
-                  <span className="text-[10px] text-slate-400 font-medium block">
-                    Heures de fonctionnement
-                  </span>
-                </div>
-              </div>
-
-              {/* Technical Specs Grid with MTBF & MTTR */}
-              <div className="grid grid-cols-2 gap-2 text-xs mb-1">
-                <div className="p-2 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
-                  <span className="text-[9px] uppercase font-bold text-slate-400 block">Criticité</span>
-                  <span className={`font-bold text-xs ${
-                    activeMachine.criticality === 'Critique' || activeMachine.criticality === 'Haute'
-                      ? 'text-rose-600 dark:text-rose-400'
-                      : activeMachine.criticality === 'Moyenne'
-                      ? 'text-amber-600 dark:text-amber-400'
-                      : 'text-emerald-600 dark:text-emerald-400'
-                  }`}>
-                    {activeMachine.criticality || 'Moyenne'}
-                  </span>
-                </div>
-                <div className="p-2 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
-                  <span className="text-[9px] uppercase font-bold text-slate-400 block">Disponibilité</span>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400 text-xs">
-                    {machineDispo !== null ? `${machineDispo}%` : '—'}
-                  </span>
-                </div>
-                <div className="p-2 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
-                  <span className="text-[9px] uppercase font-bold text-slate-400 block">MTBF machine</span>
-                  <span className="font-bold text-indigo-600 dark:text-indigo-400 text-xs">
-                    {machineMtbf !== null ? `${machineMtbf} h` : '—'}
-                  </span>
-                </div>
-                <div className="p-2 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg">
-                  <span className="text-[9px] uppercase font-bold text-slate-400 block">MTTR moyen</span>
-                  <span className="font-bold text-cyan-600 dark:text-cyan-400 text-xs">
-                    {machineMttr !== null ? `${machineMttr} h` : '—'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* View Details Button */}
-            <button
-              onClick={() => {
-                onSelectEquipment(activeMachine);
-                onNavigate('equipment');
-              }}
-              className="w-full mt-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              Accéder à la fiche machine
-            </button>
-          </>
-        ) : (
-          <div className="flex flex-col items-center justify-center text-center p-6 my-auto min-h-[380px]">
-            <div className="w-16 h-16 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-4 shadow-sm border border-blue-100 dark:border-blue-900/40">
-              <Factory className="w-8 h-8" />
-            </div>
-            <h4 className="text-base font-black text-slate-800 dark:text-white mb-1.5">
-              Parc machines vide
-            </h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mb-6 leading-relaxed">
-              Bienvenue sur votre espace GMAO. Aucun équipement n'est encore enregistré pour <span className="font-bold text-slate-700 dark:text-slate-300">{companyName}</span>.
-            </p>
-            <button
-              onClick={() => onNavigate('equipment')}
-              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              Ajouter votre premier équipement
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* COLUMN 3: Demandes d'intervention (DI) & Ordres de Travail (OT) (Section 6 & 7) */}
-      <div className="lg:col-span-4 bg-white dark:bg-slate-850 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-        <div>
-          {/* Header with Switcher Tabs */}
-          <div className="flex justify-between items-center mb-3">
-            <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-900 rounded-xl">
-              <button
-                onClick={() => setCol3Tab('di')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                  col3Tab === 'di'
-                    ? 'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                Pannes (DI)
-              </button>
-              <button
-                onClick={() => setCol3Tab('ot')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                  col3Tab === 'ot'
-                    ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                Ordres Travail (OT)
-              </button>
-            </div>
-
-            <button
-              onClick={() => onNavigate(col3Tab === 'di' ? 'corrective' : 'workorders')}
-              className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5 cursor-pointer"
-            >
-              Voir tout <ArrowRight className="w-3 h-3" />
-            </button>
-          </div>
-
-          {col3Tab === 'di' ? (
+          {effectiveCol3Tab === 'di' ? (
             <>
               {/* 4 Counter Pills for DI (Section 6) */}
               <div className="grid grid-cols-4 gap-2 mb-3">
@@ -806,9 +857,9 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
               </div>
 
               {/* List of active DIs */}
-              <div className="space-y-2 overflow-y-auto max-h-[300px] pr-1">
+              <div className={`space-y-2 overflow-y-auto max-h-[300px] pr-1 ${!canViewEquipments ? 'grid grid-cols-1 md:grid-cols-2 gap-3 space-y-0' : ''}`}>
                 {recentDis.length === 0 ? (
-                  <div className="py-8 text-center text-xs text-slate-400">
+                  <div className={`py-8 text-center text-xs text-slate-400 ${!canViewEquipments ? 'md:col-span-2' : ''}`}>
                     <ClipboardList className="w-6 h-6 mx-auto mb-1.5 text-slate-300 opacity-60" />
                     <p className="font-semibold">Aucune demande d'intervention</p>
                     <p className="text-[10px] text-slate-400 mt-0.5">Toutes les demandes ont été traitées</p>
@@ -826,7 +877,7 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
                     return (
                       <div
                         key={idx}
-                        onClick={() => onNavigate('corrective')}
+                        onClick={() => canViewIncidents && onNavigate('corrective')}
                         className="p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-blue-400/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-all flex items-center justify-between cursor-pointer group"
                       >
                         <div className="overflow-hidden pr-2">
@@ -897,9 +948,9 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
               </div>
 
               {/* List of active OTs */}
-              <div className="space-y-2 overflow-y-auto max-h-[300px] pr-1">
+              <div className={`space-y-2 overflow-y-auto max-h-[300px] pr-1 ${!canViewEquipments ? 'grid grid-cols-1 md:grid-cols-2 gap-3 space-y-0' : ''}`}>
                 {recentOts.length === 0 ? (
-                  <div className="py-8 text-center text-xs text-slate-400">
+                  <div className={`py-8 text-center text-xs text-slate-400 ${!canViewEquipments ? 'md:col-span-2' : ''}`}>
                     <CheckCircle2 className="w-6 h-6 mx-auto mb-1.5 text-slate-300 opacity-60" />
                     <p className="font-semibold">Aucun ordre de travail actif</p>
                     <p className="text-[10px] text-slate-400 mt-0.5">Tous les ordres de travail sont à jour</p>
@@ -908,7 +959,7 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
                   recentOts.map((ot, idx) => (
                     <div
                       key={idx}
-                      onClick={() => onNavigate('workorders')}
+                      onClick={() => canViewWorkOrders && onNavigate('workorders')}
                       className="p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-blue-400/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-all flex items-center justify-between cursor-pointer group"
                     >
                       <div className="overflow-hidden pr-2">
@@ -939,14 +990,16 @@ export const DashboardParkSection: React.FC<DashboardParkSectionProps> = ({
           )}
         </div>
 
-        {/* Quick Declare Button */}
-        <button
-          onClick={onOpenDeclareIncident}
-          className="w-full mt-4 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Déclarer une panne / DI
-        </button>
+        {/* Quick Declare Button - Only if canCreateIncidents */}
+        {canCreateIncidents && (
+          <button
+            onClick={onOpenDeclareIncident}
+            className="w-full mt-4 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Déclarer une panne / DI
+          </button>
+        )}
       </div>
 
     </div>

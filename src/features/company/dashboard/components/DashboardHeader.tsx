@@ -5,11 +5,13 @@ import { useGmao } from '@/shared/hooks/useGmao';
 interface DashboardHeaderProps {
   activeView: 'supervision' | 'map';
   setActiveView: (view: 'supervision' | 'map') => void;
+  canViewEquipments?: boolean;
 }
 
 export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   activeView,
   setActiveView,
+  canViewEquipments = true,
 }) => {
   const { selectedCampaign, tenants, currentTenantId, currentUser, isCampaignClosed } = useGmao();
   const currentTenant = tenants.find(t => t.id === currentTenantId);
@@ -60,31 +62,33 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
       {/* View switchers and Date Pill */}
       <div className="flex items-center gap-2.5 flex-wrap">
-        {/* Toggle View */}
-        <div className="p-1 bg-slate-150 dark:bg-slate-800/80 rounded-xl flex items-center gap-1 border border-slate-200/80 dark:border-slate-700/80">
-          <button
-            onClick={() => setActiveView('supervision')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              activeView === 'supervision'
-                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-white shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-            }`}
-          >
-            <LayoutDashboard className="w-3.5 h-3.5" />
-            Vue Supervision
-          </button>
-          <button
-            onClick={() => setActiveView('map')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              activeView === 'map'
-                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-white shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-            }`}
-          >
-            <Factory className="w-3.5 h-3.5" />
-            Plan de l'usine
-          </button>
-        </div>
+        {/* Toggle View - Only if canViewEquipments */}
+        {canViewEquipments && (
+          <div className="p-1 bg-slate-150 dark:bg-slate-800/80 rounded-xl flex items-center gap-1 border border-slate-200/80 dark:border-slate-700/80">
+            <button
+              onClick={() => setActiveView('supervision')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                activeView === 'supervision'
+                  ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-white shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+              }`}
+            >
+              <LayoutDashboard className="w-3.5 h-3.5" />
+              Vue Supervision
+            </button>
+            <button
+              onClick={() => setActiveView('map')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                activeView === 'map'
+                  ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-white shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+              }`}
+            >
+              <Factory className="w-3.5 h-3.5" />
+              Plan de l'usine
+            </button>
+          </div>
+        )}
 
         {/* Date Button */}
         <div className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 shadow-sm">

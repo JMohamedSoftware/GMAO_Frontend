@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, AlertTriangle, Send } from 'lucide-react';
 import { Equipment, Incident } from '@/shared/types/gmao';
+import { useGmao } from '@/shared/hooks/useGmao';
 
 interface DeclareIncidentModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ export const DeclareIncidentModal: React.FC<DeclareIncidentModalProps> = ({
   equipments,
   addIncident
 }) => {
+  const { currentUser } = useGmao();
   const [eqId, setEqId] = useState('');
   const [desc, setDesc] = useState('');
   const [urgency, setUrgency] = useState<Incident['urgency']>('Moyenne');
@@ -26,10 +28,14 @@ export const DeclareIncidentModal: React.FC<DeclareIncidentModalProps> = ({
     e.preventDefault();
     if (!eqId || !desc) return;
 
+    const reporterName = currentUser?.name 
+      ? `${currentUser.name}${currentUser.role ? ` (${currentUser.role})` : ''}` 
+      : 'Opérateur Usine';
+
     addIncident({
       equipmentId: eqId,
       description: desc,
-      reportedBy: 'Opérateur Usine',
+      reportedBy: reporterName,
       urgency: urgency
     });
 

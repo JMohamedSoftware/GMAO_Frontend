@@ -78,7 +78,7 @@ export const DashboardActionCards: React.FC<DashboardActionCardsProps> = ({
       bg: 'bg-purple-600 hover:bg-purple-700 text-white cursor-pointer',
       border: 'border-purple-500/30',
       action: () => onNavigate('reports'),
-      visible: true
+      visible: can(PERMISSIONS.REPORT_VIEW)
     }
   ];
 
