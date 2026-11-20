@@ -73,16 +73,21 @@ export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreate
 
   // Filter incidents based on search query and role permissions
   const filteredIncidents = enrichedIncidents.filter(inc => {
-    // Si l'utilisateur a la permission de voir les incidents (canView), il a accès à la liste.
-    // Pour un technicien simple sans droit de supervision globale, filtrer sur ses interventions ou déclarations.
+    const myId = currentUser?.id ? String(currentUser.id) : '';
+    const myName = currentUser?.name ? currentUser.name.toLowerCase() : '';
+
+    // Responsable Production voit uniquement ses propres déclarations (règle stricte)
+    if (isProduction) {
+      const isMyDeclaration = (myId && inc.reportedBy === myId) || 
+                              (myName && inc.reportedBy.toLowerCase().includes(myName));
+      if (!isMyDeclaration) return false;
+    }
+
+    // Technicien simple voit ses déclarations et ses interventions affectées
     if (isTechnicien && !can(PERMISSIONS.INCIDENT_VALIDATE)) {
-      const isMyDeclaration = currentUser && (
-        inc.reportedBy === currentUser.id?.toString() || 
-        inc.reportedBy.includes(currentUser.name)
-      );
-      const isMyAssigned = currentUser && (
-        inc.technicianId === currentUser.id?.toString()
-      );
+      const isMyDeclaration = (myId && inc.reportedBy === myId) || 
+                              (myName && inc.reportedBy.toLowerCase().includes(myName));
+      const isMyAssigned = myId && inc.technicianId === myId;
       if (!isMyDeclaration && !isMyAssigned) return false;
     }
 

@@ -24,13 +24,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
     incidents, 
     technicians, 
     parts, 
+    currentUser,
     addIncident,
     isCampaignClosed,
     campaignWorkOrders,
     campaignIncidents
   } = useGmao();
 
-  const { can } = usePermissions();
+  const { can, isProduction } = usePermissions();
 
   const canViewEquipments = can(PERMISSIONS.EQUIPMENT_VIEW);
   const canViewWorkOrders = can(PERMISSIONS.WORKORDER_VIEW);
@@ -52,7 +53,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
 
   // Scoped lists strictly according to the selected campaign (2026 vs 2025 archive)
   const currentOrders = campaignWorkOrders;
-  const currentIncidents = campaignIncidents;
+  const currentIncidents = isProduction
+    ? campaignIncidents.filter(inc => {
+        const myId = currentUser?.id ? String(currentUser.id) : '';
+        const myName = currentUser?.name ? currentUser.name.toLowerCase() : '';
+        return (myId && inc.reportedBy === myId) || 
+               (myName && inc.reportedBy.toLowerCase().includes(myName));
+      })
+    : campaignIncidents;
 
   // Maintenance Cost Calculations according to Cahier des Charges (Section 11 & 13)
   const totalLaborCost = currentOrders.reduce((acc, ot) => {
