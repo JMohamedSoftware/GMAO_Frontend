@@ -208,6 +208,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate }) =
               title="Campagne / Saison active"
               className="w-full bg-transparent border-none text-[10px] font-bold text-slate-800 dark:text-slate-100 outline-none cursor-pointer text-center appearance-none truncate"
             >
+              <option value="Toutes les campagnes" className="dark:bg-slate-900 text-slate-800 dark:text-slate-100">
+                🌐 Toutes les campagnes
+              </option>
               {campaigns && campaigns.length > 0 ? (
                 campaigns.map(c => (
                   <option key={c.id || c.name} value={c.name} className="dark:bg-slate-900 text-slate-800 dark:text-slate-100">

@@ -151,12 +151,37 @@ export const CampaignSettings: React.FC = () => {
           const isClosed = camp.status === 'Terminée' || (camp.status as string) === 'Clôturée';
           const isPlanned = camp.status === 'Planifiée';
 
-          const campOts = (workOrders || []).filter(o => 
-            o.campaign?.toLowerCase() === camp.name.toLowerCase()
-          );
-          const campIncidents = (incidents || []).filter(i => 
-            (i as any).campaign?.toLowerCase() === camp.name.toLowerCase()
-          );
+          const campYearMatch = camp.name?.match(/\d{4}/)?.[0];
+          const campOts = (workOrders || []).filter(o => {
+            if (o.campagneId && camp.id && String(o.campagneId) === String(camp.id)) return true;
+            if (o.campaign && o.campaign.toLowerCase() === camp.name.toLowerCase()) return true;
+            if (campYearMatch && o.createdDate && o.createdDate.startsWith(campYearMatch)) return true;
+            if (camp.startDate && camp.endDate && o.createdDate) {
+              const oDay = o.createdDate.split('T')[0];
+              const sDay = camp.startDate.split('T')[0];
+              const eDay = camp.endDate.split('T')[0];
+              if (oDay >= sDay && oDay <= eDay) return true;
+            }
+            return false;
+          });
+
+          const campIncidents = (incidents || []).filter(i => {
+            if (i.workOrderId) {
+              const linkedOt = (workOrders || []).find(o => o.id === i.workOrderId || o.numeroOT === i.workOrderId);
+              if (linkedOt) {
+                if (linkedOt.campagneId && camp.id && String(linkedOt.campagneId) === String(camp.id)) return true;
+                if (linkedOt.campaign && linkedOt.campaign.toLowerCase() === camp.name.toLowerCase()) return true;
+              }
+            }
+            if (campYearMatch && i.reportedDate && i.reportedDate.startsWith(campYearMatch)) return true;
+            if (camp.startDate && camp.endDate && i.reportedDate) {
+              const iDay = i.reportedDate.split('T')[0];
+              const sDay = camp.startDate.split('T')[0];
+              const eDay = camp.endDate.split('T')[0];
+              if (iDay >= sDay && iDay <= eDay) return true;
+            }
+            return false;
+          });
 
           return (
             <div
@@ -250,10 +275,13 @@ export const CampaignSettings: React.FC = () => {
                 )}
 
                 {isClosed && (
-                  <div className="w-full text-center py-1 text-[11px] font-bold text-slate-400 dark:text-slate-500 flex items-center justify-center gap-1">
-                    <Archive className="w-3.5 h-3.5" />
-                    Historique archivé
-                  </div>
+                  <button
+                    onClick={() => handleActiverCampaign(camp)}
+                    className="flex-1 py-1.5 px-3 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Play className="w-3 h-3" />
+                    Réactiver la campagne
+                  </button>
                 )}
               </div>
             </div>

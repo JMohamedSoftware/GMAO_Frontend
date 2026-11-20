@@ -30,51 +30,86 @@ export const useGmao = () => {
   const selectedYear = state.selectedCampaign?.match(/\d{4}/)?.[0];
   const campYear = currentCampaignObj?.name?.match(/\d{4}/)?.[0] || selectedYear;
 
-  // OTs filtrés strictement par campagne (isolation totale par ID, nom et dates)
+  // OTs filtrés intelligemment selon la campagne sélectionnée
   const campaignWorkOrders = (activeTenant?.workOrders || []).filter(ot => {
-    if (!state.selectedCampaign) return true;
+    if (!state.selectedCampaign || state.selectedCampaign === 'Toutes' || state.selectedCampaign === 'Toutes les campagnes') {
+      return true;
+    }
     
     // 1. Match par ID de campagne (Clé étrangère primaire en base)
-    if (ot.campagneId && currentCampaignObj?.id) {
-      return String(ot.campagneId) === String(currentCampaignObj.id);
+    if (ot.campagneId && currentCampaignObj?.id && String(ot.campagneId) === String(currentCampaignObj.id)) {
+      return true;
     }
 
     // 2. Match explicite par nom de campagne
-    if (ot.campaign) {
-      return ot.campaign.toLowerCase() === state.selectedCampaign.toLowerCase();
+    if (ot.campaign && ot.campaign.toLowerCase() === state.selectedCampaign.toLowerCase()) {
+      return true;
+    }
+
+    // 3. Si la campagne sélectionnée est active ("En cours"), inclure tous les OTs de l'année en cours
+    if (currentCampaignObj?.status === 'En cours' || (currentCampaignObj as any)?.etat === 2) {
+      if (campYear && ot.createdDate) {
+        return ot.createdDate.startsWith(campYear);
+      }
+      return true;
     }
     
-    // 3. Match par plage de dates exacte de la campagne (DateDébut → DateFin)
+    // 4. Match par plage de dates exacte (pour les campagnes passées/archivées)
     if (currentCampaignObj?.startDate && currentCampaignObj?.endDate && ot.createdDate) {
       const otDay = ot.createdDate.split('T')[0];
       const startDay = currentCampaignObj.startDate.split('T')[0];
       const endDay = currentCampaignObj.endDate.split('T')[0];
-      return otDay >= startDay && otDay <= endDay;
+      if (otDay >= startDay && otDay <= endDay) return true;
     }
     
-    // 4. Fallback par correspondance d'année (uniquement si aucune date ou ID n'est défini)
+    // 5. Fallback par correspondance d'année
     if (campYear && ot.createdDate) {
       return ot.createdDate.startsWith(campYear);
+    }
+
+    // Si la campagne sélectionnée n'a pas pu être trouvée dans la liste des campagnes de l'entreprise
+    if (!currentCampaignObj) {
+      return true;
     }
 
     return false;
   });
 
-  // Incidents filtrés strictement par la période exacte de la campagne
+  // Incidents filtrés selon la campagne
   const campaignIncidents = (activeTenant?.incidents || []).filter(inc => {
-    if (!state.selectedCampaign) return true;
+    if (!state.selectedCampaign || state.selectedCampaign === 'Toutes' || state.selectedCampaign === 'Toutes les campagnes') {
+      return true;
+    }
 
-    // 1. Match par plage de dates exacte de la campagne (DateDébut → DateFin)
+    // 1. Si l'incident est déjà lié à un OT faisant partie de la campagne
+    if (inc.workOrderId) {
+      const isOtIncluded = campaignWorkOrders.some(o => o.id === inc.workOrderId || o.numeroOT === inc.workOrderId);
+      if (isOtIncluded) return true;
+    }
+
+    // 2. Si la campagne est active ("En cours"), inclure tous les incidents de l'année
+    if (currentCampaignObj?.status === 'En cours' || (currentCampaignObj as any)?.etat === 2) {
+      if (campYear && inc.reportedDate) {
+        return inc.reportedDate.startsWith(campYear);
+      }
+      return true;
+    }
+
+    // 3. Match par plage de dates pour les campagnes archivées
     if (currentCampaignObj?.startDate && currentCampaignObj?.endDate && inc.reportedDate) {
       const incDay = inc.reportedDate.split('T')[0];
       const startDay = currentCampaignObj.startDate.split('T')[0];
       const endDay = currentCampaignObj.endDate.split('T')[0];
-      return incDay >= startDay && incDay <= endDay;
+      if (incDay >= startDay && incDay <= endDay) return true;
     }
 
-    // 2. Fallback par correspondance d'année si pas de dates précises
+    // 4. Fallback par correspondance d'année
     if (campYear && inc.reportedDate) {
       return inc.reportedDate.startsWith(campYear);
+    }
+
+    if (!currentCampaignObj) {
+      return true;
     }
 
     return false;
