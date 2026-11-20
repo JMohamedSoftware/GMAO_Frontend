@@ -190,9 +190,53 @@ export const patchWorkOrderStatusApi = async (
     ? parseInt(merged.chefEquipeId, 10)
     : (merged.assignedBy ? parseInt(merged.assignedBy, 10) : 1);
 
-  const numericId = /^\d+$/.test(String(id)) ? parseInt(id, 10) : NaN;
+  let numericId = /^\d+$/.test(String(id)) ? parseInt(id, 10) : NaN;
   if (isNaN(numericId)) {
-    throw new Error(`OT ${id} n'est pas encore synchronisé avec le serveur (id non numérique).`);
+    // 1. Tenter de résoudre le vrai ID numérique via le numeroOT sur le serveur (ex: OT-2026-3)
+    try {
+      const serverOts = await apiClient.get('/api/OrdresTravail');
+      const found = (serverOts.data || []).find((o: any) => 
+        String(o.numeroOT).toLowerCase() === String(id).toLowerCase() || 
+        String(o.id) === String(id) ||
+        (fullOt.numeroOT && String(o.numeroOT).toLowerCase() === String(fullOt.numeroOT).toLowerCase())
+      );
+      if (found && found.id) {
+        numericId = parseInt(String(found.id), 10);
+      }
+    } catch (e) {
+      console.warn('Impossible de requêter /api/OrdresTravail pour résoudre le numeroOT:', e);
+    }
+  }
+
+  // 2. Si toujours non numérique, l'OT n'existe pas encore en base : le synchroniser maintenant via POST
+  if (isNaN(numericId)) {
+    try {
+      const toIntLocal = (v: any) => {
+        const n = parseInt(v, 10);
+        return isNaN(n) ? null : n;
+      };
+      const created = await createWorkOrderApi({
+        title: merged.title || merged.description || 'Ordre de Travail',
+        description: merged.description || '',
+        equipmentId: merged.equipmentId,
+        type: merged.type,
+        priority: merged.priority,
+        technicianId: merged.technicianId,
+        incidentId: merged.incidentId,
+        responsableId: toIntLocal(responsableId) ?? 1,
+        campagneId: merged.campagneId
+      });
+      if (created.id && /^\d+$/.test(created.id)) {
+        numericId = parseInt(created.id, 10);
+      }
+    } catch (createErr: any) {
+      console.error('Échec de création/synchronisation de l’OT sur le serveur:', createErr);
+      throw new Error(`OT ${id} non synchronisé: ${createErr.message || 'Erreur serveur'}`);
+    }
+  }
+
+  if (isNaN(numericId)) {
+    throw new Error(`OT ${id} n'a pas pu être résolu sur le serveur.`);
   }
 
   const toInt = (v: any) => {

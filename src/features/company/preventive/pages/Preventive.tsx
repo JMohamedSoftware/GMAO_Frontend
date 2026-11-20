@@ -329,8 +329,10 @@ export const Preventive: React.FC<PreventiveProps> = ({
                   try {
                     await reschedule(confirmRescheduleData.planId, confirmRescheduleData.dateStr);
                     showToast(`📅 Plan replanifié au ${confirmRescheduleData.dateStr}`, 'success');
-                  } catch {
-                    showToast('Erreur lors de la replanification', 'error');
+                  } catch (err: any) {
+                    console.error('Erreur lors de la replanification:', err);
+                    const msg = err?.response?.data?.message || err?.message || 'Erreur lors de la replanification';
+                    showToast(msg, 'error');
                   }
                   setConfirmRescheduleData(null);
                 }}

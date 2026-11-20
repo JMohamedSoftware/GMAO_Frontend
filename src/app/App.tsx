@@ -17,7 +17,7 @@ import { Login } from '@/features/auth/pages/Login';
 import { AppRoutes } from '@/routes';
 
 function AppContent() {
-  const { currentUser, equipments, impersonatedTenantId } = useGmao();
+  const { currentUser, equipments, incidents, impersonatedTenantId } = useGmao();
   const dispatch = useAppDispatch();
   const tenants = useAppSelector(s => s.gmao.tenants);
 
@@ -129,6 +129,13 @@ function AppContent() {
       const otId = target.split(':')[1];
       setSelectedOtFromUrl(otId);
       setCurrentScreen('workorders');
+    } else if (target.startsWith('workorder-with-incident:')) {
+      const incId = target.split(':')[1];
+      const inc = incidents.find(i => String(i.id) === String(incId));
+      if (inc) {
+        setPrefilledIncident(inc);
+      }
+      setCurrentScreen('workorders');
     } else if (target.startsWith('incident-detail:')) {
       setCurrentScreen('corrective');
     } else if (target.startsWith('stock-detail:') || target.startsWith('inventory')) {
@@ -179,6 +186,10 @@ function AppContent() {
         onClearSelectedOt={() => setSelectedOtFromUrl(null)}
         prefilledIncident={prefilledIncident}
         onClearPrefilledIncident={() => setPrefilledIncident(null)}
+        onSelectIncidentForOt={(inc) => {
+          setPrefilledIncident(inc);
+          setCurrentScreen('workorders');
+        }}
         newWorkOrderEqId={newWorkOrderEqId}
         newPreventivePlanEqId={newPreventivePlanEqId}
         onClearNewPlanEquipmentId={() => setNewPreventivePlanEqId(null)}

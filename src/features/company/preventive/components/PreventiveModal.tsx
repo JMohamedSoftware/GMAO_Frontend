@@ -108,10 +108,30 @@ export const PreventiveModal: React.FC<PreventiveModalProps> = ({
     else if (typeDeclenchement === 3) setUniteMesure(saison);
   }, [typeDeclenchement, saison]);
 
-  // Auto-compute prochaine date when derniereDate or frequence changes
+  // Auto-compute prochaine date when derniereDate, type or frequence changes
   useEffect(() => {
-    if (!derniereDate || !frequence) return;
+    if (!derniereDate) return;
     const base = new Date(derniereDate);
+    if (isNaN(base.getTime())) return;
+
+    if (typeDeclenchement === 3) {
+      // Saisonnier : calculer la date de la saison cible (au moins 3 mois plus tard, pas le lendemain)
+      const year = base.getFullYear();
+      let seasonMonth = 11; // Hiver par défaut (Décembre)
+      if (saison === 'Printemps') seasonMonth = 2; // Mars
+      else if (saison === 'Été') seasonMonth = 5; // Juin
+      else if (saison === 'Automne') seasonMonth = 8; // Septembre
+      else if (saison === 'Hiver') seasonMonth = 11; // Décembre
+
+      let targetDate = new Date(year, seasonMonth, 21);
+      if (targetDate <= base) {
+        targetDate = new Date(year + 1, seasonMonth, 21);
+      }
+      setProchaineDate(targetDate.toISOString().split('T')[0]);
+      return;
+    }
+
+    if (!frequence) return;
     if (uniteMesure === 'jours')    base.setDate(base.getDate() + frequence);
     else if (uniteMesure === 'semaines') base.setDate(base.getDate() + frequence * 7);
     else if (uniteMesure === 'mois')  base.setMonth(base.getMonth() + frequence);
@@ -120,7 +140,7 @@ export const PreventiveModal: React.FC<PreventiveModalProps> = ({
       base.setDate(base.getDate() + jours);
     } else return;
     setProchaineDate(base.toISOString().split('T')[0]);
-  }, [derniereDate, frequence, uniteMesure]);
+  }, [derniereDate, frequence, uniteMesure, typeDeclenchement, saison]);
 
   // Validation
   const validate = () => {

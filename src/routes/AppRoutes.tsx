@@ -47,6 +47,7 @@ export interface AppRoutesProps {
   onClearSelectedOt: () => void;
   prefilledIncident: IncType | null;
   onClearPrefilledIncident: () => void;
+  onSelectIncidentForOt?: (inc: IncType) => void;
   newWorkOrderEqId: string | null;
   newPreventivePlanEqId: string | null;
   onClearNewPlanEquipmentId: () => void;
@@ -63,6 +64,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
   onClearSelectedOt,
   prefilledIncident,
   onClearPrefilledIncident,
+  onSelectIncidentForOt,
   newWorkOrderEqId,
   newPreventivePlanEqId,
   onClearNewPlanEquipmentId,
@@ -109,8 +111,12 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
         <AccessGuard permission={PERMISSIONS.INCIDENT_VIEW}>
           <Corrective 
             onNavigate={onNavigate}
-            onOpenCreateOtWithIncident={(_inc) => {
-              onNavigate('workorders');
+            onOpenCreateOtWithIncident={(inc) => {
+              if (onSelectIncidentForOt) {
+                onSelectIncidentForOt(inc);
+              } else {
+                onNavigate(`workorder-with-incident:${inc.id}`);
+              }
             }}
           />
         </AccessGuard>

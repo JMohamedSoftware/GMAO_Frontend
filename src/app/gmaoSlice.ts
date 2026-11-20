@@ -783,6 +783,24 @@ export const gmaoSlice = createSlice({
         tenant.equipes = action.payload.equipes || [];
         if (action.payload.movements) tenant.movementLogs = action.payload.movements;
 
+        // Auto-link work orders with incidents so incidents know their real OT
+        const woByIncidentId = new Map<string, WorkOrder>();
+        (tenant.workOrders || []).forEach(wo => {
+          if (wo.incidentId) {
+            woByIncidentId.set(String(wo.incidentId), wo);
+          }
+        });
+        (tenant.incidents || []).forEach(inc => {
+          const wo = woByIncidentId.get(String(inc.id));
+          if (wo) {
+            inc.workOrderId = String(wo.id);
+            (inc as any).workOrderNumero = wo.numeroOT;
+            if (inc.status === 'Nouveau' || inc.status === 'Validé') {
+              inc.status = 'Transformé en OT';
+            }
+          }
+        });
+
         // Sélection dynamique de la campagne en cours si non définie
         if (!state.selectedCampaign && tenant.campaigns.length > 0) {
           const activeCamp = tenant.campaigns.find(c => c.status === 'En cours') || tenant.campaigns[0];

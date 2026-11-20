@@ -2,21 +2,8 @@
 // src/features/company/preventive/api/preventive.api.ts
 // ================================================
 
-import axios from 'axios';
+import { apiClient } from '@/shared/services/apiClient';
 import type { PlanPreventif, CreatePlanDto, GenererOTResponse, TachePreventive } from '../types/preventive.types';
-
-const rawUrl = import.meta.env.VITE_API_URL || 'https://gmao-backend-a6r2.onrender.com';
-const API_BASE = rawUrl.replace(/\/api\/?$/, '') + '/api';
-
-const getHeaders = () => {
-  const token = localStorage.getItem('gmao_access_token');
-  return {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-  };
-};
 
 // ── Mapper ────────────────────────────────────────────────────────────────────
 
@@ -42,6 +29,12 @@ const mapPlan = (p: any): PlanPreventif => ({
   })),
 });
 
+const toUtcIso = (d: string | null | undefined): string | null => {
+  if (!d) return null;
+  const dateObj = new Date(d);
+  return isNaN(dateObj.getTime()) ? null : dateObj.toISOString();
+};
+
 const toRequestBody = (dto: CreatePlanDto) => ({
   equipementId:      dto.equipementId,
   titre:             dto.titre,
@@ -49,8 +42,8 @@ const toRequestBody = (dto: CreatePlanDto) => ({
   typeDeclenchement: dto.typeDeclenchement,
   frequence:         dto.frequence,
   uniteMesure:       dto.uniteMesure,
-  derniereDate:      dto.derniereDate  ? new Date(dto.derniereDate).toISOString()  : null,
-  prochaineDate:     dto.prochaineDate ? new Date(dto.prochaineDate).toISOString() : null,
+  derniereDate:      toUtcIso(dto.derniereDate),
+  prochaineDate:     toUtcIso(dto.prochaineDate),
   taches: (dto.taches || []).map(t => ({
     description:         t.description,
     dureeEstimeeMinutes: t.dureeEstimeeMinutes ?? null,
@@ -62,44 +55,44 @@ const toRequestBody = (dto: CreatePlanDto) => ({
 
 /** GET /api/PlansPreventif — returns all active plans */
 export const getPlansPreventifs = async (): Promise<PlanPreventif[]> => {
-  const res = await axios.get(`${API_BASE}/PlansPreventif`, getHeaders());
+  const res = await apiClient.get('/api/PlansPreventif');
   return (res.data as any[]).map(mapPlan);
 };
 
 /** GET /api/PlansPreventif/:id */
 export const getPlanPreventifById = async (id: number): Promise<PlanPreventif> => {
-  const res = await axios.get(`${API_BASE}/PlansPreventif/${id}`, getHeaders());
+  const res = await apiClient.get(`/api/PlansPreventif/${id}`);
   return mapPlan(res.data);
 };
 
 /** POST /api/PlansPreventif */
 export const createPlan = async (dto: CreatePlanDto): Promise<PlanPreventif> => {
-  const res = await axios.post(`${API_BASE}/PlansPreventif`, toRequestBody(dto), getHeaders());
+  const res = await apiClient.post('/api/PlansPreventif', toRequestBody(dto));
   // Backend returns { id } — refetch the full plan
   return getPlanPreventifById(res.data.id);
 };
 
 /** PUT /api/PlansPreventif/:id */
 export const updatePlan = async (id: number, dto: CreatePlanDto): Promise<void> => {
-  await axios.put(`${API_BASE}/PlansPreventif/${id}`, toRequestBody(dto), getHeaders());
+  await apiClient.put(`/api/PlansPreventif/${id}`, toRequestBody(dto));
 };
 
 /** DELETE /api/PlansPreventif/:id (soft delete — sets actif=false) */
 export const deletePlan = async (id: number): Promise<void> => {
-  await axios.delete(`${API_BASE}/PlansPreventif/${id}`, getHeaders());
+  await apiClient.delete(`/api/PlansPreventif/${id}`);
 };
 
 /** POST /api/PlansPreventif/:id/generer-ot */
 export const genererOT = async (planId: number): Promise<GenererOTResponse> => {
-  const res = await axios.post(`${API_BASE}/PlansPreventif/${planId}/generer-ot`, {}, getHeaders());
+  const res = await apiClient.post(`/api/PlansPreventif/${planId}/generer-ot`, {});
   return res.data as GenererOTResponse;
 };
 
 /** PUT /api/PlansPreventif/:id/replanifier */
 export const replanifier = async (planId: number, nouvelleDate: string): Promise<void> => {
-  await axios.put(
-    `${API_BASE}/PlansPreventif/${planId}/replanifier`,
-    { nouvelleDate: new Date(nouvelleDate).toISOString() },
-    getHeaders(),
+  const isoDate = toUtcIso(nouvelleDate) || new Date().toISOString();
+  await apiClient.put(
+    `/api/PlansPreventif/${planId}/replanifier`,
+    { nouvelleDate: isoDate }
   );
 };
