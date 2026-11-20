@@ -42,6 +42,7 @@ export const Admin: React.FC = () => {
             email: u.email,
             role: u.role?.nom || 'Technicien',
             department: 'Général',
+            phone: u.telephone || '',
             status: u.isActive ? 'Actif' : 'Inactif',
             avatar: u.avatar || 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=150&auto=format&fit=crop&q=80',
             lastActive: 'À l\'instant',
@@ -160,10 +161,11 @@ export const Admin: React.FC = () => {
       await usersApi.updateUser(editingUser.id ?? '', {
         nom,
         prenom,
-        email: editingUser.email,
-        telephone: editingUser.phone || '',
+        email: editingUser.email?.trim(),
+        telephone: (editingUser.phone && !editingUser.phone.includes('@') ? editingUser.phone : ''),
         roleId: roleMapping[editingUser.role] || undefined,
         isActive: editingUser.status === 'Actif',
+        password: editingUser.password?.trim() || undefined,
       });
 
       // Refresh list

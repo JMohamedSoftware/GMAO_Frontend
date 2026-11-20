@@ -242,45 +242,45 @@ export const fetchBootstrapDataApi = async (): Promise<{
       else if (w.statut === 6) mappedStatus = 'Clôturé';
 
       let mappedType: WorkOrder['type'] = 'Correctif';
-      if (w.type === 2) mappedType = 'Préventif';
-      else if (w.type === 3) mappedType = 'Prédictif';
-      else if (w.type === 4) mappedType = 'Amélioratif';
+      if (w.typeMaintenance === 2 || w.type === 2) mappedType = 'Préventif';
+      else if (w.typeMaintenance === 3 || w.type === 3) mappedType = 'Prédictif';
+      else if (w.typeMaintenance === 4 || w.type === 4) mappedType = 'Amélioratif';
 
       let mappedPriority: WorkOrder['priority'] = 'Moyenne';
       if (w.priorite === 1) mappedPriority = 'Faible';
       else if (w.priorite === 3) mappedPriority = 'Haute';
       else if (w.priorite === 4) mappedPriority = 'Critique';
 
+      const chefEquipeIdResolved = (w.statut === 7 && w.responsableId)
+        ? w.responsableId.toString()
+        : (w.chefEquipeId ? w.chefEquipeId.toString() : (w.responsableId ? w.responsableId.toString() : undefined));
+
       return {
-        id: w.numeroOT || `OT-${w.id}`,
+        id: w.id ? w.id.toString() : (w.numeroOT || `OT-${w.id}`),
+        numeroOT: w.numeroOT || `OT-${w.id}`,
         dbId: w.id,
-        incidentId: w.demandeId?.toString() || undefined,
+        incidentId: w.demandeId != null ? w.demandeId.toString() : undefined,
         equipmentId: w.equipementId?.toString() || '',
         type: mappedType,
-        title: w.titre || w.description?.substring(0, 30) || 'Intervention',
-        description: w.description || '',
+        title: w.titre || w.description || w.numeroOT || `OT-${w.id}`,
+        description: w.instructions || w.description || '',
         priority: mappedPriority,
         status: mappedStatus,
-        assignedTechnicianId: w.technicienId?.toString() || undefined,
+        technicianId: w.technicienId ? w.technicienId.toString() : undefined,
+        assignedTechnicianId: w.technicienId ? w.technicienId.toString() : undefined,
         responsableId: w.responsableId,
-        createdDate: w.dateCreation,
-        scheduledDate: w.dateDebutPrevue || undefined,
-        closedDate: w.dateFinReelle || undefined,
-        estimatedDuration: w.tempsEstimeHeures || 1,
-        actualDuration: w.tempsPasseHeures || undefined,
-        partsUsed: [],
+        assignedBy: w.statut !== 7 ? (w.responsableId ? w.responsableId.toString() : '') : '',
+        chefEquipeId: chefEquipeIdResolved,
+        createdDate: w.dateCreation || new Date().toISOString(),
+        startDate: w.dateDebutReelle || w.dateDebutPrevue || undefined,
+        endDate: w.dateFinReelle || w.dateFinPrevue || undefined,
+        durationMinutes: w.durationMinutes || (w.tempsEstimeHeures ? w.tempsEstimeHeures * 60 : 120),
         diagnostic: w.diagnostic || undefined,
         solution: w.solution || undefined,
-        cost: w.coutTotal || 0,
-        campagneId: w.campagneId,
-        campagne: w.campagne ? {
-          id: w.campagne.id,
-          nom: w.campagne.nom,
-          annee: w.campagne.annee,
-          dateDebut: w.campagne.dateDebut,
-          dateFin: w.campagne.dateFin,
-          etat: w.campagne.etat
-        } : undefined
+        partsUsed: [],
+        externalCost: w.coutSousTraitance || 0,
+        campaign: w.campagne?.nom || w.campagneNom || '',
+        campagneId: w.campagneId || undefined
       };
     });
 

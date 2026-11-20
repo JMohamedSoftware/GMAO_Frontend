@@ -81,6 +81,7 @@ export interface WorkOrder {
   endDate?: string;
   technicianId?: string;
   chefEquipeId?: string;   // Chef d'équipe assigned by Responsable (step 1)
+  responsableId?: number | string;
   assignedBy: string;
   durationMinutes: number;
   diagnostic?: string;

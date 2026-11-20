@@ -181,9 +181,10 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1.5">
-                  <label className="font-bold text-slate-500 dark:text-slate-400">Nom Complet</label>
+                  <label className="font-bold text-slate-500 dark:text-slate-400">Nom Complet <span className="text-rose-500">*</span></label>
                   <input
                     type="text"
+                    required
                     value={editingUser.name || ''}
                     onChange={(e) => setEditingUser({...editingUser, name: e.target.value})}
                     className="p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:border-primary"
@@ -199,6 +200,18 @@ export const AdminModals: React.FC<AdminModalsProps> = ({
                     placeholder="+216 XX XXX XXX"
                   />
                 </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="font-bold text-slate-500 dark:text-slate-400">Adresse Email <span className="text-rose-500">*</span></label>
+                <input
+                  type="email"
+                  required
+                  value={editingUser.email || ''}
+                  onChange={(e) => setEditingUser({...editingUser, email: e.target.value})}
+                  className="p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:border-primary"
+                  placeholder="nom@entreprise.com"
+                />
               </div>
 
               <div className="flex flex-col gap-1.5">

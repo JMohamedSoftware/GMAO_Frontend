@@ -96,6 +96,7 @@ export const usersApi = {
     roleId?: number;
     isActive?: boolean;
     avatar?: string;
+    password?: string;
   }) => {
     const response = await apiClient.put(`/api/users/${id}`, payload);
     return response.data;

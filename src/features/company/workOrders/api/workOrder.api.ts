@@ -73,7 +73,9 @@ export const fetchWorkOrders = async (): Promise<WorkOrder[]> => {
       endDate: w.dateFinReelle || w.dateFinPrevue || undefined,
       technicianId: w.technicienId?.toString() || undefined,
       assignedBy: w.statut !== 7 ? (w.responsableId?.toString() || '') : '',
-      chefEquipeId: w.statut === 7 ? (w.responsableId?.toString() || undefined) : undefined,
+      chefEquipeId: (w.statut === 7 && w.responsableId)
+        ? w.responsableId.toString()
+        : (w.chefEquipeId ? w.chefEquipeId.toString() : (w.responsableId ? w.responsableId.toString() : undefined)),
       durationMinutes: w.durationMinutes || 120,
       diagnostic: w.diagnostic || undefined,
       solution: w.solution || undefined,
@@ -186,9 +188,9 @@ export const patchWorkOrderStatusApi = async (
     case 'Clôturé':       statutOt = 6; break;
   }
 
-  const responsableId = merged.status === 'Affecté Chef' && merged.chefEquipeId
+  const responsableId = merged.chefEquipeId
     ? parseInt(merged.chefEquipeId, 10)
-    : (merged.assignedBy ? parseInt(merged.assignedBy, 10) : 1);
+    : (merged.assignedBy ? parseInt(merged.assignedBy, 10) : ((merged as any).responsableId ? parseInt(String((merged as any).responsableId), 10) : 1));
 
   let numericId = /^\d+$/.test(String(id)) ? parseInt(id, 10) : NaN;
   if (isNaN(numericId)) {

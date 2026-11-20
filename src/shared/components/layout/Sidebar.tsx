@@ -52,6 +52,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate }) =
     impersonatedTenantId,
     impersonateTenant,
     equipes,
+    users,
     isCampaignClosed,
     campaignWorkOrders,
     campaignIncidents
@@ -108,11 +109,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate }) =
     if (isTechnicien) {
       if (String(ot.technicianId) !== String(myUserId)) return false;
     } else if (isChefEquipe) {
-      const myEquipe = equipes?.find(eq => String(eq.chefId) === String(myUserId));
-      const myTeamTechIds = myEquipe ? myEquipe.technicienIds.map(String) : [];
+      const myEquipes = (equipes || []).filter(eq => 
+        String(eq.chefId) === String(myUserId) ||
+        (auth.currentUser?.name && eq.chefId && users?.find(u => String(u.id) === String(eq.chefId))?.name === auth.currentUser.name)
+      );
+      const myTeamTechIds = myEquipes.flatMap(eq => (eq.technicienIds || []).map(String));
       const isAssignedToMeAsTech = String(ot.technicianId) === String(myUserId);
-      const isAssignedToMeAsChef = String(ot.chefEquipeId) === String(myUserId);
-      const isAssignedToMyTeam = ot.technicianId && myTeamTechIds.includes(String(ot.technicianId));
+      const isAssignedToMeAsChef = String(ot.chefEquipeId) === String(myUserId) || 
+                                   (ot.status === 'Affecté Chef' && String(ot.responsableId) === String(myUserId)) ||
+                                   (String(ot.responsableId) === String(myUserId) && myEquipes.length > 0) ||
+                                   (ot.chefEquipeId && myEquipes.some(eq => String(eq.chefId) === String(ot.chefEquipeId)));
+      const isAssignedToMyTeam = Boolean(ot.technicianId && myTeamTechIds.includes(String(ot.technicianId)));
       if (!isAssignedToMeAsTech && !isAssignedToMeAsChef && !isAssignedToMyTeam) return false;
     }
     return true;

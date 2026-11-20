@@ -45,6 +45,7 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
     parts, 
     currentUser,
     equipes,
+    users,
     campaigns,
     selectedCampaign,
     updateWorkOrderStatus,
@@ -121,11 +122,17 @@ export const WorkOrders: React.FC<WorkOrdersProps> = ({
       if (String(ot.technicianId) !== String(myUserId)) return false;
     } else if (isChefEquipe) {
       // Chef d'équipe sees OTs assigned to them or their team
-      const myEquipe = equipes.find(eq => String(eq.chefId) === String(myUserId));
-      const myTeamTechIds = myEquipe ? myEquipe.technicienIds.map(String) : [];
+      const myEquipes = (equipes || []).filter(eq => 
+        String(eq.chefId) === String(myUserId) ||
+        (authUser?.name && eq.chefId && users.find(u => String(u.id) === String(eq.chefId))?.name === authUser.name)
+      );
+      const myTeamTechIds = myEquipes.flatMap(eq => (eq.technicienIds || []).map(String));
       const isAssignedToMeAsTech = String(ot.technicianId) === String(myUserId);
-      const isAssignedToMeAsChef = String(ot.chefEquipeId) === String(myUserId);
-      const isAssignedToMyTeam = ot.technicianId && myTeamTechIds.includes(String(ot.technicianId));
+      const isAssignedToMeAsChef = String(ot.chefEquipeId) === String(myUserId) || 
+                                   (ot.status === 'Affecté Chef' && String(ot.responsableId) === String(myUserId)) ||
+                                   (String(ot.responsableId) === String(myUserId) && myEquipes.length > 0) ||
+                                   (ot.chefEquipeId && myEquipes.some(eq => String(eq.chefId) === String(ot.chefEquipeId)));
+      const isAssignedToMyTeam = Boolean(ot.technicianId && myTeamTechIds.includes(String(ot.technicianId)));
       if (!isAssignedToMeAsTech && !isAssignedToMeAsChef && !isAssignedToMyTeam) return false;
     }
     return true;
