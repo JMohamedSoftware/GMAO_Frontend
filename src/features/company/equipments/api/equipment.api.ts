@@ -111,28 +111,44 @@ export const fetchEquipments = async (): Promise<Equipment[]> => {
   }));
 };
 
+const sanitizeDate = (d?: string | null): string | null => {
+  if (!d || d === '-' || d.trim() === '' || d === 'null' || d === 'undefined') return null;
+  const match = d.match(/^\d{4}-\d{2}-\d{2}/);
+  return match ? match[0] : null;
+};
+
+const sanitizeInt = (v?: any): number | null => {
+  if (v === null || v === undefined || v === '' || v === '-' || v === 'null') return null;
+  const n = parseInt(v, 10);
+  return isNaN(n) ? null : n;
+};
+
 /**
  * Crée un nouvel équipement
  * POST /api/Equipement
  */
 export const createEquipmentApi = async (equipment: Partial<Equipment>): Promise<Equipment> => {
+  const catId = equipment.category ? resolveFamilleId(equipment.category) : 0;
+  const catNom = equipment.category?.trim() || 'Pompes';
   const entity = {
     code: equipment.id || equipment.code || `EQ-${Date.now()}`,
     designation: equipment.name || 'Nouvel Équipement',
     name: equipment.name,
-    familleId: resolveFamilleId(equipment.category), 
-    familleNom: equipment.category || 'Pompes',
-    category: equipment.category || 'Pompes',
-    localisationId: equipment.localisationId || 1,
+    familleId: catId > 0 ? catId : 1, 
+    familleNom: catNom,
+    category: catNom,
+    localisationId: sanitizeInt(equipment.localisationId) || 1,
     marque: equipment.brand || '',
     modele: equipment.model || '',
     numeroSerie: equipment.serialNumber || '',
-    dateAchat: equipment.purchaseDate ? equipment.purchaseDate.split('T')[0] : null,
-    dateMiseEnService: equipment.commissionDate ? equipment.commissionDate.split('T')[0] : new Date().toISOString().split('T')[0],
-    dateFinGarantie: equipment.endOfWarranty ? equipment.endOfWarranty.split('T')[0] : null,
-    criticite: mapCriticiteToInt(equipment.criticality || 'Moyenne'),
-    etat: mapEtatToInt(equipment.status || 'En service'),
-    fournisseurId: equipment.supplierId ? parseInt(equipment.supplierId, 10) : null,
+    dateAchat: sanitizeDate(equipment.purchaseDate),
+    dateMiseEnService: sanitizeDate(equipment.commissionDate) || new Date().toISOString().split('T')[0],
+    dateFinGarantie: sanitizeDate(equipment.endOfWarranty),
+    criticite: equipment.criticality || 'Moyenne',
+    criticality: equipment.criticality || 'Moyenne',
+    etat: equipment.status || 'En service',
+    status: equipment.status || 'En service',
+    fournisseurId: sanitizeInt(equipment.supplierId),
     photoUrl: equipment.photos?.[0] || '',
     notes: ''
   };
@@ -202,24 +218,27 @@ export const createEquipmentApi = async (equipment: Partial<Equipment>): Promise
  */
 export const updateEquipmentApi = async (equipmentId: string, equipment: Partial<Equipment>): Promise<void> => {
   const catId = equipment.category ? resolveFamilleId(equipment.category) : 0;
+  const catNom = equipment.category?.trim() || '';
 
   const entity: any = {
-    code: equipment.code || equipment.id || '',
+    code: equipment.code || equipment.id || equipmentId,
     designation: equipment.name || '',
     name: equipment.name,
-    category: equipment.category || '',
-    familleNom: equipment.category || '',
-    localisationId: equipment.localisationId,
-    marque: equipment.brand,
-    modele: equipment.model,
-    numeroSerie: equipment.serialNumber,
-    dateAchat: equipment.purchaseDate ? equipment.purchaseDate.split('T')[0] : null,
-    dateMiseEnService: equipment.commissionDate ? equipment.commissionDate.split('T')[0] : null,
-    dateFinGarantie: equipment.endOfWarranty ? equipment.endOfWarranty.split('T')[0] : null,
-    criticite: equipment.criticality ? mapCriticiteToInt(equipment.criticality) : undefined,
-    etat: equipment.status ? mapEtatToInt(equipment.status) : undefined, 
-    fournisseurId: equipment.supplierId ? parseInt(equipment.supplierId, 10) : null,
-    photoUrl: equipment.photos?.[0],
+    category: catNom,
+    familleNom: catNom,
+    localisationId: sanitizeInt(equipment.localisationId),
+    marque: equipment.brand || '',
+    modele: equipment.model || '',
+    numeroSerie: equipment.serialNumber || '',
+    dateAchat: sanitizeDate(equipment.purchaseDate),
+    dateMiseEnService: sanitizeDate(equipment.commissionDate),
+    dateFinGarantie: sanitizeDate(equipment.endOfWarranty),
+    criticite: equipment.criticality || 'Moyenne',
+    criticality: equipment.criticality || 'Moyenne',
+    etat: equipment.status || 'En service',
+    status: equipment.status || 'En service',
+    fournisseurId: sanitizeInt(equipment.supplierId),
+    photoUrl: equipment.photos?.[0] || '',
     notes: (equipment as any).notes || ''
   };
 
@@ -244,15 +263,19 @@ export const updateEquipmentStatusApi = async (equipmentId: string, newStatus: E
       code: dto.code || '',
       designation: dto.designation || '',
       familleId: dto.familleId || 1,
+      familleNom: dto.familleNom || '',
+      category: dto.familleNom || '',
       localisationId: dto.localisationId,
       marque: dto.marque,
       modele: dto.modele,
       numeroSerie: dto.numeroSerie,
-      dateAchat: dto.dateAchat,
-      dateMiseEnService: dto.dateMiseEnService,
-      dateFinGarantie: dto.dateFinGarantie,
-      criticite: mapCriticiteToInt(dto.criticite),
-      etat: mapEtatToInt(newStatus), 
+      dateAchat: sanitizeDate(dto.dateAchat),
+      dateMiseEnService: sanitizeDate(dto.dateMiseEnService),
+      dateFinGarantie: sanitizeDate(dto.dateFinGarantie),
+      criticite: dto.criticite || 'Moyenne',
+      criticality: dto.criticite || 'Moyenne',
+      etat: newStatus || 'En service', 
+      status: newStatus || 'En service',
       fournisseurId: dto.fournisseurId,
       photoUrl: dto.photoUrl,
       notes: dto.notes

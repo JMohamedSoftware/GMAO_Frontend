@@ -109,7 +109,7 @@ export const fetchTenantsAsync = createAsyncThunk<Tenant[], boolean | { force?: 
   },
   {
     condition: (arg) => {
-      const isForce = typeof arg === 'boolean' ? arg : !!arg?.force;
+      const isForce = typeof arg === 'boolean' ? arg : !!(arg as any)?.force;
       if (isForce) return true;
       if (activeTenantsPromise) return false;
       if (Date.now() - lastTenantsFetchTime < FETCH_COOLDOWN_MS) return false;
@@ -230,7 +230,7 @@ export const fetchTenantDataAsync = createAsyncThunk<
   },
   {
     condition: (arg) => {
-      const isForce = typeof arg === 'boolean' ? arg : !!arg?.force;
+      const isForce = typeof arg === 'boolean' ? arg : !!(arg as any)?.force;
       if (isForce) return true;
       if (activeTenantDataPromise) return false;
       if (Date.now() - lastTenantDataFetchTime < FETCH_COOLDOWN_MS) return false;

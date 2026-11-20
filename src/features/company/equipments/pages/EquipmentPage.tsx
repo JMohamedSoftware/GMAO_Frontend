@@ -167,7 +167,8 @@ export const Equipment: React.FC<EquipmentProps> = ({
       setIsEditing(false);
     } catch (e: any) {
       console.error(e);
-      alert('Erreur lors de l\'enregistrement: ' + (e.message || e.toString()));
+      const msg = e?.response?.data?.message || e?.response?.data?.title || e?.message || e?.toString();
+      alert('Erreur lors de l\'enregistrement: ' + msg);
     }
   };
 
