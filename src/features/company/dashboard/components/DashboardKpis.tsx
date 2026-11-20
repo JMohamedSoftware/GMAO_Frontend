@@ -22,6 +22,7 @@ interface DashboardKpisProps {
   canViewWorkOrders?: boolean;
   canViewIncidents?: boolean;
   canViewReports?: boolean;
+  isProduction?: boolean;
 }
 
 export const DashboardKpis: React.FC<DashboardKpisProps> = ({
@@ -32,12 +33,19 @@ export const DashboardKpis: React.FC<DashboardKpisProps> = ({
   canViewEquipments = true,
   canViewWorkOrders = true,
   canViewIncidents = true,
-  canViewReports = true
+  canViewReports = true,
+  isProduction = false
 }) => {
   const total = equipments.length;
+  const userPanneEqIds = new Set(incidents.map(i => i.equipmentId));
+  const enPanne = isProduction
+    ? (userPanneEqIds.size > 0 
+        ? equipments.filter(e => userPanneEqIds.has(e.id) && (e.status === 'En panne' || e.status === 'Hors service')).length
+        : incidents.filter(i => i.status !== 'Clos' && i.status !== 'Rejeté').length)
+    : equipments.filter(e => e.status === 'En panne' || e.status === 'Hors service').length;
+
   const enService = equipments.filter(e => e.status === 'En service').length;
   const enMaint = equipments.filter(e => e.status === 'En maintenance').length;
-  const enPanne = equipments.filter(e => e.status === 'En panne' || e.status === 'Hors service').length;
 
   const percentService = total > 0 ? Math.round((enService / total) * 100) : 0;
   const percentMaint = total > 0 ? Math.round((enMaint / total) * 100) : 0;

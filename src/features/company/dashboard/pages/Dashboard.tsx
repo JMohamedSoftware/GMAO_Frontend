@@ -115,6 +115,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
         canViewWorkOrders={canViewWorkOrders}
         canViewIncidents={canViewIncidents}
         canViewReports={canViewReports}
+        isProduction={isProduction}
       />
 
       {/* 4. Main Body: Supervision (Image 2) or Factory Map (Image 3 & 4) */}

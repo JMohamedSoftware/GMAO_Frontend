@@ -58,7 +58,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate }) =
     campaignIncidents
   } = useGmao();
 
-  const { can, isTechnicien, isChefEquipe } = usePermissions();
+  const { can, isTechnicien, isChefEquipe, isProduction } = usePermissions();
   const auth = useAuth();
   const myUserId = auth.currentUser?.id ?? currentUser?.id;
 
@@ -101,8 +101,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate }) =
     { id: 'saas-settings', label: 'Paramètres', icon: Settings }
   ];
 
-  // Calculate alerts to display (strictly scoped to the active/selected campaign)
-  const activeAlerts = campaignIncidents.filter(i => i.status !== 'Transformé en OT' && i.status !== 'Rejeté').length;
+  // Calculate alerts to display strictly scoped to the user's scope
+  const myIncidents = campaignIncidents.filter(inc => {
+    if (isProduction) {
+      const myId = myUserId ? String(myUserId) : (currentUser?.id ? String(currentUser.id) : '');
+      const myName = auth.currentUser?.name ? auth.currentUser.name.toLowerCase() : (currentUser?.name ? currentUser.name.toLowerCase() : '');
+      const isMyDeclaration = (myId && String(inc.reportedBy) === myId) || 
+                              (myName && String(inc.reportedBy).toLowerCase().includes(myName));
+      if (!isMyDeclaration) return false;
+    } else if (isTechnicien) {
+      const myId = myUserId ? String(myUserId) : '';
+      const isMyDeclaration = myId && String(inc.reportedBy) === myId;
+      const isMyAssigned = myId && String(inc.technicianId) === myId;
+      if (!isMyDeclaration && !isMyAssigned) return false;
+    }
+    return true;
+  });
+
+  const activeAlerts = myIncidents.filter(i => i.status !== 'Transformé en OT' && i.status !== 'Rejeté').length;
   
   // Base visibility filter based on user role (for OT badge, scoped to campaign)
   const myOts = campaignWorkOrders.filter(ot => {
