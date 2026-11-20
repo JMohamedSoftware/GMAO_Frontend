@@ -3,6 +3,7 @@ import { useGmao } from '@/shared/hooks/useGmao';
 import { Incident } from '@/shared/types/gmao';
 import { otDisplayNum } from '@/shared/utils/displayNumbers';
 import { usePermissions } from '@/shared/hooks/usePermissions';
+import { PERMISSIONS } from '@/shared/permissions';
 import { Plus, Search, RefreshCw, Lock } from 'lucide-react';
 
 import { IncidentList } from '../components/IncidentList';
@@ -70,11 +71,19 @@ export const Corrective: React.FC<CorrectiveProps> = ({ onNavigate, onOpenCreate
       : inc;
   });
 
-  // Filter incidents based on search query and role
+  // Filter incidents based on search query and role permissions
   const filteredIncidents = enrichedIncidents.filter(inc => {
-    // Production/Technicien voient uniquement leurs propres déclarations
-    if (isProduction || isTechnicien) {
-      if (currentUser && !inc.reportedBy.includes(currentUser.name) && inc.reportedBy !== currentUser.id?.toString()) return false;
+    // Si l'utilisateur a la permission de voir les incidents (canView), il a accès à la liste.
+    // Pour un technicien simple sans droit de supervision globale, filtrer sur ses interventions ou déclarations.
+    if (isTechnicien && !can(PERMISSIONS.INCIDENT_VALIDATE)) {
+      const isMyDeclaration = currentUser && (
+        inc.reportedBy === currentUser.id?.toString() || 
+        inc.reportedBy.includes(currentUser.name)
+      );
+      const isMyAssigned = currentUser && (
+        inc.technicianId === currentUser.id?.toString()
+      );
+      if (!isMyDeclaration && !isMyAssigned) return false;
     }
 
     const eq = equipments.find(e => e.id === inc.equipmentId);
