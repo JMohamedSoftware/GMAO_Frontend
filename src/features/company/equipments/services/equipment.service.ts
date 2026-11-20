@@ -65,13 +65,14 @@ export const equipmentService = {
   },
 
   create: async (equipment: Partial<Equipment>): Promise<Equipment> => {
+    const catId = resolveFamilleId(equipment.category);
     const dto = {
       code: equipment.code || equipment.id || `EQ-${Date.now()}`,
       designation: equipment.name,
       name: equipment.name,
-      familleId: resolveFamilleId(equipment.category),
-      familleNom: equipment.category || 'Pompes',
-      category: equipment.category || 'Pompes',
+      familleId: catId > 0 ? catId : undefined,
+      familleNom: equipment.category || '',
+      category: equipment.category || '',
       localisationId: equipment.localisationId || 1,
       marque: equipment.brand,
       modele: equipment.model,
@@ -85,9 +86,10 @@ export const equipmentService = {
   },
 
   update: async (id: string, equipment: Partial<Equipment>): Promise<void> => {
+    const catId = equipment.category ? resolveFamilleId(equipment.category) : 0;
     const payload = {
       ...equipment,
-      familleId: equipment.category ? resolveFamilleId(equipment.category) : undefined,
+      familleId: catId > 0 ? catId : undefined,
       familleNom: equipment.category,
       category: equipment.category
     };

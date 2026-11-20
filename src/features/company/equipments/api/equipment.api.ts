@@ -54,7 +54,7 @@ export const mapEtatToInt = (e: any): number => {
 };
 
 export const resolveFamilleId = (cat?: string): number => {
-  if (!cat) return 1;
+  if (!cat) return 0;
   const c = cat.toLowerCase().trim();
   if (c.includes('chaud') || c.includes('chod')) return 2; // Chaudières
   if (c.includes('pomp')) return 1; // Pompes
@@ -64,7 +64,7 @@ export const resolveFamilleId = (cat?: string): number => {
   if (c.includes('frigo') || c.includes('refrig') || c.includes('réfrig')) return 6; // Réfrigération
   if (c.includes('steril') || c.includes('stéril') || c.includes('autoclave')) return 7; // Stérilisateurs
   if (c.includes('rempliss') || c.includes('dos')) return 8; // Remplisseuses
-  return 1;
+  return 0; // 0 signifie résolution dynamique côté backend
 };
 
 /**
@@ -201,37 +201,33 @@ export const createEquipmentApi = async (equipment: Partial<Equipment>): Promise
  * PUT /api/Equipement/{id}
  */
 export const updateEquipmentApi = async (equipmentId: string, equipment: Partial<Equipment>): Promise<void> => {
-  try {
-    const res = await apiClient.get(`/api/Equipement/${equipmentId}`);
-    const dto = res.data;
+  const catId = equipment.category ? resolveFamilleId(equipment.category) : 0;
 
-    const entity = {
-      id: dto.id,
-      societeId: dto.societeId,
-      code: equipment.id || dto.code || '',
-      designation: equipment.name || dto.designation || '',
-      name: equipment.name,
-      familleId: equipment.category ? resolveFamilleId(equipment.category) : (dto.familleId || 1),
-      familleNom: equipment.category || dto.familleNom || '',
-      category: equipment.category || dto.familleNom || '',
-      localisationId: equipment.localisationId || dto.localisationId,
-      marque: equipment.brand !== undefined ? equipment.brand : dto.marque,
-      modele: equipment.model !== undefined ? equipment.model : dto.modele,
-      numeroSerie: equipment.serialNumber !== undefined ? equipment.serialNumber : dto.numeroSerie,
-      dateAchat: equipment.purchaseDate !== undefined ? (equipment.purchaseDate ? equipment.purchaseDate.split('T')[0] : null) : dto.dateAchat,
-      dateMiseEnService: equipment.commissionDate !== undefined ? (equipment.commissionDate ? equipment.commissionDate.split('T')[0] : null) : dto.dateMiseEnService,
-      dateFinGarantie: equipment.endOfWarranty !== undefined ? (equipment.endOfWarranty ? equipment.endOfWarranty.split('T')[0] : null) : dto.dateFinGarantie,
-      criticite: equipment.criticality ? mapCriticiteToInt(equipment.criticality) : mapCriticiteToInt(dto.criticite),
-      etat: equipment.status ? mapEtatToInt(equipment.status) : mapEtatToInt(dto.etat), 
-      fournisseurId: equipment.supplierId ? parseInt(equipment.supplierId, 10) : dto.fournisseurId,
-      photoUrl: equipment.photos?.[0] || dto.photoUrl,
-      notes: dto.notes
-    };
+  const entity: any = {
+    code: equipment.code || equipment.id || '',
+    designation: equipment.name || '',
+    name: equipment.name,
+    category: equipment.category || '',
+    familleNom: equipment.category || '',
+    localisationId: equipment.localisationId,
+    marque: equipment.brand,
+    modele: equipment.model,
+    numeroSerie: equipment.serialNumber,
+    dateAchat: equipment.purchaseDate ? equipment.purchaseDate.split('T')[0] : null,
+    dateMiseEnService: equipment.commissionDate ? equipment.commissionDate.split('T')[0] : null,
+    dateFinGarantie: equipment.endOfWarranty ? equipment.endOfWarranty.split('T')[0] : null,
+    criticite: equipment.criticality ? mapCriticiteToInt(equipment.criticality) : undefined,
+    etat: equipment.status ? mapEtatToInt(equipment.status) : undefined, 
+    fournisseurId: equipment.supplierId ? parseInt(equipment.supplierId, 10) : null,
+    photoUrl: equipment.photos?.[0],
+    notes: (equipment as any).notes || ''
+  };
 
-    await apiClient.put(`/api/Equipement/${equipmentId}`, entity);
-  } catch (error: any) {
-    console.warn('API Error in updateEquipmentApi:', error.message);
+  if (catId > 0) {
+    entity.familleId = catId;
   }
+
+  await apiClient.put(`/api/Equipement/${equipmentId}`, entity);
 };
 
 /**

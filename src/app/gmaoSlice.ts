@@ -957,11 +957,16 @@ export const gmaoSlice = createSlice({
     });
 
     builder.addCase(updateEquipmentAsync.fulfilled, (state, action) => {
-      const tenant = state.tenants.find(t => t.id === state.currentTenantId);
+      const activeTenantId = state.impersonatedTenantId || state.currentTenantId;
+      const tenant = state.tenants.find(t => t.id === activeTenantId) || state.tenants[0];
       if (tenant) {
         const idx = tenant.equipments.findIndex(e => e.id === action.payload.id);
         if (idx !== -1) {
-          tenant.equipments[idx] = { ...tenant.equipments[idx], ...action.payload.updates };
+          const updates = { ...action.payload.updates };
+          if (updates.category && !updates.subFamily) {
+            updates.subFamily = updates.category;
+          }
+          tenant.equipments[idx] = { ...tenant.equipments[idx], ...updates };
         }
       }
     });
