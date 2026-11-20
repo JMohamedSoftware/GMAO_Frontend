@@ -439,11 +439,14 @@ export const superAdminApi = {
   getCampaigns: (fallback?: any[]) =>
     safeApiCall<any[]>('/superadmin/campaigns', undefined, fallback),
 
-  // 12. Redo Logs & Rollback
-  getRedoLogs: (params?: { societeId?: number; entityType?: string }, fallback?: any[]) => {
+  // 12. Redo Logs & Rollback (PostgreSQL WAL & CDC Engine)
+  getRedoLogs: (params?: { societeId?: number; campagneNom?: string; authorName?: string; actionType?: string; entityType?: string }, fallback?: any[]) => {
     const searchParams = new URLSearchParams();
     if (params?.societeId) searchParams.set('societeId', String(params.societeId));
-    if (params?.entityType) searchParams.set('entityType', params.entityType);
+    if (params?.campagneNom && params.campagneNom !== 'ALL') searchParams.set('campagneNom', params.campagneNom);
+    if (params?.authorName && params.authorName !== 'ALL') searchParams.set('authorName', params.authorName);
+    if (params?.actionType && params.actionType !== 'ALL') searchParams.set('actionType', params.actionType);
+    if (params?.entityType && params.entityType !== 'ALL') searchParams.set('entityType', params.entityType);
     const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
     return safeApiCall<any[]>(`/superadmin/redologs${query}`, undefined, fallback);
   },
@@ -451,6 +454,13 @@ export const superAdminApi = {
   rollbackRedoLog: (id: string) =>
     safeApiCall<{ success: boolean; message: string; rolledBackId?: string }>(`/superadmin/redologs/${id}/rollback`, {
       method: 'POST'
+    }),
+
+  // 13. Ajustement Quotas & Limites Cloud
+  updateTenantLimits: (tenantId: number, limits: { maxSites?: number; maxUsers?: number; maxEquipements?: number; maxStorageGb?: number; addedCredits?: number }) =>
+    safeApiCall<{ success: boolean; message: string; tenant: any }>(`/superadmin/tenants/${tenantId}/limits`, {
+      method: 'PUT',
+      body: JSON.stringify(limits)
     }),
 
   // Seeding

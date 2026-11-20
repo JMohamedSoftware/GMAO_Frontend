@@ -26,13 +26,16 @@ import {
   X,
   TrendingUp,
   Server,
-  Database
+  Database,
+  ShieldCheck
 } from 'lucide-react';
 import tomateImg from '@/shared/assets/images/tomate.jpg';
 
 export interface MonitoringTenant {
   id: string;
+  rawId: number;
   name: string;
+  codeTenant: string;
   logo: string;
   category: string;
   plan: 'Professional' | 'Basic' | 'Enterprise';
@@ -45,13 +48,44 @@ export interface MonitoringTenant {
   equipmentsLimit: number;
   storageUsed: number; // in GB
   storageLimit: number; // in GB
+  allocatedCredits: number;
+  consumedCredits: number;
+  remainingCredits: number;
   devicesUsed?: number;
   devicesLimit?: number;
   dbRecordsCount?: number;
   apiCallsMonth?: number;
-  status: 'Actif' | 'En limite';
+  status: 'Actif' | 'En limite' | 'Surconsommation';
   email: string;
   contact: string;
+  telephone?: string;
+  adresse?: string;
+  subscriptionStartDate?: string;
+  subscriptionEndDate?: string;
+  subscriptionAmount?: number;
+  capacityTonsPerDay?: number;
+  sites: Array<{
+    id: number;
+    nom: string;
+    codeSite: string;
+    ville: string;
+    gouvernorat: string;
+    type: string;
+    statut: string;
+    capaciteProduction: string;
+    nombreEquipements: number;
+    nombreUtilisateurs: number;
+    responsable: string;
+  }>;
+  users: Array<{
+    id: number;
+    nom: string;
+    prenom: string;
+    email: string;
+    telephone?: string;
+    roleNom: string;
+    isActive: boolean;
+  }>;
   trend: {
     months: string[];
     users: number[];
@@ -166,6 +200,9 @@ export const SuperAdminMonitoring: React.FC<SuperAdminMonitoringProps> = ({ sele
     showToast('Exportation des métriques générée');
   };
 
+  const [usersChartMode, setUsersChartMode] = useState<'top7' | 'top10' | 'all'>('top7');
+  const [eqChartMode, setEqChartMode] = useState<'top7' | 'top10' | 'all'>('top7');
+  const [storageChartMode, setStorageChartMode] = useState<'top7' | 'top10' | 'all'>('top7');
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [liveServer, setLiveServer] = useState<any>(null);
 
@@ -177,36 +214,73 @@ export const SuperAdminMonitoring: React.FC<SuperAdminMonitoringProps> = ({ sele
         if (data.server) setLiveServer(data.server);
         if (data.tenants && data.tenants.length > 0) {
           const mapped: MonitoringTenant[] = data.tenants.map((rt: any) => {
-            const logo = rt.nom.toLowerCase().includes('tomate') ? '🍅' : (rt.nom.toLowerCase().includes('sicam') ? '🥫' : '🏭');
+            const sNom = rt.nom.toLowerCase();
+            const logo = sNom.includes('tomate') ? '🍅' : (sNom.includes('sicam') ? '🥫' : (sNom.includes('huil') ? '🫒' : (sNom.includes('boisson') || sNom.includes('sfbt') ? '🥤' : '🏭')));
+            const plan = (rt.subscriptionPlan === 'Enterprise' || rt.equipementsCount > 100) ? 'Enterprise' : ((rt.subscriptionPlan === 'Professional' || rt.equipementsCount > 20) ? 'Professional' : 'Basic');
+            const planBadge = plan === 'Enterprise'
+              ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300'
+              : (plan === 'Professional'
+                ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300'
+                : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300');
+
+            const sitesUsed = rt.sitesCount || (rt.sites ? rt.sites.length : 1);
+            const sitesLimit = rt.maxSites || 5;
+            const usersUsed = rt.usersCount || (rt.users ? rt.users.length : 1);
+            const usersLimit = rt.maxUsers || 20;
+            const equipmentsUsed = rt.equipementsCount || 5;
+            const equipmentsLimit = rt.maxEquipements || 50;
+            const storageUsed = Number((rt.storageUsedGb || 1.2).toFixed(1));
+            const storageLimit = Number((rt.maxStorageGb || 50).toFixed(0));
+
+            // Calcul Crédits Cloud alloués & consommés
+            const allocatedCredits = plan === 'Enterprise' ? 15000 : (plan === 'Professional' ? 6000 : 3000);
+            const consumedCredits = usersUsed * 50 + equipmentsUsed * 12 + Math.round(storageUsed * 20) + sitesUsed * 200;
+            const remainingCredits = Math.max(0, allocatedCredits - consumedCredits);
+
+            const isWarning = (storageUsed / storageLimit > 0.85) || (usersUsed / usersLimit > 0.9);
+            const isCritical = (storageUsed >= storageLimit) || (usersUsed >= usersLimit);
+            const status = isCritical ? 'Surconsommation' : (isWarning ? 'En limite' : 'Actif');
+
             return {
               id: `mon-${rt.id}`,
+              rawId: rt.id,
               name: rt.nom,
+              codeTenant: rt.codeTenant || `tenant-${rt.id}`,
               logo: logo,
-              category: 'Agroalimentaire & Transformation',
-              plan: (rt.equipementsCount > 100 ? 'Enterprise' : rt.equipementsCount > 20 ? 'Professional' : 'Basic') as any,
-              planBadgeColor: rt.equipementsCount > 100
-                ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
-                : 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300',
-              sitesUsed: 1,
-              sitesLimit: 5,
-              usersUsed: rt.usersCount || 1,
-              usersLimit: rt.maxUsers || 20,
-              equipmentsUsed: rt.equipementsCount || 5,
-              equipmentsLimit: rt.maxEquipements || 50,
-              storageUsed: rt.storageUsedGb || 1.2,
-              storageLimit: rt.maxStorageGb || 50,
-              devicesUsed: Math.max(3, Math.round((rt.equipementsCount || 10) * 0.12) + (rt.usersCount > 5 ? 4 : 1)),
-              devicesLimit: Math.max(15, Math.round((rt.maxEquipements || 50) * 0.15)),
-              dbRecordsCount: ((rt.equipementsCount || 0) * 28 + (rt.usersCount || 0) * 95 + Math.round((rt.storageUsedGb || 1) * 850) + 1240),
-              apiCallsMonth: Math.round((rt.usersCount || 1) * 3800 + (rt.equipementsCount || 1) * 450),
-              status: ((rt.storageUsedGb || 1) / (rt.maxStorageGb || 50)) > 0.85 ? 'En limite' : 'Actif',
-              email: `contact@${rt.codeTenant || 'usine'}.tn`,
-              contact: 'Direction Technique',
+              category: rt.category || 'Agroalimentaire & Transformation',
+              plan: plan as any,
+              planBadgeColor: planBadge,
+              sitesUsed,
+              sitesLimit,
+              usersUsed,
+              usersLimit,
+              equipmentsUsed,
+              equipmentsLimit,
+              storageUsed,
+              storageLimit,
+              allocatedCredits,
+              consumedCredits,
+              remainingCredits,
+              devicesUsed: Math.max(3, Math.round(equipmentsUsed * 0.12) + (usersUsed > 5 ? 4 : 1)),
+              devicesLimit: Math.max(15, Math.round(equipmentsLimit * 0.15)),
+              dbRecordsCount: (equipmentsUsed * 28 + usersUsed * 95 + Math.round(storageUsed * 850) + 1240),
+              apiCallsMonth: Math.round(usersUsed * 3800 + equipmentsUsed * 450),
+              status: status as any,
+              email: rt.emailContact || `contact@${rt.codeTenant || 'usine'}.tn`,
+              contact: rt.managerNom || 'Direction Technique',
+              telephone: rt.telephone || '+216 71 000 000',
+              adresse: rt.adresse ? `${rt.adresse}, ${rt.ville || ''}` : `${rt.ville || 'Tunisie'}`,
+              subscriptionStartDate: rt.subscriptionStartDate ? rt.subscriptionStartDate.slice(0, 10) : '2025-01-01',
+              subscriptionEndDate: rt.subscriptionEndDate ? rt.subscriptionEndDate.slice(0, 10) : '2026-12-31',
+              subscriptionAmount: rt.subscriptionAmount || 850,
+              capacityTonsPerDay: rt.capacityTonsPerDay || 450,
+              sites: rt.sites || [],
+              users: rt.users || [],
               trend: {
                 months: ['Mai', 'Juin', 'Juil', 'Août', 'Sept'],
-                users: [Math.max(1, Math.round((rt.usersCount || 2) * 0.5)), Math.max(1, Math.round((rt.usersCount || 2) * 0.8)), rt.usersCount || 2, rt.usersCount || 2, rt.usersCount || 2],
-                equipments: [Math.max(2, Math.round((rt.equipementsCount || 5) * 0.6)), Math.max(3, Math.round((rt.equipementsCount || 5) * 0.85)), rt.equipementsCount || 5, rt.equipementsCount || 5, rt.equipementsCount || 5],
-                storage: [0.6, 0.9, 1.2, 1.5, rt.storageUsedGb || 1.8]
+                users: [Math.max(1, Math.round(usersUsed * 0.5)), Math.max(1, Math.round(usersUsed * 0.8)), usersUsed, usersUsed, usersUsed],
+                equipments: [Math.max(2, Math.round(equipmentsUsed * 0.6)), Math.max(3, Math.round(equipmentsUsed * 0.85)), equipmentsUsed, equipmentsUsed, equipmentsUsed],
+                storage: [Math.max(0.5, Number((storageUsed * 0.4).toFixed(1))), Math.max(0.8, Number((storageUsed * 0.6).toFixed(1))), Math.max(1.0, Number((storageUsed * 0.8).toFixed(1))), storageUsed, storageUsed]
               }
             };
           });
@@ -425,136 +499,209 @@ export const SuperAdminMonitoring: React.FC<SuperAdminMonitoringProps> = ({ sele
       {/* MIDDLE CHARTS ROW: 3 CARDS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* CHART 1: Utilisateurs par entreprise */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-slate-700 dark:text-slate-300" />
-              <h3 className="text-sm font-black text-slate-800 dark:text-white">
-                Utilisateurs par entreprise
-              </h3>
-            </div>
-            <select className="px-2 py-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer">
-              <option value="top7">Top 7</option>
-              <option value="top10">Top 10</option>
-            </select>
-          </div>
+        {(() => {
+          const sorted = [...tenantsList].sort((a, b) => (b.usersUsed || 0) - (a.usersUsed || 0));
+          const items = usersChartMode === 'top7' ? sorted.slice(0, 7) : (usersChartMode === 'top10' ? sorted.slice(0, 10) : sorted);
+          const maxVal = Math.max(10, ...items.map(t => t.usersUsed || 1));
 
-          <div className="h-48 flex items-end justify-between gap-2 pt-6 pb-2 px-2 border-b border-slate-100 dark:border-slate-800 relative">
-            {/* Horizontal guidelines */}
-            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none text-[9px] text-slate-400 pr-2">
-              <div className="border-b border-dashed border-slate-100 dark:border-slate-800 flex justify-between"><span>80</span></div>
-              <div className="border-b border-dashed border-slate-100 dark:border-slate-800 flex justify-between"><span>60</span></div>
-              <div className="border-b border-dashed border-slate-100 dark:border-slate-800 flex justify-between"><span>40</span></div>
-              <div className="border-b border-dashed border-slate-100 dark:border-slate-800 flex justify-between"><span>20</span></div>
-              <div className="flex justify-between"><span>0</span></div>
-            </div>
-
-            {tenantsList.slice(0, 7).map(item => {
-              const maxUsers = Math.max(10, ...tenantsList.map(t => t.usersUsed || 1));
-              return (
-                <div key={item.id} className="flex-1 flex flex-col items-center gap-1 group relative z-10">
-                  <div className="absolute -top-6 opacity-0 group-hover:opacity-100 transition-opacity px-1.5 py-0.5 rounded bg-slate-900 text-white text-[9px] font-bold pointer-events-none z-20 whitespace-nowrap">
-                    {item.usersUsed} util.
-                  </div>
-                  <div
-                    style={{ height: `${Math.min(100, Math.max(12, (item.usersUsed / maxUsers) * 100))}%` }}
-                    className="w-full max-w-[24px] bg-blue-500 group-hover:bg-blue-600 rounded-t transition-all"
-                  />
-                  <span className="text-[8px] font-semibold text-slate-400 truncate max-w-[45px] text-center -rotate-45 sm:rotate-0 mt-1">
-                    {item.name}
-                  </span>
+          return (
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-slate-700 dark:text-slate-300" />
+                  <h3 className="text-sm font-black text-slate-800 dark:text-white">
+                    Utilisateurs par entreprise
+                  </h3>
                 </div>
-              );
-            })}
-          </div>
-        </div>
+                <select 
+                  value={usersChartMode}
+                  onChange={e => setUsersChartMode(e.target.value as any)}
+                  className="px-2 py-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer"
+                >
+                  <option value="top7">Top 7</option>
+                  <option value="top10">Top 10</option>
+                  <option value="all">Toutes</option>
+                </select>
+              </div>
+
+              <div className="h-48 flex items-end justify-between gap-2 pt-6 pb-2 px-2 border-b border-slate-100 dark:border-slate-800 relative">
+                {/* Horizontal guidelines */}
+                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none text-[9px] text-slate-400 pr-2">
+                  <div className="border-b border-dashed border-slate-100 dark:border-slate-800 flex justify-between"><span>{maxVal}</span></div>
+                  <div className="border-b border-dashed border-slate-100 dark:border-slate-800 flex justify-between"><span>{Math.round(maxVal * 0.75)}</span></div>
+                  <div className="border-b border-dashed border-slate-100 dark:border-slate-800 flex justify-between"><span>{Math.round(maxVal * 0.5)}</span></div>
+                  <div className="border-b border-dashed border-slate-100 dark:border-slate-800 flex justify-between"><span>{Math.round(maxVal * 0.25)}</span></div>
+                  <div className="flex justify-between"><span>0</span></div>
+                </div>
+
+                {items.map(item => {
+                  const isSelected = selectedTenant?.id === item.id;
+                  const barHeight = Math.min(100, Math.max(14, ((item.usersUsed || 1) / maxVal) * 100));
+
+                  return (
+                    <div 
+                      key={item.id} 
+                      onClick={() => setSelectedTenantId(item.id)}
+                      className="flex-1 flex flex-col items-center gap-1 group relative z-10 cursor-pointer"
+                      title={`${item.name}: ${item.usersUsed} utilisateurs actifs`}
+                    >
+                      <div className="absolute -top-7 opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 rounded-lg bg-slate-900 text-white text-[10px] font-bold pointer-events-none z-20 whitespace-nowrap shadow-md">
+                        {item.usersUsed} util.
+                      </div>
+                      <div
+                        style={{ height: `${barHeight}%` }}
+                        className={`w-full max-w-[26px] rounded-t transition-all ${
+                          isSelected ? 'bg-blue-600 ring-2 ring-blue-400' : 'bg-blue-500 group-hover:bg-blue-600'
+                        }`}
+                      />
+                      <span className={`text-[8px] font-semibold truncate max-w-[48px] text-center -rotate-45 sm:rotate-0 mt-1 transition-colors ${
+                        isSelected ? 'text-blue-600 font-bold dark:text-blue-400' : 'text-slate-400'
+                      }`}>
+                        {item.name}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* CHART 2: Équipements par entreprise */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Factory className="w-4 h-4 text-slate-700 dark:text-slate-300" />
-              <h3 className="text-sm font-black text-slate-800 dark:text-white">
-                Équipements par entreprise
-              </h3>
-            </div>
-            <select className="px-2 py-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer">
-              <option value="top7">Top 7</option>
-              <option value="top10">Top 10</option>
-            </select>
-          </div>
+        {(() => {
+          const sorted = [...tenantsList].sort((a, b) => (b.equipmentsUsed || 0) - (a.equipmentsUsed || 0));
+          const items = eqChartMode === 'top7' ? sorted.slice(0, 7) : (eqChartMode === 'top10' ? sorted.slice(0, 10) : sorted);
+          const maxVal = Math.max(20, ...items.map(t => t.equipmentsUsed || 1));
 
-          <div className="h-48 flex items-end justify-between gap-2 pt-6 pb-2 px-2 border-b border-slate-100 dark:border-slate-800 relative">
-            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none text-[9px] text-slate-400 pr-2">
-              <div className="border-b border-dashed border-slate-100 dark:border-slate-800 flex justify-between"><span>400</span></div>
-              <div className="border-b border-dashed border-slate-100 dark:border-slate-800 flex justify-between"><span>300</span></div>
-              <div className="border-b border-dashed border-slate-100 dark:border-slate-800 flex justify-between"><span>200</span></div>
-              <div className="border-b border-dashed border-slate-100 dark:border-slate-800 flex justify-between"><span>100</span></div>
-              <div className="flex justify-between"><span>0</span></div>
-            </div>
-
-            {tenantsList.slice(0, 7).map(item => {
-              const maxEq = Math.max(20, ...tenantsList.map(t => t.equipmentsUsed || 1));
-              return (
-                <div key={item.id} className="flex-1 flex flex-col items-center gap-1 group relative z-10">
-                  <div className="absolute -top-6 opacity-0 group-hover:opacity-100 transition-opacity px-1.5 py-0.5 rounded bg-slate-900 text-white text-[9px] font-bold pointer-events-none z-20 whitespace-nowrap">
-                    {item.equipmentsUsed} équips.
-                  </div>
-                  <div
-                    style={{ height: `${Math.min(100, Math.max(12, (item.equipmentsUsed / maxEq) * 100))}%` }}
-                    className="w-full max-w-[24px] bg-emerald-500 group-hover:bg-emerald-600 rounded-t transition-all"
-                  />
-                  <span className="text-[8px] font-semibold text-slate-400 truncate max-w-[45px] text-center -rotate-45 sm:rotate-0 mt-1">
-                    {item.name}
-                  </span>
+          return (
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Factory className="w-4 h-4 text-slate-700 dark:text-slate-300" />
+                  <h3 className="text-sm font-black text-slate-800 dark:text-white">
+                    Équipements par entreprise
+                  </h3>
                 </div>
-              );
-            })}
-          </div>
-        </div>
+                <select 
+                  value={eqChartMode}
+                  onChange={e => setEqChartMode(e.target.value as any)}
+                  className="px-2 py-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer"
+                >
+                  <option value="top7">Top 7</option>
+                  <option value="top10">Top 10</option>
+                  <option value="all">Toutes</option>
+                </select>
+              </div>
+
+              <div className="h-48 flex items-end justify-between gap-2 pt-6 pb-2 px-2 border-b border-slate-100 dark:border-slate-800 relative">
+                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none text-[9px] text-slate-400 pr-2">
+                  <div className="border-b border-dashed border-slate-100 dark:border-slate-800 flex justify-between"><span>{maxVal}</span></div>
+                  <div className="border-b border-dashed border-slate-100 dark:border-slate-800 flex justify-between"><span>{Math.round(maxVal * 0.75)}</span></div>
+                  <div className="border-b border-dashed border-slate-100 dark:border-slate-800 flex justify-between"><span>{Math.round(maxVal * 0.5)}</span></div>
+                  <div className="border-b border-dashed border-slate-100 dark:border-slate-800 flex justify-between"><span>{Math.round(maxVal * 0.25)}</span></div>
+                  <div className="flex justify-between"><span>0</span></div>
+                </div>
+
+                {items.map(item => {
+                  const isSelected = selectedTenant?.id === item.id;
+                  const barHeight = Math.min(100, Math.max(14, ((item.equipmentsUsed || 1) / maxVal) * 100));
+
+                  return (
+                    <div 
+                      key={item.id} 
+                      onClick={() => setSelectedTenantId(item.id)}
+                      className="flex-1 flex flex-col items-center gap-1 group relative z-10 cursor-pointer"
+                      title={`${item.name}: ${item.equipmentsUsed} équipements`}
+                    >
+                      <div className="absolute -top-7 opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 rounded-lg bg-slate-900 text-white text-[10px] font-bold pointer-events-none z-20 whitespace-nowrap shadow-md">
+                        {item.equipmentsUsed} équips.
+                      </div>
+                      <div
+                        style={{ height: `${barHeight}%` }}
+                        className={`w-full max-w-[26px] rounded-t transition-all ${
+                          isSelected ? 'bg-emerald-600 ring-2 ring-emerald-400' : 'bg-emerald-500 group-hover:bg-emerald-600'
+                        }`}
+                      />
+                      <span className={`text-[8px] font-semibold truncate max-w-[48px] text-center -rotate-45 sm:rotate-0 mt-1 transition-colors ${
+                        isSelected ? 'text-emerald-600 font-bold dark:text-emerald-400' : 'text-slate-400'
+                      }`}>
+                        {item.name}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* CHART 3: Stockage utilisé par entreprise */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <HardDrive className="w-4 h-4 text-slate-700 dark:text-slate-300" />
-              <h3 className="text-sm font-black text-slate-800 dark:text-white">
-                Stockage utilisé par entreprise
-              </h3>
-            </div>
-            <select className="px-2 py-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer">
-              <option value="top7">Top 7</option>
-              <option value="top10">Top 10</option>
-            </select>
-          </div>
+        {(() => {
+          const sorted = [...tenantsList].sort((a, b) => (b.storageUsed || 0) - (a.storageUsed || 0));
+          const items = storageChartMode === 'top7' ? sorted.slice(0, 7) : (storageChartMode === 'top10' ? sorted.slice(0, 10) : sorted);
+          const maxVal = Math.max(10, Math.ceil(Math.max(...items.map(t => t.storageUsed || 1))));
 
-          <div className="h-48 flex items-end justify-between gap-2 pt-6 pb-2 px-2 border-b border-slate-100 dark:border-slate-800 relative">
-            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none text-[9px] text-slate-400 pr-2">
-              <div className="border-b border-dashed border-slate-100 dark:border-slate-800 flex justify-between"><span>30GB</span></div>
-              <div className="border-b border-dashed border-slate-100 dark:border-slate-800 flex justify-between"><span>20GB</span></div>
-              <div className="border-b border-dashed border-slate-100 dark:border-slate-800 flex justify-between"><span>10GB</span></div>
-              <div className="flex justify-between"><span>0</span></div>
-            </div>
-
-            {tenantsList.slice(0, 7).map(item => {
-              const maxStorage = Math.max(5, ...tenantsList.map(t => t.storageUsed || 1));
-              return (
-                <div key={item.id} className="flex-1 flex flex-col items-center gap-1 group relative z-10">
-                  <div className="absolute -top-6 opacity-0 group-hover:opacity-100 transition-opacity px-1.5 py-0.5 rounded bg-slate-900 text-white text-[9px] font-bold pointer-events-none z-20 whitespace-nowrap">
-                    {item.storageUsed} GB
-                  </div>
-                  <div
-                    style={{ height: `${Math.min(100, Math.max(12, (item.storageUsed / maxStorage) * 100))}%` }}
-                    className="w-full max-w-[24px] bg-purple-500 group-hover:bg-purple-600 rounded-t transition-all"
-                  />
-                  <span className="text-[8px] font-semibold text-slate-400 truncate max-w-[45px] text-center -rotate-45 sm:rotate-0 mt-1">
-                    {item.name}
-                  </span>
+          return (
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <HardDrive className="w-4 h-4 text-slate-700 dark:text-slate-300" />
+                  <h3 className="text-sm font-black text-slate-800 dark:text-white">
+                    Stockage utilisé par entreprise
+                  </h3>
                 </div>
-              );
-            })}
-          </div>
-        </div>
+                <select 
+                  value={storageChartMode}
+                  onChange={e => setStorageChartMode(e.target.value as any)}
+                  className="px-2 py-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer"
+                >
+                  <option value="top7">Top 7</option>
+                  <option value="top10">Top 10</option>
+                  <option value="all">Toutes</option>
+                </select>
+              </div>
+
+              <div className="h-48 flex items-end justify-between gap-2 pt-6 pb-2 px-2 border-b border-slate-100 dark:border-slate-800 relative">
+                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none text-[9px] text-slate-400 pr-2">
+                  <div className="border-b border-dashed border-slate-100 dark:border-slate-800 flex justify-between"><span>{maxVal}GB</span></div>
+                  <div className="border-b border-dashed border-slate-100 dark:border-slate-800 flex justify-between"><span>{Math.round(maxVal * 0.75)}GB</span></div>
+                  <div className="border-b border-dashed border-slate-100 dark:border-slate-800 flex justify-between"><span>{Math.round(maxVal * 0.5)}GB</span></div>
+                  <div className="border-b border-dashed border-slate-100 dark:border-slate-800 flex justify-between"><span>{Math.round(maxVal * 0.25)}GB</span></div>
+                  <div className="flex justify-between"><span>0</span></div>
+                </div>
+
+                {items.map(item => {
+                  const isSelected = selectedTenant?.id === item.id;
+                  const barHeight = Math.min(100, Math.max(14, ((item.storageUsed || 1) / maxVal) * 100));
+
+                  return (
+                    <div 
+                      key={item.id} 
+                      onClick={() => setSelectedTenantId(item.id)}
+                      className="flex-1 flex flex-col items-center gap-1 group relative z-10 cursor-pointer"
+                      title={`${item.name}: ${item.storageUsed} GB`}
+                    >
+                      <div className="absolute -top-7 opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 rounded-lg bg-slate-900 text-white text-[10px] font-bold pointer-events-none z-20 whitespace-nowrap shadow-md">
+                        {item.storageUsed} GB
+                      </div>
+                      <div
+                        style={{ height: `${barHeight}%` }}
+                        className={`w-full max-w-[26px] rounded-t transition-all ${
+                          isSelected ? 'bg-purple-600 ring-2 ring-purple-400' : 'bg-purple-500 group-hover:bg-purple-600'
+                        }`}
+                      />
+                      <span className={`text-[8px] font-semibold truncate max-w-[48px] text-center -rotate-45 sm:rotate-0 mt-1 transition-colors ${
+                        isSelected ? 'text-purple-600 font-bold dark:text-purple-400' : 'text-slate-400'
+                      }`}>
+                        {item.name}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* BOTTOM WORKSPACE: TABLE (LEFT) + DETAILS PANEL (RIGHT) */}
@@ -845,277 +992,520 @@ export const SuperAdminMonitoring: React.FC<SuperAdminMonitoringProps> = ({ sele
               )}
             </div>
           ) : (<>
+          {/* Header Identité Entreprise */}
           <div className="flex items-start gap-3.5">
             <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-2xl shadow-sm shrink-0">
               {selectedTenant.logo}
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-black text-slate-800 dark:text-white leading-tight">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-base font-black text-slate-800 dark:text-white leading-tight truncate">
                   {selectedTenant.name}
                 </h3>
-                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  {selectedTenant.status}
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${selectedTenant.planBadgeColor}`}>
+                  {selectedTenant.plan}
                 </span>
               </div>
-              <p className="text-xs text-slate-400 font-medium mt-0.5">
-                {selectedTenant.category}
+              <p className="text-xs text-slate-400 font-medium mt-0.5 truncate">
+                {selectedTenant.category} • <span className="font-mono text-[11px] text-slate-500">{selectedTenant.codeTenant}</span>
               </p>
             </div>
           </div>
 
-          {/* Navigation Tabs */}
-          <div className="flex items-center gap-4 border-b border-slate-100 dark:border-slate-800 text-xs font-bold overflow-x-auto pb-px">
+          {/* Cloud Quotas & Crédits Overview Box */}
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-850 to-slate-800 text-white shadow-md border border-slate-700/60 relative overflow-hidden">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5">
+                <Server className="w-3.5 h-3.5 text-blue-400" />
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-300">
+                  Crédits & Quotas Cloud
+                </span>
+              </div>
+              <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold ${
+                selectedTenant.status === 'Surconsommation' 
+                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                  : (selectedTenant.status === 'En limite' 
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30')
+              }`}>
+                {selectedTenant.status}
+              </span>
+            </div>
+
+            <div className="flex items-baseline justify-between mt-2">
+              <div>
+                <div className="text-xl font-black tracking-tight">
+                  {selectedTenant.consumedCredits.toLocaleString('fr-FR')} <span className="text-xs font-semibold text-slate-400">/ {selectedTenant.allocatedCredits.toLocaleString('fr-FR')} crédits</span>
+                </div>
+                <div className="text-[11px] font-semibold text-emerald-400 mt-0.5 flex items-center gap-1">
+                  <span>✓ {selectedTenant.remainingCredits.toLocaleString('fr-FR')} crédits disponibles</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-lg font-black text-blue-400">
+                  {Math.round((selectedTenant.consumedCredits / selectedTenant.allocatedCredits) * 100)}%
+                </span>
+                <div className="text-[9px] text-slate-400">Consommation</div>
+              </div>
+            </div>
+
+            {/* Quota Progress Bar */}
+            <div className="w-full h-2 bg-slate-700/80 rounded-full mt-3 overflow-hidden">
+              <div 
+                style={{ width: `${Math.min(100, Math.round((selectedTenant.consumedCredits / selectedTenant.allocatedCredits) * 100))}%` }}
+                className={`h-full rounded-full transition-all duration-500 ${
+                  (selectedTenant.consumedCredits / selectedTenant.allocatedCredits) > 0.9
+                    ? 'bg-rose-500'
+                    : ((selectedTenant.consumedCredits / selectedTenant.allocatedCredits) > 0.75 ? 'bg-amber-500' : 'bg-gradient-to-r from-blue-500 to-emerald-400')
+                }`}
+              />
+            </div>
+
+            {/* Quick Top-Up button */}
+            <button
+              onClick={() => {
+                setEditLimits({
+                  sitesLimit: selectedTenant.sitesLimit,
+                  usersLimit: selectedTenant.usersLimit,
+                  equipmentsLimit: selectedTenant.equipmentsLimit,
+                  storageLimit: selectedTenant.storageLimit
+                });
+                setIsAdjustLimitsModalOpen(true);
+              }}
+              className="w-full mt-3.5 py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Allouer Crédits / Ajuster Quotas</span>
+            </button>
+          </div>
+
+          {/* Navigation Tabs (5 Tabs Fully Functional) */}
+          <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 text-xs font-bold overflow-x-auto pb-px">
             {(['Aperçu', 'Détails', 'Sites', 'Utilisateurs', 'Stockage'] as const).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`pb-2.5 transition-all cursor-pointer whitespace-nowrap ${
                   activeTab === tab
-                    ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                    ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 font-extrabold'
                     : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
                 }`}
               >
                 {tab}
+                {tab === 'Sites' && (
+                  <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500">
+                    {selectedTenant.sites.length || selectedTenant.sitesUsed}
+                  </span>
+                )}
+                {tab === 'Utilisateurs' && (
+                  <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500">
+                    {selectedTenant.users.length || selectedTenant.usersUsed}
+                  </span>
+                )}
               </button>
             ))}
           </div>
 
-          {/* Section: Utilisation actuelle */}
-          <div>
-            <h4 className="text-xs font-extrabold text-slate-800 dark:text-white uppercase tracking-wider mb-3">
-              Utilisation actuelle
-            </h4>
+          {/* ── TAB 1: APERÇU ── */}
+          {activeTab === 'Aperçu' && (
+            <div className="flex flex-col gap-4 animate-[fadeIn_0.15s_ease-out]">
+              <div>
+                <h4 className="text-xs font-extrabold text-slate-800 dark:text-white uppercase tracking-wider mb-2.5 flex items-center justify-between">
+                  <span>Utilisation actuelle</span>
+                  <span className="text-[10px] font-semibold text-slate-400">Métrique en temps réel</span>
+                </h4>
 
-            <div className="grid grid-cols-2 gap-2.5">
-              {/* Sites */}
-              <div className="p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80">
-                <div className="text-[10px] text-slate-400 font-medium">Sites / Usines</div>
-                <div className="text-sm font-black text-slate-800 dark:text-white mt-0.5">
-                  {selectedTenant.sitesUsed} / {selectedTenant.sitesLimit}
-                </div>
-                <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mt-2 overflow-hidden">
-                  <div
-                    style={{ width: `${Math.round((selectedTenant.sitesUsed / selectedTenant.sitesLimit) * 100)}%` }}
-                    className="h-full bg-blue-500 rounded-full"
-                  />
-                </div>
-                <div className="text-right text-[10px] font-bold text-blue-500 mt-1">
-                  {Math.round((selectedTenant.sitesUsed / selectedTenant.sitesLimit) * 100)}%
+                <div className="grid grid-cols-2 gap-2.5">
+                  {/* Sites */}
+                  <div className="p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80">
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium">
+                      <span>Sites / Usines</span>
+                      <span className="text-blue-500 font-bold">{selectedTenant.sitesLimit - selectedTenant.sitesUsed} restants</span>
+                    </div>
+                    <div className="text-sm font-black text-slate-800 dark:text-white mt-0.5">
+                      {selectedTenant.sitesUsed} / {selectedTenant.sitesLimit}
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mt-2 overflow-hidden">
+                      <div
+                        style={{ width: `${Math.min(100, Math.round((selectedTenant.sitesUsed / selectedTenant.sitesLimit) * 100))}%` }}
+                        className="h-full bg-blue-500 rounded-full"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Utilisateurs */}
+                  <div className="p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80">
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium">
+                      <span>Utilisateurs</span>
+                      <span className="text-emerald-500 font-bold">{selectedTenant.usersLimit - selectedTenant.usersUsed} licences</span>
+                    </div>
+                    <div className="text-sm font-black text-slate-800 dark:text-white mt-0.5">
+                      {selectedTenant.usersUsed} / {selectedTenant.usersLimit}
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mt-2 overflow-hidden">
+                      <div
+                        style={{ width: `${Math.min(100, Math.round((selectedTenant.usersUsed / selectedTenant.usersLimit) * 100))}%` }}
+                        className="h-full bg-emerald-500 rounded-full"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Équipements */}
+                  <div className="p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80">
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium">
+                      <span>Équipements</span>
+                      <span className="text-purple-500 font-bold">{selectedTenant.equipmentsLimit - selectedTenant.equipmentsUsed} restants</span>
+                    </div>
+                    <div className="text-sm font-black text-slate-800 dark:text-white mt-0.5">
+                      {selectedTenant.equipmentsUsed} / {selectedTenant.equipmentsLimit}
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mt-2 overflow-hidden">
+                      <div
+                        style={{ width: `${Math.min(100, Math.round((selectedTenant.equipmentsUsed / selectedTenant.equipmentsLimit) * 100))}%` }}
+                        className="h-full bg-purple-500 rounded-full"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Stockage */}
+                  <div className="p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80">
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium">
+                      <span>Stockage Cloud</span>
+                      <span className="text-amber-500 font-bold">{(selectedTenant.storageLimit - selectedTenant.storageUsed).toFixed(1)} GB dispo</span>
+                    </div>
+                    <div className="text-sm font-black text-slate-800 dark:text-white mt-0.5">
+                      {selectedTenant.storageUsed} GB / {selectedTenant.storageLimit} GB
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mt-2 overflow-hidden">
+                      <div
+                        style={{ width: `${Math.min(100, Math.round((selectedTenant.storageUsed / selectedTenant.storageLimit) * 100))}%` }}
+                        className="h-full bg-amber-500 rounded-full"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Périphériques & IoT */}
+                  <div className="p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80">
+                    <div className="text-[10px] text-slate-400 font-medium">Périphériques & IoT</div>
+                    <div className="text-sm font-black text-slate-800 dark:text-white mt-0.5">
+                      {selectedTenant.devicesUsed} / {selectedTenant.devicesLimit} Appareils
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-1">
+                      {Math.max(1, Math.round((selectedTenant.devicesUsed || 3) * 0.55))} Tablettes • {Math.max(1, Math.round((selectedTenant.devicesUsed || 3) * 0.3))} Douchettes
+                    </div>
+                  </div>
+
+                  {/* Données & API */}
+                  <div className="p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80">
+                    <div className="text-[10px] text-slate-400 font-medium">Lignes DB & Flux API</div>
+                    <div className="text-sm font-black text-slate-800 dark:text-white mt-0.5">
+                      {selectedTenant.dbRecordsCount?.toLocaleString('fr-FR')} Enreg.
+                    </div>
+                    <div className="text-[10px] text-indigo-500 font-semibold mt-1">
+                      ~{Math.round((selectedTenant.apiCallsMonth || 4000) / 1000)}k requêtes / mois
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Utilisateurs */}
-              <div className="p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80">
-                <div className="text-[10px] text-slate-400 font-medium">Utilisateurs</div>
-                <div className="text-sm font-black text-slate-800 dark:text-white mt-0.5">
-                  {selectedTenant.usersUsed} / {selectedTenant.usersLimit}
+              {/* Tendance 6 derniers mois */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-extrabold text-slate-800 dark:text-white uppercase tracking-wider">
+                    Tendance (6 derniers mois)
+                  </h4>
                 </div>
-                <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mt-2 overflow-hidden">
-                  <div
-                    style={{ width: `${Math.round((selectedTenant.usersUsed / selectedTenant.usersLimit) * 100)}%` }}
-                    className="h-full bg-emerald-500 rounded-full"
-                  />
+                <div className="flex items-center gap-3 text-[10px] font-bold mb-3">
+                  <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span>Utilisateurs</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-purple-600 dark:text-purple-400">
+                    <span className="w-2 h-2 rounded-full bg-purple-500" />
+                    <span>Équipements</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                    <span className="w-2 h-2 rounded-full bg-amber-500" />
+                    <span>Stockage (GB)</span>
+                  </div>
                 </div>
-                <div className="text-right text-[10px] font-bold text-emerald-500 mt-1">
-                  {Math.round((selectedTenant.usersUsed / selectedTenant.usersLimit) * 100)}%
+
+                <div className="h-28 w-full relative pt-2">
+                  <svg viewBox="0 0 250 90" className="w-full h-full overflow-visible">
+                    <line x1="0" y1="20" x2="250" y2="20" stroke="currentColor" className="text-slate-100 dark:text-slate-800" strokeDasharray="3 3" />
+                    <line x1="0" y1="45" x2="250" y2="45" stroke="currentColor" className="text-slate-100 dark:text-slate-800" strokeDasharray="3 3" />
+                    <line x1="0" y1="70" x2="250" y2="70" stroke="currentColor" className="text-slate-100 dark:text-slate-800" strokeDasharray="3 3" />
+
+                    {/* Équipements */}
+                    <polyline
+                      fill="none"
+                      stroke="#8B5CF6"
+                      strokeWidth="2"
+                      points="10,65 60,55 110,48 160,38 210,30 240,24"
+                    />
+                    {/* Utilisateurs */}
+                    <polyline
+                      fill="none"
+                      stroke="#10B981"
+                      strokeWidth="2"
+                      points="10,75 60,68 110,62 160,54 210,48 240,42"
+                    />
+                    {/* Stockage */}
+                    <polyline
+                      fill="none"
+                      stroke="#F59E0B"
+                      strokeWidth="2"
+                      points="10,82 60,80 110,78 160,75 210,72 240,70"
+                    />
+                    <text x="10" y="88" fill="#94A3B8" fontSize="8" textAnchor="middle">Avr</text>
+                    <text x="60" y="88" fill="#94A3B8" fontSize="8" textAnchor="middle">Mai</text>
+                    <text x="110" y="88" fill="#94A3B8" fontSize="8" textAnchor="middle">Juin</text>
+                    <text x="160" y="88" fill="#94A3B8" fontSize="8" textAnchor="middle">Juil</text>
+                    <text x="210" y="88" fill="#94A3B8" fontSize="8" textAnchor="middle">Août</text>
+                    <text x="240" y="88" fill="#94A3B8" fontSize="8" textAnchor="middle">Sep</text>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── TAB 2: DÉTAILS ── */}
+          {activeTab === 'Détails' && (
+            <div className="flex flex-col gap-3.5 text-xs animate-[fadeIn_0.15s_ease-out]">
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">
+                  Contrat & Abonnement Cloud
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-slate-700 dark:text-slate-300">
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">Formule Active</span>
+                    <span className="font-bold">{selectedTenant.plan}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">Tarif Mensuel</span>
+                    <span className="font-bold">{selectedTenant.subscriptionAmount || 850} DT / mois</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">Date de Début</span>
+                    <span className="font-semibold">{selectedTenant.subscriptionStartDate || '2025-01-01'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">Prochaine Échéance</span>
+                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">{selectedTenant.subscriptionEndDate || '2026-12-31'}</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Équipements */}
-              <div className="p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80">
-                <div className="text-[10px] text-slate-400 font-medium">Équipements</div>
-                <div className="text-sm font-black text-slate-800 dark:text-white mt-0.5">
-                  {selectedTenant.equipmentsUsed} / {selectedTenant.equipmentsLimit}
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">
+                  Identité Usine & Contact Technique
                 </div>
-                <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mt-2 overflow-hidden">
-                  <div
-                    style={{ width: `${Math.round((selectedTenant.equipmentsUsed / selectedTenant.equipmentsLimit) * 100)}%` }}
-                    className="h-full bg-purple-500 rounded-full"
-                  />
-                </div>
-                <div className="text-right text-[10px] font-bold text-purple-500 mt-1">
-                  {Math.round((selectedTenant.equipmentsUsed / selectedTenant.equipmentsLimit) * 100)}%
+                <div className="space-y-2 text-slate-700 dark:text-slate-300">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Responsable Usine:</span>
+                    <span className="font-bold">{selectedTenant.contact}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Email Contact:</span>
+                    <span className="font-medium text-blue-600 dark:text-blue-400">{selectedTenant.email}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Téléphone:</span>
+                    <span className="font-medium">{selectedTenant.telephone || '+216 71 000 000'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Localisation:</span>
+                    <span className="font-medium">{selectedTenant.adresse || 'Tunisie'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Capacité Nominale:</span>
+                    <span className="font-bold text-slate-800 dark:text-white">{selectedTenant.capacityTonsPerDay || 450} T / jour</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Stockage */}
-              <div className="p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80">
-                <div className="text-[10px] text-slate-400 font-medium">Stockage Base & Fichiers</div>
-                <div className="text-sm font-black text-slate-800 dark:text-white mt-0.5">
-                  {selectedTenant.storageUsed} GB / {selectedTenant.storageLimit} GB
+              <div className="p-3.5 rounded-2xl bg-blue-50/50 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-900/40 text-[11px] text-blue-800 dark:text-blue-300 flex items-start gap-2.5">
+                <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold block">Garantie SLA & Souveraineté Cloud</span>
+                  Disponibilité 99.98% garantie avec isolation RLS et chiffrement PostgreSQL au repos.
                 </div>
-                <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mt-2 overflow-hidden">
+              </div>
+            </div>
+          )}
+
+          {/* ── TAB 3: SITES ── */}
+          {activeTab === 'Sites' && (
+            <div className="flex flex-col gap-2.5 animate-[fadeIn_0.15s_ease-out]">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-extrabold text-slate-800 dark:text-white uppercase tracking-wider">
+                  Sites & Usines ({selectedTenant.sites.length || selectedTenant.sitesUsed})
+                </span>
+                <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                  {selectedTenant.sitesUsed} / {selectedTenant.sitesLimit} alloués
+                </span>
+              </div>
+
+              {selectedTenant.sites && selectedTenant.sites.length > 0 ? (
+                selectedTenant.sites.map(site => (
+                  <div key={site.id} className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-xs">
+                        <Factory className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-black text-slate-800 dark:text-white">
+                          {site.nom}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-medium">
+                          {site.codeSite} • {site.ville || site.gouvernorat || 'Tunisie'}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
+                        {site.statut || 'Opérationnel'}
+                      </span>
+                      <div className="text-[9px] text-slate-400 mt-0.5">
+                        {site.nombreEquipements || 12} machines
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 text-center">
+                  <Building2 className="w-6 h-6 text-slate-400 mx-auto mb-1.5" />
+                  <div className="text-xs font-bold text-slate-700 dark:text-slate-300">Site Industriel Principal</div>
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    1 site actif d'exploitation déclaré ({selectedTenant.capacityTonsPerDay || 450} T/jour)
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── TAB 4: UTILISATEURS ── */}
+          {activeTab === 'Utilisateurs' && (
+            <div className="flex flex-col gap-2.5 animate-[fadeIn_0.15s_ease-out]">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-extrabold text-slate-800 dark:text-white uppercase tracking-wider">
+                  Utilisateurs Actifs ({selectedTenant.users.length || selectedTenant.usersUsed})
+                </span>
+                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                  {selectedTenant.usersUsed} / {selectedTenant.usersLimit} licences
+                </span>
+              </div>
+
+              {selectedTenant.users && selectedTenant.users.length > 0 ? (
+                selectedTenant.users.map(u => (
+                  <div key={u.id} className="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-xs shrink-0">
+                        {u.prenom ? u.prenom[0] : (u.nom ? u.nom[0] : 'U')}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-black text-slate-800 dark:text-white truncate">
+                          {u.prenom} {u.nom}
+                        </div>
+                        <div className="text-[10px] text-slate-400 truncate">
+                          {u.email}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+                        {u.roleNom || 'Opérateur'}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-black text-slate-800 dark:text-white">
+                      {selectedTenant.contact}
+                    </div>
+                    <div className="text-[10px] text-slate-400">{selectedTenant.email}</div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300">
+                    Administrateur Usine
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── TAB 5: STOCKAGE ── */}
+          {activeTab === 'Stockage' && (
+            <div className="flex flex-col gap-3 text-xs animate-[fadeIn_0.15s_ease-out]">
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-extrabold text-slate-800 dark:text-white">Capacité Disque Globale</span>
+                  <span className="text-amber-500 font-bold">{selectedTenant.storageUsed} GB / {selectedTenant.storageLimit} GB</span>
+                </div>
+                <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                   <div
-                    style={{ width: `${Math.round((selectedTenant.storageUsed / selectedTenant.storageLimit) * 100)}%` }}
+                    style={{ width: `${Math.min(100, Math.round((selectedTenant.storageUsed / selectedTenant.storageLimit) * 100))}%` }}
                     className="h-full bg-amber-500 rounded-full"
                   />
                 </div>
-                <div className="text-right text-[10px] font-bold text-amber-500 mt-1">
-                  {Math.round((selectedTenant.storageUsed / selectedTenant.storageLimit) * 100)}%
+                <div className="text-[10px] text-slate-400 mt-2 flex justify-between">
+                  <span>{(selectedTenant.storageLimit - selectedTenant.storageUsed).toFixed(1)} GB disponibles</span>
+                  <span>{Math.round((selectedTenant.storageUsed / selectedTenant.storageLimit) * 100)}% consommé</span>
                 </div>
               </div>
 
-              {/* Périphériques & IoT (100% Dynamique) */}
-              {(() => {
-                const devLimit = selectedTenant.devicesLimit || Math.max(15, Math.round((selectedTenant.equipmentsLimit || 100) * 0.08));
-                const devUsed = selectedTenant.devicesUsed || Math.min(devLimit, Math.max(3, Math.round((selectedTenant.equipmentsUsed || 10) * 0.12) + (selectedTenant.usersUsed > 5 ? 4 : 1)));
-                const devPct = Math.round((devUsed / devLimit) * 100);
-                const tabCount = Math.max(1, Math.round(devUsed * 0.55));
-                const scanCount = Math.max(1, Math.round(devUsed * 0.3));
-                const iotCount = Math.max(0, devUsed - tabCount - scanCount);
-
-                return (
-                  <div className="p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80">
-                    <div className="text-[10px] text-slate-400 font-medium">Périphériques & Capteurs IoT</div>
-                    <div className="text-sm font-black text-slate-800 dark:text-white mt-0.5">
-                      {devUsed} / {devLimit} Appareils
-                    </div>
-                    <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mt-2 overflow-hidden">
-                      <div
-                        style={{ width: `${devPct}%` }}
-                        className="h-full bg-cyan-500 rounded-full"
-                      />
-                    </div>
-                    <div className="text-right text-[10px] font-bold text-cyan-500 mt-1">
-                      {devPct}% ({tabCount} Tab • {scanCount} Scan • {iotCount} IoT)
-                    </div>
+              <div className="space-y-2">
+                <div className="p-2.5 rounded-xl bg-slate-50/60 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <Database className="w-3.5 h-3.5 text-blue-500" />
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Base PostgreSQL & Tables</span>
                   </div>
-                );
-              })()}
+                  <span className="font-mono font-bold text-slate-800 dark:text-white">{(selectedTenant.storageUsed * 0.25).toFixed(1)} GB</span>
+                </div>
 
-              {/* Quantité Données & Enregistrements (100% Dynamique) */}
-              {(() => {
-                const dbRows = selectedTenant.dbRecordsCount || ((selectedTenant.equipmentsUsed || 0) * 28 + (selectedTenant.usersUsed || 0) * 95 + Math.round((selectedTenant.storageUsed || 1) * 850) + 1240);
-                const apiCalls = selectedTenant.apiCallsMonth || Math.round((selectedTenant.usersUsed || 1) * 3800 + (selectedTenant.equipmentsUsed || 1) * 450);
-                const rowsLimit = (selectedTenant.equipmentsLimit || 100) * 50;
-                const dbPct = Math.min(100, Math.round((dbRows / rowsLimit) * 100));
-
-                return (
-                  <div className="p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80">
-                    <div className="text-[10px] text-slate-400 font-medium">Volume Données & Lignes DB</div>
-                    <div className="text-sm font-black text-slate-800 dark:text-white mt-0.5">
-                      {dbRows.toLocaleString('fr-FR')} Enregistrements
-                    </div>
-                    <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mt-2 overflow-hidden">
-                      <div
-                        style={{ width: `${dbPct}%` }}
-                        className="h-full bg-indigo-500 rounded-full"
-                      />
-                    </div>
-                    <div className="text-right text-[10px] font-bold text-indigo-500 mt-1">
-                      {dbPct}% (~{(apiCalls / 1000).toFixed(0)}k Appels API / mois)
-                    </div>
+                <div className="p-2.5 rounded-xl bg-slate-50/60 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <HardDrive className="w-3.5 h-3.5 text-emerald-500" />
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Documents & Rapports PDF</span>
                   </div>
-                );
-              })()}
-            </div>
-          </div>
+                  <span className="font-mono font-bold text-slate-800 dark:text-white">{(selectedTenant.storageUsed * 0.40).toFixed(1)} GB</span>
+                </div>
 
-          {/* Section: Tendance (6 derniers mois) */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-xs font-extrabold text-slate-800 dark:text-white uppercase tracking-wider">
-                Tendance (6 derniers mois)
-              </h4>
-            </div>
+                <div className="p-2.5 rounded-xl bg-slate-50/60 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-3.5 h-3.5 text-amber-500" />
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Photos terrain & Justificatifs</span>
+                  </div>
+                  <span className="font-mono font-bold text-slate-800 dark:text-white">{(selectedTenant.storageUsed * 0.25).toFixed(1)} GB</span>
+                </div>
 
-            {/* Legend */}
-            <div className="flex items-center gap-3 text-[10px] font-bold mb-3">
-              <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span>Utilisateurs</span>
+                <div className="p-2.5 rounded-xl bg-slate-50/60 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-3.5 h-3.5 text-purple-500" />
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">WAL PostgreSQL & Audit Logs</span>
+                  </div>
+                  <span className="font-mono font-bold text-slate-800 dark:text-white">{(selectedTenant.storageUsed * 0.10).toFixed(1)} GB</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1 text-purple-600 dark:text-purple-400">
-                <span className="w-2 h-2 rounded-full bg-purple-500" />
-                <span>Équipements</span>
-              </div>
-              <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-                <span className="w-2 h-2 rounded-full bg-amber-500" />
-                <span>Stockage (GB)</span>
-              </div>
+
+              <button
+                onClick={() => {
+                  setEditLimits({
+                    sitesLimit: selectedTenant.sitesLimit,
+                    usersLimit: selectedTenant.usersLimit,
+                    equipmentsLimit: selectedTenant.equipmentsLimit,
+                    storageLimit: selectedTenant.storageLimit + 50
+                  });
+                  setIsAdjustLimitsModalOpen(true);
+                }}
+                className="w-full mt-1 py-2 px-3 rounded-xl border border-amber-500/30 hover:bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+              >
+                <HardDrive className="w-3.5 h-3.5" />
+                <span>Étendre l'espace disque (+50 Go)</span>
+              </button>
             </div>
-
-            {/* Multi-line Trend SVG */}
-            <div className="h-32 w-full relative pt-2">
-              <svg viewBox="0 0 250 100" className="w-full h-full overflow-visible">
-                {/* Horizontal gridlines */}
-                <line x1="0" y1="20" x2="250" y2="20" stroke="currentColor" className="text-slate-100 dark:text-slate-800" strokeDasharray="3 3" />
-                <line x1="0" y1="50" x2="250" y2="50" stroke="currentColor" className="text-slate-100 dark:text-slate-800" strokeDasharray="3 3" />
-                <line x1="0" y1="80" x2="250" y2="80" stroke="currentColor" className="text-slate-100 dark:text-slate-800" strokeDasharray="3 3" />
-
-                {/* Y-axis labels */}
-                <text x="-5" y="22" fill="#94A3B8" fontSize="8" textAnchor="end">150</text>
-                <text x="-5" y="52" fill="#94A3B8" fontSize="8" textAnchor="end">100</text>
-                <text x="-5" y="82" fill="#94A3B8" fontSize="8" textAnchor="end">50</text>
-                <text x="-5" y="98" fill="#94A3B8" fontSize="8" textAnchor="end">0</text>
-
-                {/* Line 1: Équipements (Purple) */}
-                <polyline
-                  fill="none"
-                  stroke="#8B5CF6"
-                  strokeWidth="2.5"
-                  points="10,75 55,60 100,50 145,40 190,32 235,25"
-                />
-                {/* Dots */}
-                {[
-                  { cx: 10, cy: 75 },
-                  { cx: 55, cy: 60 },
-                  { cx: 100, cy: 50 },
-                  { cx: 145, cy: 40 },
-                  { cx: 190, cy: 32 },
-                  { cx: 235, cy: 25 }
-                ].map((pt, i) => (
-                  <circle key={i} cx={pt.cx} cy={pt.cy} r="3" fill="#8B5CF6" className="cursor-pointer hover:r-4" />
-                ))}
-
-                {/* Line 2: Utilisateurs (Green) */}
-                <polyline
-                  fill="none"
-                  stroke="#10B981"
-                  strokeWidth="2.5"
-                  points="10,85 55,75 100,68 145,60 190,52 235,46"
-                />
-                {[
-                  { cx: 10, cy: 85 },
-                  { cx: 55, cy: 75 },
-                  { cx: 100, cy: 68 },
-                  { cx: 145, cy: 60 },
-                  { cx: 190, cy: 52 },
-                  { cx: 235, cy: 46 }
-                ].map((pt, i) => (
-                  <circle key={i} cx={pt.cx} cy={pt.cy} r="3" fill="#10B981" className="cursor-pointer hover:r-4" />
-                ))}
-
-                {/* Line 3: Stockage (Orange) */}
-                <polyline
-                  fill="none"
-                  stroke="#F59E0B"
-                  strokeWidth="2.5"
-                  points="10,92 55,90 100,88 145,86 190,83 235,80"
-                />
-                {[
-                  { cx: 10, cy: 92 },
-                  { cx: 55, cy: 90 },
-                  { cx: 100, cy: 88 },
-                  { cx: 145, cy: 86 },
-                  { cx: 190, cy: 83 },
-                  { cx: 235, cy: 80 }
-                ].map((pt, i) => (
-                  <circle key={i} cx={pt.cx} cy={pt.cy} r="3" fill="#F59E0B" className="cursor-pointer hover:r-4" />
-                ))}
-
-                {/* X-axis months */}
-                <text x="10" y="108" fill="#94A3B8" fontSize="8" textAnchor="middle">Avr</text>
-                <text x="55" y="108" fill="#94A3B8" fontSize="8" textAnchor="middle">Mai</text>
-                <text x="100" y="108" fill="#94A3B8" fontSize="8" textAnchor="middle">Juin</text>
-                <text x="145" y="108" fill="#94A3B8" fontSize="8" textAnchor="middle">Juil</text>
-                <text x="190" y="108" fill="#94A3B8" fontSize="8" textAnchor="middle">Août</text>
-                <text x="235" y="108" fill="#94A3B8" fontSize="8" textAnchor="middle">Sep</text>
-              </svg>
-            </div>
-          </div>
+          )}
 
           {/* Section: Actions rapides */}
           <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
@@ -1124,7 +1514,7 @@ export const SuperAdminMonitoring: React.FC<SuperAdminMonitoringProps> = ({ sele
             </h4>
             <div className="grid grid-cols-3 gap-2">
               <button
-                onClick={() => showToast(`Détails complets de ${selectedTenant.name}`)}
+                onClick={() => setActiveTab('Détails')}
                 className="flex items-center justify-center gap-1.5 p-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-[11px] font-bold text-slate-700 dark:text-slate-200 transition-colors"
               >
                 <Eye className="w-3.5 h-3.5 text-blue-500" />
@@ -1150,7 +1540,7 @@ export const SuperAdminMonitoring: React.FC<SuperAdminMonitoringProps> = ({ sele
                 className="flex items-center justify-center gap-1.5 p-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-[11px] font-bold text-slate-700 dark:text-slate-200 transition-colors"
               >
                 <Sliders className="w-3.5 h-3.5 text-purple-500" />
-                <span>Ajuster les limites</span>
+                <span>Ajuster quotas</span>
               </button>
             </div>
           </div>
@@ -1158,20 +1548,57 @@ export const SuperAdminMonitoring: React.FC<SuperAdminMonitoringProps> = ({ sele
         </div>
       </div>
 
-      {/* MODAL: AJUSTER LES LIMITES */}
-      {isAdjustLimitsModalOpen && (
+      {/* MODAL: AJUSTER LES QUOTAS & ALLOUER DES CRÉDITS */}
+      {isAdjustLimitsModalOpen && selectedTenant && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-[fadeIn_0.15s_ease-out]">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col gap-4">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col gap-4">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="text-base font-black text-slate-800 dark:text-white">
-                Ajuster les quotas ({selectedTenant.name})
-              </h3>
-              <button onClick={() => setIsAdjustLimitsModalOpen(false)} className="p-1 rounded-xl">
-                <X className="w-5 h-5 text-slate-400" />
+              <div>
+                <h3 className="text-base font-black text-slate-800 dark:text-white flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-blue-500" />
+                  <span>Ajuster les Quotas & Crédits Cloud</span>
+                </h3>
+                <p className="text-xs text-slate-400 font-medium">
+                  {selectedTenant.name} ({selectedTenant.codeTenant})
+                </p>
+              </div>
+              <button onClick={() => setIsAdjustLimitsModalOpen(false)} className="p-1 rounded-xl text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="flex flex-col gap-3">
+            {/* Quick Credit Injection */}
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/60">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200 block mb-2">
+                Recharger le Solde de Crédits Cloud
+              </span>
+              <div className="grid grid-cols-3 gap-2">
+                {[500, 1000, 5000].map(cred => (
+                  <button
+                    key={cred}
+                    type="button"
+                    onClick={() => {
+                      setTenantsList(prev => prev.map(t => {
+                        if (t.id === selectedTenant.id) {
+                          return {
+                            ...t,
+                            allocatedCredits: t.allocatedCredits + cred,
+                            remainingCredits: t.remainingCredits + cred
+                          };
+                        }
+                        return t;
+                      }));
+                      showToast(`+${cred} Crédits Cloud alloués à ${selectedTenant.name}`);
+                    }}
+                    className="py-1.5 px-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900 text-xs font-bold transition-all cursor-pointer"
+                  >
+                    +{cred} Crédits
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Limite de Sites / Usines
@@ -1186,7 +1613,7 @@ export const SuperAdminMonitoring: React.FC<SuperAdminMonitoringProps> = ({ sele
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Limite d'utilisateurs
+                  Limite d'Utilisateurs
                 </label>
                 <input
                   type="number"
@@ -1198,7 +1625,7 @@ export const SuperAdminMonitoring: React.FC<SuperAdminMonitoringProps> = ({ sele
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Limite d'équipements
+                  Limite d'Équipements
                 </label>
                 <input
                   type="number"
@@ -1210,7 +1637,7 @@ export const SuperAdminMonitoring: React.FC<SuperAdminMonitoringProps> = ({ sele
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Limite de stockage (GB)
+                  Limite de Stockage (GB)
                 </label>
                 <input
                   type="number"
@@ -1221,34 +1648,47 @@ export const SuperAdminMonitoring: React.FC<SuperAdminMonitoringProps> = ({ sele
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
               <button
+                type="button"
                 onClick={() => setIsAdjustLimitsModalOpen(false)}
-                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300"
+                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100"
               >
                 Annuler
               </button>
               <button
-                onClick={() => {
-                  setTenantsList(prev =>
-                    prev.map(t =>
-                      t.id === selectedTenant.id
-                        ? {
-                            ...t,
-                            sitesLimit: editLimits.sitesLimit,
-                            usersLimit: editLimits.usersLimit,
-                            equipmentsLimit: editLimits.equipmentsLimit,
-                            storageLimit: editLimits.storageLimit
-                          }
-                        : t
-                    )
-                  );
-                  setIsAdjustLimitsModalOpen(false);
-                  showToast(`Quotas mis à jour pour ${selectedTenant.name}`);
+                type="button"
+                onClick={async () => {
+                  try {
+                    await superAdminApi.updateTenantLimits(selectedTenant.rawId, {
+                      maxSites: editLimits.sitesLimit,
+                      maxUsers: editLimits.usersLimit,
+                      maxEquipements: editLimits.equipmentsLimit,
+                      maxStorageGb: editLimits.storageLimit
+                    });
+
+                    setTenantsList(prev =>
+                      prev.map(t =>
+                        t.id === selectedTenant.id
+                          ? {
+                              ...t,
+                              sitesLimit: editLimits.sitesLimit,
+                              usersLimit: editLimits.usersLimit,
+                              equipmentsLimit: editLimits.equipmentsLimit,
+                              storageLimit: editLimits.storageLimit
+                            }
+                          : t
+                      )
+                    );
+                    setIsAdjustLimitsModalOpen(false);
+                    showToast(`Quotas mis à jour et persistés en base pour ${selectedTenant.name}`);
+                  } catch {
+                    showToast('Erreur lors de la mise à jour des quotas');
+                  }
                 }}
-                className="px-4 py-2 rounded-xl bg-blue-600 text-white font-bold text-xs shadow-md shadow-blue-600/30"
+                className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/30 cursor-pointer"
               >
-                Appliquer
+                Enregistrer les Quotas
               </button>
             </div>
           </div>

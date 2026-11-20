@@ -30,6 +30,7 @@ interface SuperAdminCampaignsProps {
 export const SuperAdminCampaigns: React.FC<SuperAdminCampaignsProps> = ({ selectedTenantId = 'ALL' }) => {
   const { impersonateTenant, tenants } = useGmao();
   const [campaigns, setCampaigns] = useState<CampaignItem[]>([]);
+  const [dbTenants, setDbTenants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [tenantFilter, setTenantFilter] = useState<string>(selectedTenantId);
@@ -40,6 +41,28 @@ export const SuperAdminCampaigns: React.FC<SuperAdminCampaignsProps> = ({ select
       setTenantFilter(selectedTenantId);
     }
   }, [selectedTenantId]);
+
+  useEffect(() => {
+    superAdminApi.getTenants().then(data => {
+      if (data && data.length > 0) setDbTenants(data);
+    }).catch(() => {});
+  }, []);
+
+  const allTenantsList = useMemo(() => {
+    if (dbTenants.length > 0) {
+      return dbTenants.map(t => ({
+        id: t.id,
+        code: t.codeTenant,
+        name: t.nom
+      }));
+    }
+    return (tenants || []).map(t => ({
+      id: t.dbId || t.id,
+      code: t.id,
+      name: t.name
+    }));
+  }, [dbTenants, tenants]);
+
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignItem | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -49,38 +72,79 @@ export const SuperAdminCampaigns: React.FC<SuperAdminCampaignsProps> = ({ select
   };
 
   const generateDynamicCampaigns = (): CampaignItem[] => {
-    if (!tenants || tenants.length === 0) return [];
+    const sourceTenants = allTenantsList.length > 0 ? allTenantsList : (tenants || []).map((t, i) => ({ id: i + 1, code: t.id, name: t.name }));
+    if (!sourceTenants || sourceTenants.length === 0) return [];
+
     const list: CampaignItem[] = [];
-    tenants.forEach((t, idx) => {
+    sourceTenants.forEach((t, idx) => {
+      const sId = Number(t.id) || idx + 1;
+      const sName = t.name;
+      const sCode = t.code || `tenant-${sId}`;
+      const isHuilerie = sName.toLowerCase().includes('huilerie') || sName.toLowerCase().includes('sahel');
+      const isBeverage = sName.toLowerCase().includes('boissons') || sName.toLowerCase().includes('sfbt');
+      const isGrains = sName.toLowerCase().includes('grains') || sName.toLowerCase().includes('céréales');
+      const isFromagerie = sName.toLowerCase().includes('fromagerie') || sName.toLowerCase().includes('domaines');
+
       // Campagne active en cours
+      const activeName = isHuilerie 
+        ? 'Campagne Oléicole 2025/2026'
+        : (isBeverage 
+          ? 'Campagne Haute Saison Boissons 2026'
+          : (isGrains 
+            ? 'Campagne Céréalière & Moisson 2026'
+            : (isFromagerie 
+              ? 'Campagne Laitière de Printemps 2026'
+              : 'Campagne Tomates 2026')));
+
+      const activeDesc = isHuilerie
+        ? `Extraction et pressage d'huile d'olive extra-vierge pour ${sName}.`
+        : (isBeverage
+          ? `Lignes d'embouteillage continu à haute cadence pour ${sName}.`
+          : (isGrains
+            ? `Moisson, ensilage et contrôle des silos de blé pour ${sName}.`
+            : (isFromagerie
+              ? `Collecte et affinage fromager de printemps pour ${sName}.`
+              : `Transformation concentré double et concassé estival pour ${sName}.`)));
+
       list.push({
         id: idx * 2 + 1,
-        nom: `Campagne Tomates 2026`,
-        description: `Campagne principale de haute saison estivale - Transformation concentré double et concassé pour ${t.name}.`,
-        dateDebut: '2026-07-01',
-        dateFin: '2026-10-31',
+        nom: activeName,
+        description: activeDesc,
+        dateDebut: isHuilerie ? '2025-11-01' : (isFromagerie ? '2026-03-01' : (isBeverage ? '2026-05-01' : '2026-07-01')),
+        dateFin: isHuilerie ? '2026-03-31' : (isFromagerie ? '2026-07-31' : (isBeverage ? '2026-09-30' : '2026-10-31')),
         etat: 'EnCours',
-        societeId: Number(t.id) || idx + 1,
-        societeNom: t.name,
-        societeCode: t.code || `tenant-${t.id}`,
-        otCount: Math.round(((Array.isArray(t.equipments) ? t.equipments.length : 15) * 0.45) + 10),
-        incidentsCount: Math.round(((Array.isArray(t.equipments) ? t.equipments.length : 15) * 0.18) + 3),
-        tonnagePrevu: (t.capacityTonsPerDay ? t.capacityTonsPerDay * 90 : 45000)
+        societeId: sId,
+        societeNom: sName,
+        societeCode: sCode,
+        otCount: 10 + (idx % 8) * 3,
+        incidentsCount: 2 + (idx % 4),
+        tonnagePrevu: 40000 + (idx % 5) * 8000
       });
+
       // Campagne archivée 2025
+      const closedName = isHuilerie 
+        ? 'Campagne Oléicole 2024/2025 (Archive)'
+        : (isBeverage 
+          ? 'Campagne Jus & Agrumes 2025 (Archive)'
+          : (isGrains 
+            ? 'Campagne Silos & Stockage 2025 (Archive)'
+            : (isFromagerie 
+              ? 'Campagne Fromages Affinés 2025 (Archive)'
+              : 'Campagne Tomates 2025 (Archive)')));
+
       list.push({
         id: idx * 2 + 2,
-        nom: `Campagne Tomates 2025`,
-        description: `Campagne saisonnière précédente clôturée et archivée pour ${t.name}.`,
+        nom: closedName,
+        description: `Bilan technique de campagne précédente clôturé et archivé pour ${sName}.`,
         dateDebut: '2025-07-01',
         dateFin: '2025-09-30',
         etat: 'Cloturee',
-        societeId: Number(t.id) || idx + 1,
-        societeNom: t.name,
-        societeCode: t.code || `tenant-${t.id}`,
-        otCount: Math.round(((Array.isArray(t.equipments) ? t.equipments.length : 15) * 1.1) + 25),
-        incidentsCount: Math.round(((Array.isArray(t.equipments) ? t.equipments.length : 15) * 0.5) + 12),
-        tonnagePrevu: (t.capacityTonsPerDay ? t.capacityTonsPerDay * 80 : 38000)
+        societeId: sId,
+        societeNom: sName,
+        societeCode: sCode,
+        otCount: 22 + (idx % 6) * 4,
+        incidentsCount: 8 + (idx % 5),
+        tonnagePrevu: 36000 + (idx % 4) * 5000
       });
     });
     return list;
@@ -94,7 +158,7 @@ export const SuperAdminCampaigns: React.FC<SuperAdminCampaignsProps> = ({ select
       if (data && data.length > 0) {
         setCampaigns(data.map((c: any) => ({
           ...c,
-          etat: c.etat === 'EnCours' || c.etat === '1' ? 'EnCours' : (c.etat === 'Cloturee' || c.etat === '2' ? 'Cloturee' : 'Planifiee')
+          etat: c.etat === 'EnCours' || c.etat === '1' ? 'EnCours' : (c.etat === 'Cloturee' || c.etat === '2' || c.etat === 'Terminee' || c.etat === '3' ? 'Cloturee' : 'Planifiee')
         })));
       } else {
         setCampaigns(fallback);
@@ -112,11 +176,17 @@ export const SuperAdminCampaigns: React.FC<SuperAdminCampaignsProps> = ({ select
 
   const filteredCampaigns = useMemo(() => {
     return campaigns.filter(c => {
-      const matchesSearch = c.nom.toLowerCase().includes(search.toLowerCase()) ||
+      const matchesSearch = 
+        c.nom.toLowerCase().includes(search.toLowerCase()) ||
         c.societeNom.toLowerCase().includes(search.toLowerCase()) ||
-        c.dateDebut.includes(search);
+        c.dateDebut.includes(search) ||
+        (c.description && c.description.toLowerCase().includes(search.toLowerCase()));
 
-      const matchesTenant = tenantFilter === 'ALL' || String(c.societeId) === tenantFilter;
+      const matchesTenant = tenantFilter === 'ALL' ||
+        String(c.societeId) === tenantFilter ||
+        (c.societeCode && c.societeCode.toLowerCase() === tenantFilter.toLowerCase()) ||
+        (c.societeNom && c.societeNom.toLowerCase() === tenantFilter.toLowerCase());
+
       const matchesStatus = statusFilter === 'ALL' || c.etat === statusFilter;
 
       return matchesSearch && matchesTenant && matchesStatus;
@@ -174,7 +244,7 @@ export const SuperAdminCampaigns: React.FC<SuperAdminCampaignsProps> = ({ select
               </span>
             </div>
             <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
-              Supervision transversale des campagnes de transformation de tomates across all client canneries
+              Supervision transversale des campagnes de production industrielle multi-usines
             </p>
           </div>
         </div>
@@ -281,9 +351,9 @@ export const SuperAdminCampaigns: React.FC<SuperAdminCampaignsProps> = ({ select
             onChange={(e) => setTenantFilter(e.target.value)}
             className="px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
           >
-            <option value="ALL">Toutes les Usines ({tenants?.length || 0})</option>
-            {tenants?.map(t => (
-              <option key={t.id} value={String(t.id)}>{t.name}</option>
+            <option value="ALL">Toutes les Usines ({allTenantsList.length})</option>
+            {allTenantsList.map(t => (
+              <option key={t.id || t.code} value={String(t.id)}>{t.name}</option>
             ))}
           </select>
 

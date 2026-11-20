@@ -210,8 +210,8 @@ export const CreateTenantWizard: React.FC<CreateTenantWizardProps> = ({ show, on
               <h4 className="font-extrabold text-slate-800 dark:text-white uppercase tracking-wider text-[10px]">Information de l'Entreprise</h4>
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] text-slate-400 font-bold uppercase">Nom de la Conserverie *</label>
-                  <input type="text" required value={companyName} onChange={(e) => handleCompanyNameChange(e.target.value)} placeholder="Ex: Sicam Tomates" className="p-2 border border-slate-205 dark:border-slate-800 rounded-lg outline-none bg-transparent dark:text-white" />
+                  <label className="text-[10px] text-slate-400 font-bold uppercase">Nom de l'Entreprise / Usine *</label>
+                  <input type="text" required value={companyName} onChange={(e) => handleCompanyNameChange(e.target.value)} placeholder="Ex: Sicam Industrie" className="p-2 border border-slate-205 dark:border-slate-800 rounded-lg outline-none bg-transparent dark:text-white" />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] text-slate-400 font-bold uppercase">Raison Sociale *</label>
