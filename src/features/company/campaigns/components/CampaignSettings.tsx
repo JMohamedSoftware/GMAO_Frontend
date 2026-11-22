@@ -147,8 +147,8 @@ export const CampaignSettings: React.FC = () => {
       {/* List of campaigns */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {(campaigns || []).map(camp => {
-          const isActive = camp.status === 'En cours' || camp.name === selectedCampaign;
           const isClosed = camp.status === 'Terminée' || (camp.status as string) === 'Clôturée';
+          const isActive = !isClosed && (camp.status === 'En cours' || camp.name === selectedCampaign);
           const isPlanned = camp.status === 'Planifiée';
 
           const campYearMatch = camp.name?.match(/\d{4}/)?.[0];

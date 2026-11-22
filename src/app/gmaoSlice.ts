@@ -801,8 +801,9 @@ export const gmaoSlice = createSlice({
           }
         });
 
-        // Sélection dynamique de la campagne en cours si non définie
-        if (!state.selectedCampaign && tenant.campaigns.length > 0) {
+        // Sélection dynamique de la campagne en cours si non définie ou si clôturée
+        const currentSelectedCamp = tenant.campaigns.find(c => c.name === state.selectedCampaign);
+        if ((!state.selectedCampaign || (currentSelectedCamp && (currentSelectedCamp.status === 'Terminée' || (currentSelectedCamp.status as string) === 'Clôturée'))) && tenant.campaigns.length > 0) {
           const activeCamp = tenant.campaigns.find(c => c.status === 'En cours') || tenant.campaigns[0];
           state.selectedCampaign = activeCamp.name;
         }
