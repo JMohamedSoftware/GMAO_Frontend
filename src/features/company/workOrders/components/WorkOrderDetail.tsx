@@ -13,6 +13,7 @@ import { useGmao } from '@/shared/hooks/useGmao';
 import { PERMISSIONS } from '@/shared/permissions';
 import { useAuth } from '@/features/auth';
 import { usePreventive } from '@/features/company/preventive/hooks/usePreventive';
+import { openDocumentApi } from '@/shared/api/document.api';
 
 interface WorkOrderDetailProps {
   activeOt: WorkOrder | null | undefined;
@@ -913,14 +914,13 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
                           <p className="text-[10px] text-slate-400 mt-0.5">{typeLabel[doc.type] || doc.type} · {doc.size}</p>
                         </div>
                       </div>
-                      <a
-                        href={doc.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <button
+                        type="button"
+                        onClick={() => openDocumentApi(doc)}
                         className="px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg font-bold text-[10px] transition-colors"
                       >
                         Ouvrir
-                      </a>
+                      </button>
                     </div>
                   ))}
                 </div>

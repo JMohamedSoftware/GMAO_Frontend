@@ -245,6 +245,103 @@ export interface MonitoringDto {
   }>;
 }
 
+export interface CdcStatusDto {
+  slotName: string;
+  publicationName: string;
+  status: string;
+  statusReason?: string | null;
+  postgresVersion?: string | null;
+  walLevel?: string | null;
+  maxReplicationSlots?: number | null;
+  maxWalSenders?: number | null;
+  slotActive?: boolean | null;
+  lastConsumedLsn?: string | null;
+  currentServerWalLsn?: string | null;
+  replicationLagBytes?: number | null;
+  retainedWalBytes?: number | null;
+  walStatus?: string | null;
+  totalCdcEventsProcessed: number;
+  lastEventAtUtc?: string | null;
+  lastHeartbeatUtc?: string | null;
+  alerts: string[];
+}
+
+export interface RedoLogsOverviewDto {
+  totalAuditEvents: number;
+  totalCdcEvents: number;
+  distinctTransactionsCount: number;
+  compensationsCount: number;
+  eventsLast24h: number;
+  cdcWorker: CdcStatusDto;
+  availableTables: string[];
+}
+
+export interface RedoLogRecordDto {
+  eventKey: string;
+  numericId: number;
+  source: string;
+  operation: string;
+  tableName: string;
+  recordId: string;
+  businessLabel: string;
+  societeId?: number | null;
+  societeName: string;
+  userId?: number | null;
+  userName?: string | null;
+  userRole?: string | null;
+  timestampUtc: string;
+  transactionId?: string | null;
+  lsn?: string | null;
+  correlationId?: string | null;
+  oldValuesJson?: string | null;
+  newValuesJson?: string | null;
+  changedProperties?: string | null;
+  isCompensated: boolean;
+  canCompensate: boolean;
+  compensationNote?: string | null;
+  hasWalCorrelation: boolean;
+}
+
+export interface PagedRedoLogsResponseDto {
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  items: RedoLogRecordDto[];
+}
+
+export interface RedoLogQueryParams {
+  source?: string;
+  fromDate?: string;
+  toDate?: string;
+  societeId?: number;
+  tableName?: string;
+  operation?: string;
+  userId?: number;
+  userSearch?: string;
+  transactionId?: string;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface CompensateResultDto {
+  success: boolean;
+  httpStatusCode: number;
+  message: string;
+  originalAuditEntryId?: number | null;
+  compensatingAuditEntryId?: number | null;
+  timestampUtc: string;
+}
+
+export interface PitrCapabilitiesDto {
+  provider: string;
+  projectRef: string;
+  walSemantics: string;
+  plans: Array<{ plan: string; autoBackups: string; pitr: string; notes: string }>;
+  isolationProcedure: string[];
+}
+
 // ── Generic Safe Fetch Helper ───────────────────────────────────────────────
 
 async function safeApiCall<T>(url: string, options?: RequestInit, fallback?: T): Promise<T> {
@@ -439,22 +536,49 @@ export const superAdminApi = {
   getCampaigns: (fallback?: any[]) =>
     safeApiCall<any[]>('/superadmin/campaigns', undefined, fallback),
 
-  // 12. Redo Logs & Rollback (PostgreSQL WAL & CDC Engine)
-  getRedoLogs: (params?: { societeId?: number; campagneNom?: string; authorName?: string; actionType?: string; entityType?: string }, fallback?: any[]) => {
+  // 12. Redo Logs (PostgreSQL WAL / CDC + Audit Trail Applicatif + Compensation Contrôlée)
+  getRedoLogsOverview: () =>
+    safeApiCall<RedoLogsOverviewDto>('/superadmin/redologs/overview'),
+
+  getRedoLogs: (params?: RedoLogQueryParams) => {
     const searchParams = new URLSearchParams();
+    if (params?.source && params.source !== 'ALL') searchParams.set('source', params.source);
+    if (params?.fromDate) searchParams.set('fromDate', params.fromDate);
+    if (params?.toDate) searchParams.set('toDate', params.toDate);
     if (params?.societeId) searchParams.set('societeId', String(params.societeId));
-    if (params?.campagneNom && params.campagneNom !== 'ALL') searchParams.set('campagneNom', params.campagneNom);
-    if (params?.authorName && params.authorName !== 'ALL') searchParams.set('authorName', params.authorName);
-    if (params?.actionType && params.actionType !== 'ALL') searchParams.set('actionType', params.actionType);
-    if (params?.entityType && params.entityType !== 'ALL') searchParams.set('entityType', params.entityType);
+    if (params?.tableName && params.tableName !== 'ALL') searchParams.set('tableName', params.tableName);
+    if (params?.operation && params.operation !== 'ALL') searchParams.set('operation', params.operation);
+    if (params?.userId) searchParams.set('userId', String(params.userId));
+    if (params?.userSearch) searchParams.set('userSearch', params.userSearch);
+    if (params?.transactionId) searchParams.set('transactionId', params.transactionId);
+    if (params?.search) searchParams.set('search', params.search);
+    if (params?.page) searchParams.set('page', String(params.page));
+    if (params?.pageSize) searchParams.set('pageSize', String(params.pageSize));
     const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
-    return safeApiCall<any[]>(`/superadmin/redologs${query}`, undefined, fallback);
+    return safeApiCall<PagedRedoLogsResponseDto>(`/superadmin/redologs${query}`);
   },
 
-  rollbackRedoLog: (id: string) =>
-    safeApiCall<{ success: boolean; message: string; rolledBackId?: string }>(`/superadmin/redologs/${id}/rollback`, {
-      method: 'POST'
-    }),
+  compensateAuditEntry: async (auditEntryId: number): Promise<CompensateResultDto> => {
+    const res = await fetch(`${API_BASE}/superadmin/audit-trail/${auditEntryId}/compensate`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    const body = await res.json().catch(() => null);
+    if (body && typeof body.message === 'string') {
+      return {
+        success: Boolean(body.success) && res.ok,
+        httpStatusCode: body.httpStatusCode ?? res.status,
+        message: body.message,
+        originalAuditEntryId: body.originalAuditEntryId,
+        compensatingAuditEntryId: body.compensatingAuditEntryId,
+        timestampUtc: body.timestampUtc ?? new Date().toISOString()
+      };
+    }
+    throw new Error(`Erreur API (${res.status}) lors de la compensation métier.`);
+  },
+
+  getPitrCapabilities: () =>
+    safeApiCall<PitrCapabilitiesDto>('/superadmin/redologs/pitr-capabilities'),
 
   // 13. Ajustement Quotas & Limites Cloud
   updateTenantLimits: (tenantId: number, limits: { maxSites?: number; maxUsers?: number; maxEquipements?: number; maxStorageGb?: number; addedCredits?: number }) =>

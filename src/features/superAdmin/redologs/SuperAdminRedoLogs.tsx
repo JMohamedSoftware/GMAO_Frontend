@@ -1,950 +1,829 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useGmao } from '@/shared/hooks/useGmao';
-import { superAdminApi } from '../api/superAdmin.api';
-import { 
-  RotateCcw, History, AlertTriangle, ShieldCheck, CheckCircle2, 
-  Search, Filter, ArrowRight, RefreshCw, Download, User, 
-  Building2, Layers, X, Sparkles, Clock, FileCode, Check,
-  Database, Terminal, Cpu, Shield, Calendar
+import {
+  superAdminApi,
+  RedoLogsOverviewDto,
+  RedoLogRecordDto,
+  PitrCapabilitiesDto,
+  PagedRedoLogsResponseDto
+} from '../api/superAdmin.api';
+import {
+  RotateCcw, History, AlertTriangle, ShieldCheck, CheckCircle2,
+  Search, Filter, RefreshCw, Download, User, Building2, Layers,
+  X, Clock, Database, Terminal, Shield, ChevronLeft, ChevronRight,
+  Eye, Link2, Info
 } from 'lucide-react';
-
-export interface RedoLogItem {
-  id: string;
-  timestamp: string;
-  tenantId: number;
-  tenantName: string;
-  campagneNom?: string;
-  authorName: string;
-  authorRole: string;
-  authorAvatar?: string;
-  entityType: string;
-  entityId: string;
-  entityName: string;
-  actionType: 'CREATE' | 'UPDATE' | 'DELETE' | 'ROLLBACK' | 'ALTER';
-  fieldName: string;
-  oldValue: string;
-  newValue: string;
-  isRollbacked: boolean;
-  canRollback: boolean;
-}
 
 interface SuperAdminRedoLogsProps {
   selectedTenantId?: string;
 }
 
+const formatBytes = (bytes?: number | null): string => {
+  if (bytes === null || bytes === undefined) return 'N/D';
+  if (bytes < 1024) return `${bytes} o`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} Mo`;
+};
+
+const getCdcBadgeStyle = (status?: string) => {
+  switch (status) {
+    case 'ActiveStreaming':
+    case 'Streaming':
+      return {
+        bg: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400',
+        dot: 'bg-emerald-400 animate-pulse',
+        label: 'Streaming pgoutput Actif'
+      };
+    case 'Ready':
+      return {
+        bg: 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300',
+        dot: 'bg-cyan-400',
+        label: 'Prêt (pgoutput vérifié)'
+      };
+    case 'Disabled':
+    case 'NotConfigured':
+    case 'DisabledByConfig':
+      return {
+        bg: 'bg-amber-500/15 border-amber-500/30 text-amber-300',
+        dot: 'bg-amber-400',
+        label: status === 'NotConfigured' ? 'Non configuré' : 'Désactivé (Configuration)'
+      };
+    case 'IncompatibleWalLevel':
+    case 'PermissionDenied':
+    case 'NotSupported':
+    case 'NetworkBlocked':
+    case 'Error':
+      return {
+        bg: 'bg-rose-500/15 border-rose-500/30 text-rose-300',
+        dot: 'bg-rose-400',
+        label: status === 'IncompatibleWalLevel'
+          ? 'wal_level != logical'
+          : status === 'PermissionDenied'
+            ? 'Privilège REPLICATION manquant'
+            : status
+      };
+    default:
+      return {
+        bg: 'bg-slate-700/60 border-slate-600 text-slate-300',
+        dot: 'bg-slate-400',
+        label: status || 'Non initialisé'
+      };
+  }
+};
+
+const getOpBadgeClass = (op: string) => {
+  const upper = op.toUpperCase();
+  if (upper === 'CREATE' || upper === 'INSERT')
+    return 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40';
+  if (upper === 'UPDATE' || upper === 'STATUS_CHANGE')
+    return 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/40';
+  if (upper === 'DELETE')
+    return 'bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/40';
+  if (upper === 'COMPENSATE')
+    return 'bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800/40';
+  return 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700';
+};
+
 export const SuperAdminRedoLogs: React.FC<SuperAdminRedoLogsProps> = ({ selectedTenantId = 'ALL' }) => {
   const { tenants } = useGmao();
-  const [redoLogs, setRedoLogs] = useState<RedoLogItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  
-  // Prioritized filtering: Campagne FIRST, then User/Author, then Tenant, Action, Entity
-  const [campagneFilter, setCampagneFilter] = useState<string>('ALL');
-  const [authorFilter, setAuthorFilter] = useState<string>('ALL');
-  const [tenantFilter, setTenantFilter] = useState<string>(selectedTenantId);
-  const [entityFilter, setEntityFilter] = useState<string>('ALL');
-  const [actionFilter, setActionFilter] = useState<string>('ALL');
+
+  const [activeTab, setActiveTab] = useState<'LOGS' | 'PITR'>('LOGS');
+  const [overview, setOverview] = useState<RedoLogsOverviewDto | null>(null);
+  const [pagedLogs, setPagedLogs] = useState<PagedRedoLogsResponseDto | null>(null);
+  const [pitrInfo, setPitrInfo] = useState<PitrCapabilitiesDto | null>(null);
+
+  const [loading, setLoading] = useState<boolean>(true);
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  // Server-side query filters
+  const [sourceFilter, setSourceFilter] = useState<string>('ALL');
+  const [tenantFilter, setTenantFilter] = useState<string>(selectedTenantId || 'ALL');
+  const [tableFilter, setTableFilter] = useState<string>('ALL');
+  const [operationFilter, setOperationFilter] = useState<string>('ALL');
+  const [userSearch, setUserSearch] = useState<string>('');
+  const [txSearch, setTxSearch] = useState<string>('');
+  const [search, setSearch] = useState<string>('');
+  const [fromDate, setFromDate] = useState<string>('');
+  const [toDate, setToDate] = useState<string>('');
+  const [page, setPage] = useState<number>(1);
+  const pageSize = 25;
+
+  // Inspection / Compensation modals
+  const [inspectedRow, setInspectedRow] = useState<RedoLogRecordDto | null>(null);
+  const [compensateTarget, setCompensateTarget] = useState<RedoLogRecordDto | null>(null);
+  const [isCompensating, setIsCompensating] = useState<boolean>(false);
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     if (selectedTenantId) {
       setTenantFilter(selectedTenantId);
+      setPage(1);
     }
   }, [selectedTenantId]);
 
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  // Rollback confirmation modal state
-  const [rollbackTarget, setRollbackTarget] = useState<RedoLogItem | null>(null);
-  const [isRollingBack, setIsRollingBack] = useState(false);
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+  const showToast = (type: 'success' | 'error', text: string) => {
+    setToast({ type, text });
+    setTimeout(() => setToast(null), 5500);
   };
 
-  const generateDynamicRedoLogs = (): RedoLogItem[] => {
-    const list: RedoLogItem[] = [];
-    const now = new Date();
-
-    // 1. DDL OPERATIONS (PostgreSQL WAL & Logical Decoding Mutations)
-    list.push({
-      id: 'TX-DDL-101',
-      timestamp: new Date(now.getTime() - 5 * 60000).toISOString().replace('T', ' ').slice(0, 19),
-      tenantId: 1,
-      tenantName: 'Comocap (tenant-cap-02)',
-      campagneNom: 'Campagne Tomates 2026',
-      authorName: 'SuperAdmin DBA',
-      authorRole: 'Administrateur Base de Données',
-      authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-      entityType: 'Schéma & Tables',
-      entityId: 'TBL-OT',
-      entityName: 'Table OrdresTravail (PostgreSQL WAL)',
-      actionType: 'ALTER',
-      fieldName: 'Ajout Colonne Consigne Température',
-      oldValue: 'Structure antérieure: Colonne inexistante',
-      newValue: 'ALTER TABLE "OrdresTravail" ADD COLUMN "ConsigneTemperature" NUMERIC(5,2) DEFAULT 85.0',
-      isRollbacked: false,
-      canRollback: true
-    });
-
-    list.push({
-      id: 'TX-DDL-102',
-      timestamp: new Date(now.getTime() - 32 * 60000).toISOString().replace('T', ' ').slice(0, 19),
-      tenantId: 2,
-      tenantName: 'Conserverie Carthage SARL',
-      campagneNom: 'Campagne Tomates 2026',
-      authorName: 'SuperAdmin DBA',
-      authorRole: 'Administrateur Base de Données',
-      authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-      entityType: 'Schéma & Tables',
-      entityId: 'TBL-EQ',
-      entityName: 'Table Equipements (PostgreSQL WAL)',
-      actionType: 'ALTER',
-      fieldName: 'Indexation Haute Performance Ligne',
-      oldValue: 'Index: Scan séquentiel standard',
-      newValue: 'CREATE INDEX "idx_equip_societe_statut" ON "Equipements"("SocieteId", "Statut")',
-      isRollbacked: false,
-      canRollback: true
-    });
-
-    list.push({
-      id: 'TX-DDL-103',
-      timestamp: new Date(now.getTime() - 72 * 60000).toISOString().replace('T', ' ').slice(0, 19),
-      tenantId: 1,
-      tenantName: 'Comocap (tenant-cap-02)',
-      campagneNom: 'Hors-campagne',
-      authorName: 'Système Migration EF Core',
-      authorRole: 'PostgreSQL Migration Runner',
-      authorAvatar: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=150',
-      entityType: 'Schéma & Tables',
-      entityId: 'TBL-SOC',
-      entityName: 'Table Societes (PostgreSQL WAL)',
-      actionType: 'ALTER',
-      fieldName: 'Modification Contrainte Quota Stockage',
-      oldValue: 'DEFAULT max_storage_gb = 50.0',
-      newValue: 'ALTER TABLE "Societes" ALTER COLUMN "MaxStorageGb" SET DEFAULT 100.0',
-      isRollbacked: false,
-      canRollback: true
-    });
-
-    list.push({
-      id: 'TX-DDL-104',
-      timestamp: new Date(now.getTime() - 165 * 60000).toISOString().replace('T', ' ').slice(0, 19),
-      tenantId: 1,
-      tenantName: 'Comocap (tenant-cap-02)',
-      campagneNom: 'Campagne Tomates 2025',
-      authorName: 'SecOps Platform',
-      authorRole: 'Administrateur Sécurité Cloud',
-      authorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-      entityType: 'Schéma & Tables',
-      entityId: 'SEC-RLS',
-      entityName: 'Politique RLS Campagnes (PostgreSQL WAL)',
-      actionType: 'ALTER',
-      fieldName: 'Activation Row Level Security Multi-Tenants',
-      oldValue: 'ALTER TABLE "Campagnes" DISABLE ROW LEVEL SECURITY',
-      newValue: 'ALTER TABLE "Campagnes" ENABLE ROW LEVEL SECURITY',
-      isRollbacked: false,
-      canRollback: true
-    });
-
-    // 2. DML TRANSACTIONS LINKED TO REAL CAMPAIGNS
-    const sampleTenants = (tenants && tenants.length > 0) ? tenants.slice(0, 8) : [
-      { id: '1', name: 'Comocap' },
-      { id: '2', name: 'Conserverie Carthage SARL' },
-      { id: '3', name: 'Huilerie Moderne Du Sahel' },
-      { id: '4', name: 'Société Tunisienne Des Boissons (SFBT)' }
-    ];
-
-    sampleTenants.forEach((t, idx) => {
-      const tId = Number(t.id) || idx + 1;
-      const tName = t.name;
-      const isHuilerie = tName.toLowerCase().includes('huilerie') || tName.toLowerCase().includes('sahel');
-      const isBeverage = tName.toLowerCase().includes('boissons') || tName.toLowerCase().includes('sfbt');
-      const camp2026 = isHuilerie ? 'Campagne Oléicole 2025/2026' : (isBeverage ? 'Campagne Haute Saison Boissons 2026' : 'Campagne Tomates 2026');
-      const camp2025 = isHuilerie ? 'Campagne Oléicole 2024/2025' : (isBeverage ? 'Campagne Jus & Agrumes 2025' : 'Campagne Tomates 2025');
-
-      // 1. UPDATE Equipement (Campagne 2026)
-      list.push({
-        id: `TX-${90412 - idx * 4}`,
-        timestamp: new Date(now.getTime() - (idx * 25 + 12) * 60000).toISOString().replace('T', ' ').slice(0, 19),
-        tenantId: tId,
-        tenantName: tName,
-        campagneNom: camp2026,
-        authorName: idx % 2 === 0 ? 'Karim Ben Salah' : 'Mohamed Ben Amor',
-        authorRole: idx % 2 === 0 ? 'Technicien Électromécanicien' : 'Chef d\'Équipe Ligne',
-        authorAvatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150',
-        entityType: 'Équipement',
-        entityId: `EQ-${tId}02`,
-        entityName: isHuilerie ? 'Séparateur Centrifuge Huile N°1' : (isBeverage ? 'Soutireuse Isobare 60 Becs' : `Groupe Concentrateur & Cuiseur N°${idx + 1}`),
-        actionType: 'UPDATE',
-        fieldName: 'Statut & Santé',
-        oldValue: "Statut: 'En panne' • Indice santé: 32%",
-        newValue: "Statut: 'Opérationnel' • Indice santé: 94%",
-        isRollbacked: false,
-        canRollback: true
-      });
-
-      // 2. UPDATE OT Priorite (Campagne 2026)
-      list.push({
-        id: `TX-${90411 - idx * 4}`,
-        timestamp: new Date(now.getTime() - (idx * 35 + 38) * 60000).toISOString().replace('T', ' ').slice(0, 19),
-        tenantId: tId,
-        tenantName: tName,
-        campagneNom: camp2026,
-        authorName: 'Sami Mansouri',
-        authorRole: 'Responsable Maintenance Usine',
-        authorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-        entityType: 'Ordre de Travail',
-        entityId: `OT-2026-${tId}04`,
-        entityName: isHuilerie ? 'Changement filtres presse continue' : 'Révision vanne vapeur et pompe principale',
-        actionType: 'UPDATE',
-        fieldName: 'Priorité & Technicien Assigné',
-        oldValue: "Priorité: 'Moyenne' • Assigné: 'Non assigné'",
-        newValue: "Priorité: 'Critique' • Assigné: 'Karim Ben Salah'",
-        isRollbacked: false,
-        canRollback: true
-      });
-
-      // 3. CREATE Incident (Campagne 2026)
-      list.push({
-        id: `TX-${90410 - idx * 6}`,
-        timestamp: new Date(now.getTime() - (idx * 45 + 75) * 60000).toISOString().replace('T', ' ').slice(0, 19),
-        tenantId: tId,
-        tenantName: tName,
-        campagneNom: camp2026,
-        authorName: 'Mohamed Ben Amor',
-        authorRole: 'Opérateur Ligne',
-        authorAvatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150',
-        entityType: 'Incident',
-        entityId: `INC-2026-${tId}91`,
-        entityName: 'Vibration anormale sur palier moteur',
-        actionType: 'CREATE',
-        fieldName: 'Déclaration Incident Ligne',
-        oldValue: 'N/A (Nouvel Incident)',
-        newValue: 'Incident déclaré avec criticité Haute sur palier moteur',
-        isRollbacked: false,
-        canRollback: true
-      });
-
-      // 4. UPDATE Stock (Campagne 2026)
-      list.push({
-        id: `TX-${90409 - idx * 6}`,
-        timestamp: new Date(now.getTime() - (idx * 60 + 115) * 60000).toISOString().replace('T', ' ').slice(0, 19),
-        tenantId: tId,
-        tenantName: tName,
-        campagneNom: camp2026,
-        authorName: 'Leila Farhat',
-        authorRole: 'Magasinière Centrale PDR',
-        authorAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150',
-        entityType: 'Pièce de Stock',
-        entityId: `PR-ROUL-${6204 + idx}`,
-        entityName: `Roulement haute température SKF-${6204 + idx}`,
-        actionType: 'UPDATE',
-        fieldName: 'Stock Physique',
-        oldValue: 'Quantité en stock: 14 pièces',
-        newValue: 'Quantité en stock: 2 pièces (Alerte seuil de réapprovisionnement)',
-        isRollbacked: false,
-        canRollback: true
-      });
-
-      // 5. DELETE Tâche Obsolète (Campagne Archivée 2025)
-      list.push({
-        id: `TX-${90408 - idx * 6}`,
-        timestamp: new Date(now.getTime() - (idx * 90 + 260) * 60000).toISOString().replace('T', ' ').slice(0, 19),
-        tenantId: tId,
-        tenantName: tName,
-        campagneNom: camp2025,
-        authorName: 'Sami Mansouri',
-        authorRole: 'Responsable Maintenance Usine',
-        authorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-        entityType: 'Ordre de Travail',
-        entityId: `OT-2025-${tId}02`,
-        entityName: 'Nettoyage chimique échangeur tubulaire N°2',
-        actionType: 'DELETE',
-        fieldName: 'Annulation & Suppression OT',
-        oldValue: "OT #OT-2025-002: Statut 'En attente'",
-        newValue: 'OT annulé et purgé du planning de campagne',
-        isRollbacked: false,
-        canRollback: true
-      });
-    });
-
-    return list;
-  };
-
-  const fetchLogs = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
+    setApiError(null);
     try {
-      const fallback = generateDynamicRedoLogs();
-      const params: any = {};
-      if (campagneFilter !== 'ALL') params.campagneNom = campagneFilter;
-      if (authorFilter !== 'ALL') params.authorName = authorFilter;
-      if (tenantFilter !== 'ALL') {
-        const num = Number(tenantFilter);
-        if (!isNaN(num) && num > 0) params.societeId = num;
-      }
-      if (actionFilter !== 'ALL') params.actionType = actionFilter;
-      if (entityFilter !== 'ALL') params.entityType = entityFilter;
+      const numericTenant = Number(tenantFilter);
+      const resolvedSocieteId =
+        tenantFilter === 'ALL'
+          ? undefined
+          : !Number.isNaN(numericTenant) && numericTenant > 0
+            ? numericTenant
+            : tenants.find((t) => String(t.id) === tenantFilter)?.dbId;
 
-      const data = await superAdminApi.getRedoLogs(params, fallback);
-      if (data && data.length > 0) {
-        setRedoLogs(data);
-      } else {
-        setRedoLogs(fallback);
-      }
-    } catch {
-      setRedoLogs(generateDynamicRedoLogs());
+      const [ov, logs] = await Promise.all([
+        superAdminApi.getRedoLogsOverview(),
+        superAdminApi.getRedoLogs({
+          source: sourceFilter,
+          societeId: resolvedSocieteId,
+          tableName: tableFilter !== 'ALL' ? tableFilter : undefined,
+          operation: operationFilter !== 'ALL' ? operationFilter : undefined,
+          userSearch: userSearch.trim() || undefined,
+          transactionId: txSearch.trim() || undefined,
+          search: search.trim() || undefined,
+          fromDate: fromDate || undefined,
+          toDate: toDate || undefined,
+          page,
+          pageSize
+        })
+      ]);
+      setOverview(ov);
+      setPagedLogs(logs);
+    } catch (err: any) {
+      setApiError(err?.message || 'Impossible de charger la télémétrie PostgreSQL CDC / Audit Trail.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [sourceFilter, tenantFilter, tableFilter, operationFilter, userSearch, txSearch, search, fromDate, toDate, page]);
 
   useEffect(() => {
-    fetchLogs();
-  }, []);
+    fetchData();
+  }, [fetchData]);
 
-  // Compute available campaigns dynamically from all loaded logs
-  const availableCampaigns = useMemo(() => {
-    const set = new Set<string>();
-    redoLogs.forEach(l => {
-      if (l.campagneNom) set.add(l.campagneNom);
-    });
-    return Array.from(set).sort();
-  }, [redoLogs]);
-
-  // Compute available authors dynamically, contextualized to the selected campaign
-  const availableAuthors = useMemo(() => {
-    const set = new Set<string>();
-    redoLogs
-      .filter(l => campagneFilter === 'ALL' || l.campagneNom === campagneFilter)
-      .forEach(l => {
-        if (l.authorName) set.add(l.authorName);
+  useEffect(() => {
+    if (activeTab === 'PITR' && !pitrInfo) {
+      superAdminApi.getPitrCapabilities().then(setPitrInfo).catch((err: any) => {
+        showToast('error', err?.message || 'Impossible de charger les capacités PITR Supabase.');
       });
-    return Array.from(set).sort();
-  }, [redoLogs, campagneFilter]);
+    }
+  }, [activeTab, pitrInfo]);
 
-  // Filter logs reactively based on all criteria
-  const filteredLogs = useMemo(() => {
-    return redoLogs.filter(log => {
-      const matchesSearch = 
-        log.id.toLowerCase().includes(search.toLowerCase()) ||
-        log.entityName.toLowerCase().includes(search.toLowerCase()) ||
-        log.authorName.toLowerCase().includes(search.toLowerCase()) ||
-        log.tenantName.toLowerCase().includes(search.toLowerCase()) ||
-        (log.campagneNom && log.campagneNom.toLowerCase().includes(search.toLowerCase())) ||
-        log.oldValue.toLowerCase().includes(search.toLowerCase()) ||
-        log.newValue.toLowerCase().includes(search.toLowerCase());
-
-      const matchesCampagne = campagneFilter === 'ALL' || log.campagneNom === campagneFilter;
-      const matchesAuthor = authorFilter === 'ALL' || log.authorName === authorFilter;
-
-      const matchesTenant = tenantFilter === 'ALL' || 
-        String(log.tenantId) === tenantFilter || 
-        (Number(tenantFilter) > 0 && log.tenantId === Number(tenantFilter)) ||
-        (log.tenantName && log.tenantName.toLowerCase().includes(tenantFilter.toLowerCase()));
-
-      const matchesEntity = entityFilter === 'ALL' || log.entityType === entityFilter;
-      const matchesAction = actionFilter === 'ALL' || log.actionType === actionFilter;
-
-      return matchesSearch && matchesCampagne && matchesAuthor && matchesTenant && matchesEntity && matchesAction;
-    });
-  }, [redoLogs, search, campagneFilter, authorFilter, tenantFilter, entityFilter, actionFilter]);
-
-  const handleExecuteRollback = async () => {
-    if (!rollbackTarget) return;
-
-    setIsRollingBack(true);
+  const handleConfirmCompensate = async () => {
+    if (!compensateTarget) return;
+    setIsCompensating(true);
     try {
-      await superAdminApi.rollbackRedoLog(rollbackTarget.id);
-
-      // Mark the item as rollbacked locally
-      setRedoLogs(prev => prev.map(item => {
-        if (item.id === rollbackTarget.id) {
-          return {
-            ...item,
-            isRollbacked: true,
-            canRollback: false
-          };
-        }
-        return item;
-      }));
-
-      // Append rollback log
-      const newRollbackLog: RedoLogItem = {
-        id: `RB-${Math.floor(Math.random() * 90000 + 10000)}`,
-        timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19),
-        tenantId: rollbackTarget.tenantId,
-        tenantName: rollbackTarget.tenantName,
-        campagneNom: rollbackTarget.campagneNom,
-        authorName: 'Super Administrateur',
-        authorRole: 'SuperAdmin SecOps',
-        authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-        entityType: rollbackTarget.entityType,
-        entityId: rollbackTarget.entityId,
-        entityName: rollbackTarget.entityName,
-        actionType: 'ROLLBACK',
-        fieldName: rollbackTarget.fieldName,
-        oldValue: rollbackTarget.newValue,
-        newValue: rollbackTarget.oldValue,
-        isRollbacked: false,
-        canRollback: false
-      };
-
-      setRedoLogs(prev => [newRollbackLog, ...prev]);
-      showToast(`Rollback exécuté avec succès sur ${rollbackTarget.entityName}`);
-      setRollbackTarget(null);
-    } catch {
-      showToast('Erreur lors du rollback');
+      const result = await superAdminApi.compensateAuditEntry(compensateTarget.numericId);
+      if (result.success) {
+        showToast('success', result.message);
+        setCompensateTarget(null);
+        await fetchData();
+      } else {
+        showToast('error', `${result.message} (HTTP ${result.httpStatusCode})`);
+      }
+    } catch (err: any) {
+      showToast('error', err?.message || 'Erreur lors de la compensation métier.');
     } finally {
-      setIsRollingBack(false);
+      setIsCompensating(false);
     }
   };
 
-  const getActionBadge = (action: RedoLogItem['actionType']) => {
-    switch (action) {
-      case 'CREATE':
-        return 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800';
-      case 'UPDATE':
-        return 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400 border border-blue-200 dark:border-blue-800';
-      case 'DELETE':
-        return 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400 border border-rose-200 dark:border-rose-800';
-      case 'ALTER':
-        return 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-700 shadow-xs font-black';
-      case 'ROLLBACK':
-        return 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-400 border border-purple-200 dark:border-purple-800';
+  const handleExportCsv = () => {
+    const rows = pagedLogs?.items || [];
+    if (rows.length === 0) {
+      showToast('error', 'Aucune ligne à exporter sur cette page.');
+      return;
     }
+    const escape = (val: string | number | boolean | null | undefined) =>
+      `"${String(val ?? '').replace(/"/g, '""')}"`;
+
+    const headers = [
+      'EventKey', 'Source', 'TimestampUtc', 'Societe', 'Table', 'RecordId',
+      'Operation', 'Label', 'UserName', 'UserRole', 'TransactionId', 'LSN', 'Compensated'
+    ];
+    const csvLines = [
+      headers.join(','),
+      ...rows.map((r) =>
+        [
+          r.eventKey, r.source, r.timestampUtc, r.societeName, r.tableName, r.recordId,
+          r.operation, r.businessLabel, r.userName, r.userRole, r.transactionId, r.lsn, r.isCompensated
+        ].map(escape).join(',')
+      )
+    ];
+
+    const blob = new Blob([csvLines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `gmao-redologs-page-${pagedLogs?.page || 1}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
-  // Export JSON
-  const handleExportJson = () => {
-    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(filteredLogs, null, 2));
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute('href', dataStr);
-    downloadAnchor.setAttribute('download', `redo_logs_audit_${Date.now()}.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
-    showToast('Exportation JSON générée');
-  };
+  const cdc = overview?.cdcWorker;
+  const cdcBadge = getCdcBadgeStyle(cdc?.status);
+  const items = pagedLogs?.items || [];
 
   return (
-    <div className="flex flex-col gap-6 animate-[fadeIn_0.2s_ease-out]">
-      {/* Toast Alert */}
-      {toastMessage && (
-        <div className="fixed top-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-900/95 dark:bg-white/95 text-white dark:text-slate-900 shadow-2xl backdrop-blur-md border border-slate-700/50 dark:border-slate-200/50 animate-[slideIn_0.2s_ease-out]">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 dark:text-emerald-600" />
-          <span className="text-xs font-bold">{toastMessage}</span>
+    <div className="space-y-6 animate-fadeIn">
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 duration-300 max-w-md">
+          <div className={`px-4 py-3 rounded-xl shadow-2xl border flex items-start gap-2.5 text-sm font-medium ${
+            toast.type === 'success'
+              ? 'bg-emerald-950 border-emerald-700 text-emerald-100'
+              : 'bg-rose-950 border-rose-700 text-rose-100'
+          }`}>
+            {toast.type === 'success'
+              ? <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              : <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />}
+            <span>{toast.text}</span>
+          </div>
         </div>
       )}
 
-      {/* TOP HEADER */}
-      <div className="w-full bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-900/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-inner">
-            <RotateCcw className="w-7 h-7" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-black tracking-tight text-slate-800 dark:text-white">
-                Redo Logs & Moteur de Rollback
-              </h1>
-              <span className="px-2.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 text-[10px] font-black uppercase tracking-wider">
-                PostgreSQL WAL & CDC Engine
+      {/* Header + Real CDC Worker Status Banner */}
+      <div className="bg-slate-900 rounded-2xl p-6 text-white shadow-xl border border-slate-800 relative overflow-hidden">
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="p-2 rounded-xl bg-cyan-500/20 text-cyan-300">
+                <Database className="w-5 h-5" />
+              </span>
+              <h2 className="text-xl font-bold tracking-tight">
+                Supervision PostgreSQL WAL / CDC & Audit Trail Transactionnel
+              </h2>
+              <span className={`px-2.5 py-1 rounded-full text-xs font-bold border inline-flex items-center gap-1.5 ${cdcBadge.bg}`}>
+                <span className={`w-2 h-2 rounded-full ${cdcBadge.dot}`} />
+                {cdcBadge.label}
               </span>
             </div>
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
-              Traçabilité intégrale des mutations DML applicatives et mutations DDL de structure (ALTER) avec restauration instantanée
+            <p className="text-sm text-slate-300 max-w-3xl leading-relaxed">
+              Journal réel corrélé par <code className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-300 text-xs">TransactionId (xid)</code> entre
+              l&apos;interceptor atomique <code className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-300 text-xs">AuditSaveChangesInterceptor</code> et
+              le flux de réplication logique <code className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-300 text-xs">pgoutput</code>.
             </p>
           </div>
-        </div>
 
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={handleExportJson}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition-all cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Exporter JSON</span>
-          </button>
-          <button
-            onClick={fetchLogs}
-            disabled={loading}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm shadow-indigo-600/30 transition-all cursor-pointer disabled:opacity-50"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span>Actualiser</span>
-          </button>
-        </div>
-      </div>
-
-      {/* POSTGRESQL WAL & CDC ARCHITECTURAL NOTICE */}
-      <div className="p-4 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border border-indigo-900/60 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="p-2.5 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 shrink-0">
-            <Database className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-black uppercase tracking-wider text-indigo-300">
-                Architecture Moteur WAL (Write-Ahead Logging) & CDC
-              </span>
-              <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 text-[9px] font-bold">
-                pgoutput / CDC Actif
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
-              Toutes les modifications de données (<strong>INSERT, UPDATE, DELETE</strong>) ainsi que les évolutions de schéma de base (<strong>ALTER TABLE, CREATE INDEX</strong>) sont interceptées à chaud depuis le flux binaire WAL PostgreSQL. Vous pouvez filtrer par <strong>Campagne</strong> puis par <strong>Utilisateur</strong> pour isoler les actions d'une saison.
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
-          <div className="px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 text-center">
-            <div className="text-[9px] text-slate-400 font-semibold uppercase">Replication Slot</div>
-            <div className="text-xs font-black text-emerald-400 font-mono">gmao_cdc_wal</div>
-          </div>
-          <div className="px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 text-center">
-            <div className="text-[9px] text-slate-400 font-semibold uppercase">RPO / Latence</div>
-            <div className="text-xs font-black text-indigo-300 font-mono">&lt; 15 ms</div>
-          </div>
-        </div>
-      </div>
-
-      {/* KPI STAT CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Mutations Totales
-            </span>
-            <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
-              <History className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl font-black text-slate-800 dark:text-white mt-2">
-            {redoLogs.length}
-          </div>
-          <p className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold mt-1">
-            Opérations tracées dans le registre
-          </p>
-        </div>
-
-        <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Modifications (UPDATE)
-            </span>
-            <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
-              <FileCode className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl font-black text-slate-800 dark:text-white mt-2">
-            {redoLogs.filter(l => l.actionType === 'UPDATE').length}
-          </div>
-          <p className="text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold mt-1">
-            Changements d'états et de valeurs
-          </p>
-        </div>
-
-        <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Schéma (ALTER / DDL)
-            </span>
-            <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
-              <Terminal className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-2">
-            {redoLogs.filter(l => l.actionType === 'ALTER').length}
-          </div>
-          <p className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold mt-1">
-            Mutations de structure PostgreSQL WAL
-          </p>
-        </div>
-
-        <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Créations (CREATE)
-            </span>
-            <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
-              <Check className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl font-black text-slate-800 dark:text-white mt-2">
-            {redoLogs.filter(l => l.actionType === 'CREATE').length}
-          </div>
-          <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold mt-1">
-            Nouveaux enregistrements injectés
-          </p>
-        </div>
-
-        <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Rollbacks Effectués
-            </span>
-            <div className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400">
-              <RotateCcw className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-2xl font-black text-slate-800 dark:text-white mt-2">
-            {redoLogs.filter(l => l.isRollbacked || l.actionType === 'ROLLBACK').length}
-          </div>
-          <p className="text-[11px] text-purple-600 dark:text-purple-400 font-semibold mt-1">
-            Rétablissements de valeurs antérieures
-          </p>
-        </div>
-      </div>
-
-      {/* FILTER BAR - PRIORITÉ : 1. CAMPAGNE ➔ 2. UTILISATEUR/AUTEUR ➔ 3. USINE ➔ 4. ACTION ➔ 5. ENTITÉ */}
-      <div className="w-full bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col gap-3">
-        <div className="flex items-center justify-between text-xs font-bold text-slate-500 pb-2 border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
-            <Filter className="w-4 h-4" />
-            <span className="uppercase tracking-wider font-black">Filtres Hiérarchiques : Campagne ➔ Utilisateur ➔ Usine</span>
-          </div>
-          <div className="text-slate-400">
-            {filteredLogs.length} transaction(s) sélectionnée(s)
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Search */}
-          <div className="relative flex-1 min-w-[220px]">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Rechercher par ID, objet, auteur, SQL ALTER..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-2xl text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-indigo-500/20"
-            />
-          </div>
-
-          {/* 1. FILTER CAMPAGNE (FILTRE MAÎTRE) */}
-          <div className="flex items-center gap-1.5 bg-indigo-50/70 dark:bg-indigo-950/40 p-1 rounded-2xl border border-indigo-200/60 dark:border-indigo-900/60">
-            <Calendar className="w-4 h-4 text-indigo-600 dark:text-indigo-400 ml-2" />
-            <select
-              value={campagneFilter}
-              onChange={(e) => {
-                setCampagneFilter(e.target.value);
-                setAuthorFilter('ALL'); // Reset author filter when campaign changes
-              }}
-              className="px-2 py-1.5 bg-transparent border-none text-xs font-black text-indigo-700 dark:text-indigo-300 outline-none cursor-pointer"
-            >
-              <option value="ALL">Toutes les Campagnes ({availableCampaigns.length})</option>
-              {availableCampaigns.map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* 2. FILTER AUTEUR / UTILISATEUR (CONTEXTUALISÉ À LA CAMPAGNE) */}
-          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 p-1 rounded-2xl border border-slate-200 dark:border-slate-700/80">
-            <User className="w-4 h-4 text-slate-400 ml-2" />
-            <select
-              value={authorFilter}
-              onChange={(e) => setAuthorFilter(e.target.value)}
-              className="px-2 py-1.5 bg-transparent border-none text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
-            >
-              <option value="ALL">Tous les Utilisateurs ({availableAuthors.length})</option>
-              {availableAuthors.map(author => (
-                <option key={author} value={author}>{author}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* 3. FILTER USINE / TENANT */}
-          <select
-            value={tenantFilter}
-            onChange={(e) => setTenantFilter(e.target.value)}
-            className="px-3 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
-          >
-            <option value="ALL">Toutes les Usines ({tenants?.length || 0})</option>
-            {tenants?.map(t => (
-              <option key={t.id} value={String(t.id)}>{t.name}</option>
-            ))}
-          </select>
-
-          {/* 4. FILTER ACTION (AVEC ALTER MIS EN VALEUR) */}
-          <select
-            value={actionFilter}
-            onChange={(e) => setActionFilter(e.target.value)}
-            className="px-3 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
-          >
-            <option value="ALL">Toutes les Actions</option>
-            <option value="ALTER">ALTER (Mutation Schéma WAL)</option>
-            <option value="UPDATE">UPDATE (Modification Valeur)</option>
-            <option value="CREATE">CREATE (Création Objet)</option>
-            <option value="DELETE">DELETE (Suppression)</option>
-            <option value="ROLLBACK">ROLLBACK (Rétablissement)</option>
-          </select>
-
-          {/* 5. FILTER ENTITÉ */}
-          <select
-            value={entityFilter}
-            onChange={(e) => setEntityFilter(e.target.value)}
-            className="px-3 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
-          >
-            <option value="ALL">Toutes les Entités</option>
-            <option value="Schéma & Tables">Schéma & Tables (DDL)</option>
-            <option value="Équipement">Équipements</option>
-            <option value="Ordre de Travail">Ordres de Travail (OT)</option>
-            <option value="Pièce de Stock">Stock & Pièces</option>
-            <option value="Incident">Incidents</option>
-            <option value="Campagne">Campagnes</option>
-            <option value="Utilisateur">Utilisateurs</option>
-          </select>
-
-          {/* Reset Filters */}
-          {(campagneFilter !== 'ALL' || authorFilter !== 'ALL' || tenantFilter !== 'ALL' || actionFilter !== 'ALL' || entityFilter !== 'ALL' || search) && (
+          <div className="flex items-center gap-2 shrink-0">
             <button
-              onClick={() => {
-                setCampagneFilter('ALL');
-                setAuthorFilter('ALL');
-                setTenantFilter('ALL');
-                setActionFilter('ALL');
-                setEntityFilter('ALL');
-                setSearch('');
-              }}
-              className="px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
+              onClick={() => setActiveTab('LOGS')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-colors ${
+                activeTab === 'LOGS' ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}
             >
-              <X className="w-3.5 h-3.5" />
-              <span>Réinitialiser</span>
+              Audit & Flux CDC
             </button>
-          )}
+            <button
+              onClick={() => setActiveTab('PITR')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-colors ${
+                activeTab === 'PITR' ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              Backup & PITR Supabase
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* REDO LOGS TABLE */}
-      <div className="w-full bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                <th className="py-3.5 px-4">Transaction & Horodatage</th>
-                <th className="py-3.5 px-4">Campagne & Usine</th>
-                <th className="py-3.5 px-4">Utilisateur / Auteur</th>
-                <th className="py-3.5 px-4">Entité & Action</th>
-                <th className="py-3.5 px-4">Visual Diff (Ancienne ➔ Nouvelle Valeur / DDL)</th>
-                <th className="py-3.5 px-4 text-right">Rétablissement (Rollback)</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-              {filteredLogs.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400">
-                    <History className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                    <p className="font-bold">Aucune transaction Redo trouvée avec ces critères de filtrage.</p>
-                    <p className="text-[11px] mt-1">Essayez d'ajuster les filtres de Campagne ou d'Auteur.</p>
-                  </td>
-                </tr>
-              ) : (
-                filteredLogs.map((log) => {
-                  const actionBadgeClass = getActionBadge(log.actionType);
-                  const isAlter = log.actionType === 'ALTER';
-
-                  return (
-                    <tr key={log.id} className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors ${isAlter ? 'bg-amber-500/5' : ''}`}>
-                      <td className="py-4 px-4">
-                        <div className="flex items-center gap-1.5">
-                          {isAlter && <Terminal className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
-                          <span className={`font-mono font-black text-xs ${isAlter ? 'text-amber-700 dark:text-amber-400' : 'text-slate-900 dark:text-slate-100'}`}>
-                            {log.id}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1 text-[11px] text-slate-400 mt-0.5">
-                          <Clock className="w-3 h-3" />
-                          <span>{log.timestamp}</span>
-                        </div>
-                      </td>
-
-                      <td className="py-4 px-4">
-                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-[10px] font-black">
-                          <Calendar className="w-3 h-3" />
-                          <span>{log.campagneNom || 'Hors-campagne'}</span>
-                        </div>
-                        <div className="text-[11px] font-bold text-slate-700 dark:text-slate-300 mt-1 flex items-center gap-1">
-                          <Building2 className="w-3 h-3 text-slate-400" />
-                          <span>{log.tenantName}</span>
-                        </div>
-                      </td>
-
-                      <td className="py-4 px-4">
-                        <div className="flex items-center gap-2.5">
-                          <img
-                            src={log.authorAvatar || 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150'}
-                            alt={log.authorName}
-                            className="w-7 h-7 rounded-full object-cover shrink-0 border border-slate-200 dark:border-slate-700"
-                          />
-                          <div>
-                            <div className="font-bold text-slate-800 dark:text-slate-200">
-                              {log.authorName}
-                            </div>
-                            <div className="text-[10px] text-slate-400 font-medium">
-                              {log.authorRole}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="py-4 px-4">
-                        <div className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                          <span>{log.entityName}</span>
-                        </div>
-                        <div className="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
-                          <span className="font-mono bg-slate-100 dark:bg-slate-800 px-1 rounded">{log.entityId}</span>
-                          <span>• {log.fieldName}</span>
-                        </div>
-                        <div className="mt-1.5">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider inline-block ${actionBadgeClass}`}>
-                            {log.actionType}
-                          </span>
-                        </div>
-                      </td>
-
-                      <td className="py-4 px-4 max-w-lg">
-                        {isAlter ? (
-                          <div className="flex flex-col gap-1">
-                            <div className="font-mono text-[10px] text-slate-400 line-through truncate max-w-md">
-                              {log.oldValue}
-                            </div>
-                            <div className="font-mono text-[11px] font-bold text-amber-700 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-950/40 p-2 rounded-xl border border-amber-500/20 break-all">
-                              {log.newValue}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-2 text-[11px]">
-                              <span className="text-slate-400 line-through truncate max-w-[160px]">
-                                {log.oldValue}
-                              </span>
-                              <ArrowRight className="w-3 h-3 text-slate-400 shrink-0" />
-                              <span className="font-bold text-slate-800 dark:text-slate-200 truncate max-w-[200px]">
-                                {log.newValue}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                      </td>
-
-                      <td className="py-4 px-4 text-right">
-                        {log.isRollbacked ? (
-                          <span className="px-2.5 py-1 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" />
-                            <span>Rollbacked</span>
-                          </span>
-                        ) : log.canRollback ? (
-                          <button
-                            onClick={() => setRollbackTarget(log)}
-                            className="px-3.5 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-bold text-xs flex items-center gap-1.5 ml-auto transition-all cursor-pointer hover:shadow-xs"
-                            title="Restaurer l'état antérieur"
-                          >
-                            <RotateCcw className="w-3.5 h-3.5" />
-                            <span>Rollback</span>
-                          </button>
-                        ) : (
-                          <span className="text-slate-400 text-[11px] italic">Non réversible</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* ROLLBACK CONFIRMATION MODAL */}
-      {rollbackTarget && (
-        <div 
-          className="fixed inset-0 bg-slate-950/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-[fadeIn_0.15s_ease-out]"
-          onClick={() => !isRollingBack && setRollbackTarget(null)}
-        >
-          <div 
-            className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-2xl overflow-hidden animate-[slideUp_0.2s_ease-out]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800 bg-rose-50/50 dark:bg-rose-950/20">
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-2xl bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-300">
-                  <RotateCcw className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-base font-black text-slate-800 dark:text-white">
-                    Confirmation de Rollback de Données
-                  </h3>
-                  <p className="text-xs font-semibold text-rose-600 dark:text-rose-400">
-                    Transaction {rollbackTarget.id} • {rollbackTarget.tenantName} ({rollbackTarget.campagneNom || 'Hors-campagne'})
-                  </p>
-                </div>
-              </div>
-              <button 
-                onClick={() => !isRollingBack && setRollbackTarget(null)}
-                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+        {/* Telemetry Strip */}
+        <div className="relative z-10 mt-5 pt-4 border-t border-slate-800 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 text-xs">
+          <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-3">
+            <div className="text-slate-400 font-semibold">wal_level</div>
+            <div className="text-slate-100 font-mono font-bold mt-0.5">{cdc?.walLevel || 'Non sondé'}</div>
+          </div>
+          <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-3">
+            <div className="text-slate-400 font-semibold">Slot Replication</div>
+            <div className="text-slate-100 font-mono font-bold mt-0.5 truncate" title={cdc?.slotName}>{cdc?.slotName || '—'}</div>
+          </div>
+          <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-3">
+            <div className="text-slate-400 font-semibold">Publication</div>
+            <div className="text-slate-100 font-mono font-bold mt-0.5 truncate" title={cdc?.publicationName}>{cdc?.publicationName || '—'}</div>
+          </div>
+          <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-3">
+            <div className="text-slate-400 font-semibold">Dernier LSN lu</div>
+            <div className="text-cyan-300 font-mono font-bold mt-0.5">{cdc?.lastConsumedLsn || 'Aucun'}</div>
+          </div>
+          <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-3">
+            <div className="text-slate-400 font-semibold">Lag / WAL retenu</div>
+            <div className="text-slate-100 font-mono font-bold mt-0.5">
+              {formatBytes(cdc?.replicationLagBytes)} / {formatBytes(cdc?.retainedWalBytes)}
             </div>
+          </div>
+          <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-3">
+            <div className="text-slate-400 font-semibold">Statut WAL</div>
+            <div className="text-slate-100 font-mono font-bold mt-0.5">{cdc?.walStatus || (cdc?.slotActive ? 'active' : 'inactif')}</div>
+          </div>
+        </div>
 
-            {/* Body */}
-            <div className="p-6 space-y-4">
-              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs">
-                <div className="flex items-start gap-2.5">
-                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                  <p>
-                    <strong>Avertissement :</strong> Vous vous apprêtez à annuler cette transaction {rollbackTarget.actionType === 'ALTER' ? 'de schéma DDL PostgreSQL' : 'applicative'} et à restaurer la valeur antérieure dans la base de données.
-                  </p>
-                </div>
+        {/* Status Reason & Operational Alerts */}
+        {(cdc?.statusReason || (cdc?.alerts && cdc.alerts.length > 0)) && (
+          <div className="relative z-10 mt-4 space-y-2">
+            {cdc?.statusReason && (
+              <div className="text-xs bg-slate-950/70 border border-slate-700/80 text-slate-200 rounded-xl px-3.5 py-2.5 flex items-start gap-2">
+                <Info className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                <span><strong>Diagnostic Worker :</strong> {cdc.statusReason}</span>
               </div>
+            )}
+            {cdc?.alerts?.map((al, idx) => (
+              <div key={idx} className="text-xs bg-amber-950/60 border border-amber-700/50 text-amber-200 rounded-xl px-3.5 py-2.5 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <span>{al}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-2">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  Entité Cible
-                </div>
-                <div className="text-sm font-extrabold text-slate-800 dark:text-white">
-                  {rollbackTarget.entityName}
-                </div>
-                <div className="text-xs text-slate-500">
-                  Champ modifié : <span className="font-semibold text-slate-700 dark:text-slate-300">{rollbackTarget.fieldName}</span>
-                </div>
-                <div className="text-xs text-indigo-600 dark:text-indigo-400 font-bold">
-                  Campagne : {rollbackTarget.campagneNom || 'Hors-campagne'} • Auteur : {rollbackTarget.authorName} ({rollbackTarget.authorRole})
-                </div>
+      {activeTab === 'PITR' ? (
+        /* TAB 2 : SUPABASE PITR RUNBOOK */
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-6">
+          <div className="flex items-start gap-3">
+            <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400">
+              <Shield className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                Récupération PostgreSQL (PITR) vs Annulation Applicative
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                {pitrInfo?.walSemantics || 'Le Write-Ahead Log (WAL) garantit la durabilité ACID et la récupération après sinistre (PITR). Une base multi-tenant partagée ne peut jamais être "rembobinée" transaction par transaction via le WAL brut.'}
+              </p>
+            </div>
+          </div>
+
+          {pitrInfo && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {pitrInfo.plans.map((p) => (
+                  <div key={p.plan} className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-slate-900 dark:text-white">Offre Supabase {p.plan}</span>
+                      <span className="text-xs font-mono px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                        {pitrInfo.projectRef}
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-600 dark:text-slate-400">
+                      <strong>Backups automatiques :</strong> {p.autoBackups}
+                    </div>
+                    <div className="text-xs text-slate-600 dark:text-slate-400">
+                      <strong>PITR (Point-in-Time Recovery) :</strong> {p.pitr}
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 pt-1">{p.notes}</p>
+                  </div>
+                ))}
               </div>
 
               <div className="space-y-2">
-                <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800/40 text-xs">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase block mb-0.5">Valeur Actuelle (qui sera écrasée)</span>
-                  <span className="font-mono font-semibold text-rose-600 dark:text-rose-400 break-all">{rollbackTarget.newValue}</span>
-                </div>
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Procédure de restauration PITR en environnement isolé (Staging)
+                </h4>
+                <ol className="space-y-2 text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-950/40 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+                  {pitrInfo.isolationProcedure.map((step, i) => (
+                    <li key={i} className="leading-relaxed">{step}</li>
+                  ))}
+                </ol>
+              </div>
+            </>
+          )}
+        </div>
+      ) : (
+        /* TAB 1 : AUDIT TRAIL & CDC LOGS */
+        <>
+          {/* Real KPI Summary Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+              <div className="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase">
+                <span>Audit Trail Atomique</span>
+                <History className="w-4 h-4 text-blue-500" />
+              </div>
+              <div className="text-2xl font-black text-slate-900 dark:text-white mt-2">
+                {overview?.totalAuditEvents ?? 0}
+              </div>
+              <div className="text-xs text-slate-500 mt-1">{overview?.eventsLast24h ?? 0} sur les dernières 24h</div>
+            </div>
 
-                <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-xs">
-                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase block mb-0.5">Valeur Rétablie (Ancienne Valeur)</span>
-                  <span className="font-mono font-bold text-emerald-700 dark:text-emerald-300 break-all">{rollbackTarget.oldValue}</span>
-                </div>
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+              <div className="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase">
+                <span>Événements WAL / CDC</span>
+                <Terminal className="w-4 h-4 text-cyan-500" />
+              </div>
+              <div className="text-2xl font-black text-slate-900 dark:text-white mt-2">
+                {overview?.totalCdcEvents ?? 0}
+              </div>
+              <div className="text-xs text-slate-500 mt-1">Décodage logique pgoutput</div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+              <div className="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase">
+                <span>Transactions (XID)</span>
+                <Link2 className="w-4 h-4 text-emerald-500" />
+              </div>
+              <div className="text-2xl font-black text-slate-900 dark:text-white mt-2">
+                {overview?.distinctTransactionsCount ?? 0}
+              </div>
+              <div className="text-xs text-slate-500 mt-1">Transactions PostgreSQL validées</div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+              <div className="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase">
+                <span>Compensations Métier</span>
+                <RotateCcw className="w-4 h-4 text-violet-500" />
+              </div>
+              <div className="text-2xl font-black text-slate-900 dark:text-white mt-2">
+                {overview?.compensationsCount ?? 0}
+              </div>
+              <div className="text-xs text-slate-500 mt-1">Actions inverses tracées</div>
+            </div>
+          </div>
+
+          {/* Filter Bar */}
+          <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                <Filter className="w-4 h-4 text-cyan-600" />
+                Filtres multi-critères serveur
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleExportCsv}
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 inline-flex items-center gap-1.5"
+                >
+                  <Download className="w-3.5 h-3.5" /> Exporter CSV
+                </button>
+                <button
+                  onClick={fetchData}
+                  disabled={loading}
+                  className="px-3 py-1.5 rounded-lg bg-slate-900 dark:bg-cyan-600 text-white text-xs font-semibold hover:opacity-90 inline-flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> Actualiser
+                </button>
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 flex justify-end gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-500 mb-1">Source</label>
+                <select
+                  value={sourceFilter}
+                  onChange={(e) => { setSourceFilter(e.target.value); setPage(1); }}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                >
+                  <option value="ALL">Audit Trail + WAL CDC</option>
+                  <option value="AUDIT_TRAIL">Audit Trail Applicatif uniquement</option>
+                  <option value="CDC_WAL">PostgreSQL WAL (pgoutput) uniquement</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-500 mb-1">Société (Tenant)</label>
+                <select
+                  value={tenantFilter}
+                  onChange={(e) => { setTenantFilter(e.target.value); setPage(1); }}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                >
+                  <option value="ALL">Toutes les sociétés</option>
+                  {tenants.map((t) => (
+                    <option key={t.id} value={String(t.dbId ?? t.id)}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-500 mb-1">Table / Entité</label>
+                <select
+                  value={tableFilter}
+                  onChange={(e) => { setTableFilter(e.target.value); setPage(1); }}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                >
+                  <option value="ALL">Toutes les tables</option>
+                  {(overview?.availableTables || []).map((tbl) => (
+                    <option key={tbl} value={tbl}>{tbl}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-500 mb-1">Opération</label>
+                <select
+                  value={operationFilter}
+                  onChange={(e) => { setOperationFilter(e.target.value); setPage(1); }}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                >
+                  <option value="ALL">Toutes opérations</option>
+                  <option value="CREATE">CREATE</option>
+                  <option value="INSERT">INSERT</option>
+                  <option value="UPDATE">UPDATE</option>
+                  <option value="STATUS_CHANGE">STATUS_CHANGE</option>
+                  <option value="DELETE">DELETE</option>
+                  <option value="COMPENSATE">COMPENSATE</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-500 mb-1">Utilisateur</label>
+                <div className="relative">
+                  <User className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    value={userSearch}
+                    onChange={(e) => { setUserSearch(e.target.value); setPage(1); }}
+                    placeholder="Nom utilisateur..."
+                    className="w-full pl-8 pr-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-500 mb-1">Transaction XID</label>
+                <input
+                  type="text"
+                  value={txSearch}
+                  onChange={(e) => { setTxSearch(e.target.value); setPage(1); }}
+                  placeholder="ex: 10294"
+                  className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-500 mb-1">De / À (UTC)</label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <input
+                    type="date"
+                    value={fromDate}
+                    onChange={(e) => { setFromDate(e.target.value); setPage(1); }}
+                    className="px-2 py-2 text-[11px] rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                  />
+                  <input
+                    type="date"
+                    value={toDate}
+                    onChange={(e) => { setToDate(e.target.value); setPage(1); }}
+                    className="px-2 py-2 text-[11px] rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-500 mb-1">Recherche texte / ID</label>
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                    placeholder="Libellé, ID, LSN..."
+                    className="w-full pl-8 pr-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* API Error State */}
+          {apiError && (
+            <div className="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>{apiError}</span>
+            </div>
+          )}
+
+          {/* Data Table */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 uppercase tracking-wider text-[11px]">
+                    <th className="py-3 px-4 font-bold">Horodatage & Source</th>
+                    <th className="py-3 px-4 font-bold">Opération & Entité</th>
+                    <th className="py-3 px-4 font-bold">Société</th>
+                    <th className="py-3 px-4 font-bold">Acteur</th>
+                    <th className="py-3 px-4 font-bold">XID / LSN PostgreSQL</th>
+                    <th className="py-3 px-4 font-bold text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {loading && items.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-slate-500">
+                        Chargement des événements réels depuis PostgreSQL...
+                      </td>
+                    </tr>
+                  ) : items.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-slate-500">
+                        <History className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                        Aucun événement réel ne correspond aux critères sélectionnés.
+                      </td>
+                    </tr>
+                  ) : (
+                    items.map((row) => (
+                      <tr key={row.eventKey} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                        <td className="py-3 px-4 align-top whitespace-nowrap">
+                          <div className="font-mono font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                            <Clock className="w-3 h-3 text-slate-400" />
+                            {new Date(row.timestampUtc).toLocaleString()}
+                          </div>
+                          <div className="mt-1 flex items-center gap-1.5">
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                              row.source === 'PostgreSQL_WAL_pgoutput'
+                                ? 'bg-cyan-100 dark:bg-cyan-950/40 text-cyan-800 dark:text-cyan-300'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                            }`}>
+                              {row.source}
+                            </span>
+                            {row.hasWalCorrelation && (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">
+                                WAL corrélé
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="py-3 px-4 align-top">
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${getOpBadgeClass(row.operation)}`}>
+                              {row.operation}
+                            </span>
+                            <span className="font-bold text-slate-900 dark:text-white inline-flex items-center gap-1">
+                              <Layers className="w-3 h-3 text-slate-400" />
+                              {row.tableName}#{row.recordId}
+                            </span>
+                          </div>
+                          <div className="text-slate-600 dark:text-slate-400 mt-1 line-clamp-2 max-w-sm">
+                            {row.businessLabel}
+                          </div>
+                        </td>
+
+                        <td className="py-3 px-4 align-top whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1 text-slate-700 dark:text-slate-300 font-medium">
+                            <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                            {row.societeName}
+                          </span>
+                        </td>
+
+                        <td className="py-3 px-4 align-top whitespace-nowrap">
+                          <div className="font-semibold text-slate-800 dark:text-slate-200">{row.userName || 'PostgreSQL WAL'}</div>
+                          {row.userRole && <div className="text-[11px] text-slate-500">{row.userRole}</div>}
+                        </td>
+
+                        <td className="py-3 px-4 align-top font-mono text-[11px] whitespace-nowrap">
+                          <div className="text-slate-800 dark:text-slate-200">
+                            xid: <span className="font-bold">{row.transactionId || '—'}</span>
+                          </div>
+                          {row.lsn && (
+                            <div className="text-cyan-600 dark:text-cyan-400 mt-0.5">lsn: {row.lsn}</div>
+                          )}
+                        </td>
+
+                        <td className="py-3 px-4 align-top text-right whitespace-nowrap">
+                          <div className="inline-flex items-center gap-1.5">
+                            <button
+                              onClick={() => setInspectedRow(row)}
+                              className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                              title="Inspecter avant / après"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+
+                            {row.isCompensated ? (
+                              <span className="px-2 py-1 rounded-lg bg-violet-100 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 text-[11px] font-bold">
+                                Compensé
+                              </span>
+                            ) : row.canCompensate ? (
+                              <button
+                                onClick={() => setCompensateTarget(row)}
+                                className="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-bold text-[11px] inline-flex items-center gap-1"
+                              >
+                                <RotateCcw className="w-3 h-3" /> Compenser
+                              </button>
+                            ) : (
+                              <span
+                                className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 text-[10px] font-semibold"
+                                title={row.compensationNote || 'Action non compensable automatiquement'}
+                              >
+                                Protégé
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Footer */}
+            <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
+              <div>
+                Page <strong>{pagedLogs?.page ?? 1}</strong> sur <strong>{pagedLogs?.totalPages ?? 1}</strong> —{' '}
+                <strong>{pagedLogs?.totalCount ?? 0}</strong> enregistrement(s)
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  disabled={(pagedLogs?.page ?? 1) <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-40 inline-flex items-center gap-1"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" /> Précédent
+                </button>
+                <button
+                  disabled={(pagedLogs?.page ?? 1) >= (pagedLogs?.totalPages ?? 1)}
+                  onClick={() => setPage((p) => p + 1)}
+                  className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-40 inline-flex items-center gap-1"
+                >
+                  Suivant <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Inspect Diff Modal */}
+      {inspectedRow && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-3xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-slate-900 dark:text-white text-sm">
+                  Détails de l&apos;événement {inspectedRow.eventKey} ({inspectedRow.tableName}#{inspectedRow.recordId})
+                </h3>
+                <p className="text-xs text-slate-500">
+                  XID: {inspectedRow.transactionId || '—'} · LSN: {inspectedRow.lsn || '—'} · CorrelationId: {inspectedRow.correlationId || '—'}
+                </p>
+              </div>
+              <button onClick={() => setInspectedRow(null)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[70vh] overflow-y-auto text-xs">
+              <div>
+                <div className="font-bold text-rose-600 mb-1.5">Avant (OldValues)</div>
+                <pre className="p-3 rounded-xl bg-slate-950 text-slate-200 overflow-x-auto font-mono text-[11px] whitespace-pre-wrap">
+                  {inspectedRow.oldValuesJson || 'null'}
+                </pre>
+              </div>
+              <div>
+                <div className="font-bold text-emerald-600 mb-1.5">Après (NewValues)</div>
+                <pre className="p-3 rounded-xl bg-slate-950 text-slate-200 overflow-x-auto font-mono text-[11px] whitespace-pre-wrap">
+                  {inspectedRow.newValuesJson || 'null'}
+                </pre>
+              </div>
+              {inspectedRow.compensationNote && (
+                <div className="md:col-span-2 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200">
+                  <strong>Politique de compensation :</strong> {inspectedRow.compensationNote}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Controlled Compensation Modal */}
+      {compensateTarget && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-xl bg-amber-100 dark:bg-amber-950/50 text-amber-600">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 dark:text-white text-base">
+                  Exécuter une action compensatoire métier
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Cette opération crée une nouvelle écriture transactionnelle restaurant les champs autorisés de{' '}
+                  <strong>{compensateTarget.tableName}#{compensateTarget.recordId}</strong> après vérification de dérive optimiste (HTTP 409 en cas de modification concurrente).
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs space-y-1">
+              <div><strong>Société :</strong> {compensateTarget.societeName}</div>
+              <div><strong>Champs ciblés :</strong> {compensateTarget.changedProperties || 'Voir payload JSON'}</div>
+              <div><strong>XID original :</strong> <span className="font-mono">{compensateTarget.transactionId || '—'}</span></div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
               <button
-                onClick={() => setRollbackTarget(null)}
-                disabled={isRollingBack}
-                className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 font-bold text-xs hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors"
+                onClick={() => setCompensateTarget(null)}
+                disabled={isCompensating}
+                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold"
               >
                 Annuler
               </button>
               <button
-                onClick={handleExecuteRollback}
-                disabled={isRollingBack}
-                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md shadow-rose-600/30 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                onClick={handleConfirmCompensate}
+                disabled={isCompensating}
+                className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold disabled:opacity-50"
               >
-                <RotateCcw className={`w-3.5 h-3.5 ${isRollingBack ? 'animate-spin' : ''}`} />
-                <span>{isRollingBack ? 'Exécution en cours...' : 'Confirmer et Exécuter le Rollback'}</span>
+                {isCompensating ? 'Exécution en cours...' : 'Confirmer la compensation'}
               </button>
             </div>
           </div>

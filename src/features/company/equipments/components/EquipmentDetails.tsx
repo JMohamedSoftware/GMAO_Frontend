@@ -6,7 +6,7 @@ import { Equipment as EquipmentType, Localisation, WorkOrder, Incident } from '@
 import { useLocalisations } from '@/shared/hooks/useLocalisations';
 import { useGmao } from '@/shared/hooks/useGmao';
 import { linkPieceToEquipmentApi, unlinkPieceFromEquipmentApi } from '../api/equipment.api';
-import { uploadDocumentApi, deleteDocumentApi } from '@/shared/api/document.api';
+import { uploadDocumentApi, deleteDocumentApi, openDocumentApi, downloadDocumentApi } from '@/shared/api/document.api';
 import { fetchTenantDataAsync } from '@/app/gmaoSlice';
 import { useAppDispatch } from '@/app/hooks';
 import { usePreventive } from '@/features/company/preventive/hooks/usePreventive';
@@ -1054,25 +1054,22 @@ export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({
                               {doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : ''}
                             </span>
                             <div className="flex items-center gap-2">
-                              <a
-                                href={doc.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                              <button
+                                type="button"
+                                onClick={() => openDocumentApi(doc)}
                                 className="px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg font-bold text-[11px] flex items-center gap-1.5 transition-colors"
                               >
                                 <Eye className="w-3 h-3" />
                                 Ouvrir
-                              </a>
-                              <a
-                                href={doc.url}
-                                download={doc.name}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => downloadDocumentApi(doc)}
                                 className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-white bg-slate-100 dark:bg-slate-800 rounded-lg transition-colors"
                                 title="Télécharger"
                               >
                                 <Download className="w-3 h-3" />
-                              </a>
+                              </button>
                             </div>
                           </div>
                         </div>
