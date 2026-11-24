@@ -163,7 +163,7 @@ export interface Campaign {
   id: string;
   name: string;
   startDate: string;
-  endDate: string;
+  endDate?: string | null;
   status: 'En cours' | 'Terminée' | 'Planifiée' | 'Clôturée';
 }
 

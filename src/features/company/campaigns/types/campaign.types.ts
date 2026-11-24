@@ -12,7 +12,7 @@ export interface Campagne {
   nom: string;
   description?: string;
   dateDebut: string;
-  dateFin: string;
+  dateFin?: string | null;
   etat: EtatCampagne;
   societeId?: number;
 }
@@ -21,7 +21,7 @@ export interface CreateCampagneDto {
   nom: string;
   description?: string;
   dateDebut: string;
-  dateFin: string;
+  dateFin?: string | null;
   etat: EtatCampagne;
 }
 
@@ -29,6 +29,6 @@ export interface UpdateCampagneDto {
   nom?: string;
   description?: string;
   dateDebut?: string;
-  dateFin?: string;
+  dateFin?: string | null;
   etat?: EtatCampagne;
 }

@@ -32,7 +32,7 @@ export const CampaignSettings: React.FC = () => {
   const currentYear = new Date().getFullYear();
   const [newNom, setNewNom] = useState(`Campagne ${currentYear + 1}`);
   const [newDateDebut, setNewDateDebut] = useState(`${currentYear + 1}-06-01`);
-  const [newDateFin, setNewDateFin] = useState(`${currentYear + 1}-10-31`);
+  const [newDateFin, setNewDateFin] = useState('');
   const [newDescription, setNewDescription] = useState('Saison industrielle de transformation');
   const [newEtat, setNewEtat] = useState<EtatCampagne>(EtatCampagne.EnCours);
 
@@ -53,7 +53,7 @@ export const CampaignSettings: React.FC = () => {
         nom: newNom.trim(),
         description: newDescription.trim(),
         dateDebut: newDateDebut,
-        dateFin: newDateFin,
+        dateFin: newDateFin.trim() ? newDateFin.trim() : null,
         etat: newEtat
       });
 
@@ -162,6 +162,11 @@ export const CampaignSettings: React.FC = () => {
               const eDay = camp.endDate.split('T')[0];
               if (oDay >= sDay && oDay <= eDay) return true;
             }
+            if (camp.startDate && !camp.endDate && o.createdDate) {
+              const oDay = o.createdDate.split('T')[0];
+              const sDay = camp.startDate.split('T')[0];
+              if (oDay >= sDay) return true;
+            }
             return false;
           });
 
@@ -179,6 +184,11 @@ export const CampaignSettings: React.FC = () => {
               const sDay = camp.startDate.split('T')[0];
               const eDay = camp.endDate.split('T')[0];
               if (iDay >= sDay && iDay <= eDay) return true;
+            }
+            if (camp.startDate && !camp.endDate && i.reportedDate) {
+              const iDay = i.reportedDate.split('T')[0];
+              const sDay = camp.startDate.split('T')[0];
+              if (iDay >= sDay) return true;
             }
             return false;
           });
@@ -222,9 +232,9 @@ export const CampaignSettings: React.FC = () => {
                 <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-4">
                   <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                   <span>
-                    {camp.startDate ? new Date(camp.startDate).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }) : 'Juin'}
+                    {camp.startDate ? new Date(camp.startDate).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }) : 'Début'}
                     {' → '}
-                    {camp.endDate ? new Date(camp.endDate).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }) : 'Octobre'}
+                    {camp.endDate ? new Date(camp.endDate).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }) : 'Ouverte (En cours)'}
                   </span>
                 </div>
 
@@ -343,12 +353,12 @@ export const CampaignSettings: React.FC = () => {
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                    Date de Fin
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
+                    <span>Date de Fin</span>
+                    <span className="text-[9px] text-slate-400 font-normal">Optionnelle (Ouverte)</span>
                   </label>
                   <input
                     type="date"
-                    required
                     value={newDateFin}
                     onChange={e => setNewDateFin(e.target.value)}
                     className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-transparent text-slate-800 dark:text-white outline-none focus:border-blue-500"
