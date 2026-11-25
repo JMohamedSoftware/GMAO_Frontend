@@ -6,7 +6,7 @@
  * gestion des Ordres de Travail (OT) dans le système GMAO.
  */
 
-import { PartUsage } from '@/shared/types/gmao';
+import { type PartUsage } from '@/shared/types/gmao';
 
 /**
  * Types de maintenance autorisés selon la norme AFNOR NF EN 13306 :

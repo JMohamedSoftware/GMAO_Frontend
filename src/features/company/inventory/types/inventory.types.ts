@@ -14,7 +14,8 @@
  * 4: Casse (Perte, dommage ou rebut)
  * 5: Inventaire (Régularisation suite à comptage physique)
  */
-export type StockMovementType = 'in' | 'out';
+export type StockMovementType = 'in' | 'out' | 'inventaire';
+export type BackendStockMovementCode = 1 | 2 | 3 | 4 | 5;
 
 export interface SparePartModel {
   id: string;

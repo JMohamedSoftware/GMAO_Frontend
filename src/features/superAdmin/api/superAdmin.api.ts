@@ -30,8 +30,9 @@ export interface DashboardStatsResponse {
     pendingInvoicesCount: number;
     trialTenantsCount: number;
     renewalCount: number;
-    systemHealth: number;
-    avgResponseTimeMs: number;
+    dbConnected?: boolean;
+    systemHealth: number | null;
+    avgResponseTimeMs: number | null;
   };
   recentLogs: Array<{
     id: number;
@@ -219,17 +220,19 @@ export interface MonitoringDto {
     dotnetVersion: string;
     database: string;
     uptime: string;
-    cpuPercent: number;
-    ramPercent: number;
+    processRamMb?: number;
+    processorCount?: number;
+    cpuPercent: number | null;
+    ramPercent: number | null;
     ramUsedGb: number;
-    ramTotalGb: number;
-    diskPercent: number;
-    diskUsedGb: number;
-    diskTotalGb: number;
-    activeDbConnections: number;
-    apiLatencyMs: number;
-    requestsPerMin: number;
-    errorRate: number;
+    ramTotalGb: number | null;
+    diskPercent: number | null;
+    diskUsedGb: number | null;
+    diskTotalGb: number | null;
+    activeDbConnections: number | null;
+    apiLatencyMs: number | null;
+    requestsPerMin: number | null;
+    errorRate: number | null;
   };
   tenants: Array<{
     id: number;
@@ -356,7 +359,7 @@ async function safeApiCall<T>(url: string, options?: RequestInit, fallback?: T):
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      const errMsg = errData?.message || `Erreur API (${res.status})`;
+      const errMsg = errData?.message || errData?.error || errData?.title || `Erreur API (${res.status})`;
       console.warn(`[SuperAdmin API] Request to ${url} returned ${res.status}:`, errMsg);
       if (fallback !== undefined) return fallback;
       throw new Error(errMsg);

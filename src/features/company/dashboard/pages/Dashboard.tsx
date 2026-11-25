@@ -11,6 +11,7 @@ import { DashboardParkSection } from '../components/DashboardParkSection';
 import { DashboardFactoryMap } from '../components/DashboardFactoryMap';
 import { DashboardAnalytics } from '../components/DashboardAnalytics';
 import { DeclareIncidentModal } from '../components/DeclareIncidentModal';
+import { calculateUnifiedMaintenanceKpis } from '@/shared/services/kpiCalculator';
 
 interface DashboardProps {
   onNavigate: (screen: string) => void;
@@ -62,30 +63,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
       })
     : campaignIncidents;
 
-  // Maintenance Cost Calculations according to Cahier des Charges (Section 11 & 13)
-  const totalLaborCost = currentOrders.reduce((acc, ot) => {
-    if (ot.status === 'Terminé' || ot.status === 'Clôturé') {
-      const tech = technicians.find(t => t.id === ot.technicianId);
-      const rate = tech ? tech.hourlyRate : 35;
-      const durationHours = (ot.durationMinutes || 120) / 60;
-      return acc + (durationHours * rate);
-    }
-    return acc;
-  }, 0);
-
-  const totalPartsCost = currentOrders.reduce((acc, ot) => {
-    if (ot.status === 'Terminé' || ot.status === 'Clôturé') {
-      const orderParts = (ot.partsUsed || []).reduce((partAcc, usage) => {
-        const part = parts.find(p => p.ref === usage.partRef);
-        const price = part ? part.unitPrice : 0;
-        return partAcc + (price * usage.quantity);
-      }, 0);
-      return acc + orderParts;
-    }
-    return acc;
-  }, 0);
-
-  const totalMaintCost = Math.round(totalLaborCost + totalPartsCost);
+  const {
+    totalLaborCost,
+    totalPartsCost,
+    totalMaintenanceCost: totalMaintCost
+  } = calculateUnifiedMaintenanceKpis({
+    equipments,
+    workOrders: currentOrders,
+    incidents: currentIncidents,
+    parts,
+    technicians,
+    isProduction
+  });
 
   return (
     <div className="flex flex-col gap-6 animate-[fadeIn_0.3s_ease-out]">
@@ -108,6 +97,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectEquipm
         equipments={equipments}
         workOrders={currentOrders}
         incidents={currentIncidents}
+        parts={parts}
+        technicians={technicians}
         totalLaborCost={totalLaborCost}
         totalPartsCost={totalPartsCost}
         totalMaintCost={totalMaintCost}

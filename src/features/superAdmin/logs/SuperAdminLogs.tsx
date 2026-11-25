@@ -40,12 +40,12 @@ export interface EnterpriseLogEntry {
   niveau: 'INFO' | 'WARNING' | 'ERROR' | 'SECURITY';
   categorie: 'Auth' | 'Sécurité' | 'Billing' | 'Système' | 'Tenant' | 'GMAO';
   status: 'Succès' | 'Échec' | 'Avertissement';
-  ipAddress: string;
-  browser: string;
-  endpoint: string;
-  httpMethod: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  ipAddress: string | null;
+  browser: string | null;
+  endpoint: string | null;
+  httpMethod: 'GET' | 'POST' | 'PUT' | 'DELETE' | null;
   statusCode: number;
-  latencyMs: number;
+  latencyMs: number | null;
   details: string;
   payloadJson?: string;
 }
@@ -88,199 +88,43 @@ export const SuperAdminLogs: React.FC<SuperAdminLogsProps> = ({ selectedTenantId
     setTimeout(() => setCopiedPayload(false), 2000);
   };
 
-  // Generate dynamic seed logs tied directly to registered tenants
-  const generateDynamicEnterpriseLogs = (): EnterpriseLogEntry[] => {
-    const list: EnterpriseLogEntry[] = [];
-    const now = new Date();
-    const safeTenants = tenants && tenants.length > 0 ? tenants : [
-      { id: '1', name: 'Usine Tomates POMODORO' },
-      { id: '2', name: 'Agro-Industrie Du Sud (SICAM)' }
-    ];
-
-    safeTenants.forEach((t, tIdx) => {
-      const cName = t.name;
-
-      list.push({
-        id: `log-${tIdx * 6 + 1}`,
-        traceId: `trc_00${tIdx + 1}a_${Math.abs((tIdx + 1) * 31415).toString(16)}`,
-        dateTime: new Date(now.getTime() - (tIdx * 20 + 4) * 60000).toISOString().replace('T', ' ').slice(0, 19),
-        userName: tIdx === 0 ? 'Ahmed Ben Ali' : 'Sami Mansouri',
-        userRole: tIdx === 0 ? 'SuperAdmin' : 'Admin Entreprise',
-        companyName: cName,
-        action: 'Authentification Session 2FA',
-        niveau: 'INFO',
-        categorie: 'Auth',
-        status: 'Succès',
-        ipAddress: `197.203.10.${42 + tIdx}`,
-        browser: 'Chrome 122.0.6261 (Windows NT 10.0; Win64; x64)',
-        endpoint: '/api/v1/auth/session-token',
-        httpMethod: 'POST',
-        statusCode: 200,
-        latencyMs: 24,
-        details: `Validation session utilisateur sécurisée avec jeton JWT pour ${cName}.`,
-        payloadJson: JSON.stringify({
-          traceId: `trc_00${tIdx + 1}a`,
-          event: 'AUTH_SESSION_VALIDATE',
-          actor: { user: tIdx === 0 ? 'Ahmed Ben Ali' : 'Sami Mansouri', role: tIdx === 0 ? 'SuperAdmin' : 'Admin Entreprise' },
-          tenant: cName,
-          client: { ip: `197.203.10.${42 + tIdx}`, os: 'Windows 10/11', userAgent: 'Chrome 122.0' },
-          http: { method: 'POST', route: '/api/v1/auth/session-token', status: 200, latencyMs: 24 },
-          security: { mfaPassed: true, tokenExpiresIn: 86400 }
-        }, null, 2)
-      });
-
-      list.push({
-        id: `log-${tIdx * 6 + 2}`,
-        traceId: `trc_00${tIdx + 1}b_${Math.abs((tIdx + 2) * 27182).toString(16)}`,
-        dateTime: new Date(now.getTime() - (tIdx * 35 + 28) * 60000).toISOString().replace('T', ' ').slice(0, 19),
-        userName: 'Karim Ben Salah',
-        userRole: 'Technicien Électromécanicien',
-        companyName: cName,
-        action: 'Mise à jour Statut Équipement #EQ-002',
-        niveau: 'INFO',
-        categorie: 'GMAO',
-        status: 'Succès',
-        ipAddress: `192.168.10.${10 + tIdx}`,
-        browser: 'Samsung Galaxy Tab Active (Android 14; Mobile)',
-        endpoint: `/api/v1/equipements/EQ-${tIdx + 1}02/status`,
-        httpMethod: 'PUT',
-        statusCode: 200,
-        latencyMs: 18,
-        details: 'Passage statut Évaporateur de "En panne" à "Opérationnel".',
-        payloadJson: JSON.stringify({
-          traceId: `trc_00${tIdx + 1}b`,
-          event: 'EQUIPMENT_STATUS_UPDATE',
-          actor: { user: 'Karim Ben Salah', role: 'Technicien' },
-          tenant: cName,
-          delta: { entity: `EQ-${tIdx + 1}02`, field: 'Statut', old: 'En panne', new: 'Opérationnel' },
-          device: { type: 'Tablet IP68', ip: `192.168.10.${10 + tIdx}` },
-          http: { method: 'PUT', route: `/api/v1/equipements/EQ-${tIdx + 1}02/status`, status: 200, latencyMs: 18 }
-        }, null, 2)
-      });
-
-      list.push({
-        id: `log-${tIdx * 6 + 3}`,
-        traceId: `trc_00${tIdx + 1}c_${Math.abs((tIdx + 3) * 16180).toString(16)}`,
-        dateTime: new Date(now.getTime() - (tIdx * 50 + 64) * 60000).toISOString().replace('T', ' ').slice(0, 19),
-        userName: 'WAF Firewall Guard',
-        userRole: 'Système',
-        companyName: cName,
-        action: 'Tentative Brute-Force Bloquée',
-        niveau: 'SECURITY',
-        categorie: 'Sécurité',
-        status: 'Échec',
-        ipAddress: `45.134.20.${88 + tIdx}`,
-        browser: 'Python-requests/2.28 (Unknown Bot)',
-        endpoint: '/api/v1/auth/login',
-        httpMethod: 'POST',
-        statusCode: 403,
-        latencyMs: 12,
-        details: 'Blocage automatique IP après 5 tentatives erronées de mot de passe.',
-        payloadJson: JSON.stringify({
-          traceId: `trc_00${tIdx + 1}c`,
-          event: 'SECURITY_BRUTE_FORCE_BLOCKED',
-          actor: { user: 'Anonyme', attempts: 5 },
-          tenantTarget: cName,
-          threatIntel: { ip: `45.134.20.${88 + tIdx}`, reputation: 'Malicious / Suspicious Bot', action: 'DROP_CONNECTION' },
-          http: { method: 'POST', route: '/api/v1/auth/login', status: 403, latencyMs: 12 }
-        }, null, 2)
-      });
-
-      list.push({
-        id: `log-${tIdx * 6 + 4}`,
-        traceId: `trc_00${tIdx + 1}d_${Math.abs((tIdx + 4) * 14142).toString(16)}`,
-        dateTime: new Date(now.getTime() - (tIdx * 65 + 110) * 60000).toISOString().replace('T', ' ').slice(0, 19),
-        userName: 'Super Administrateur',
-        userRole: 'SuperAdmin',
-        companyName: cName,
-        action: 'Rollback Transaction #TX-90411',
-        niveau: 'WARNING',
-        categorie: 'GMAO',
-        status: 'Succès',
-        ipAddress: '197.0.12.84',
-        browser: 'Edge 122.0.2365 (Windows NT 10.0)',
-        endpoint: '/api/v1/superadmin/redologs/TX-90411/rollback',
-        httpMethod: 'POST',
-        statusCode: 200,
-        latencyMs: 38,
-        details: 'Rétablissement de l\'ancienne valeur sur l\'Ordre de Travail #OT-04.',
-        payloadJson: JSON.stringify({
-          traceId: `trc_00${tIdx + 1}d`,
-          event: 'AUDIT_ROLLBACK_TRANSACTION',
-          actor: { user: 'Super Administrateur', role: 'SuperAdmin' },
-          tenant: cName,
-          reversal: { targetTx: 'TX-90411', status: 'COMPLETED', compensationRecord: 'RB-88120' },
-          http: { method: 'POST', route: '/api/v1/superadmin/redologs/TX-90411/rollback', status: 200, latencyMs: 38 }
-        }, null, 2)
-      });
-
-      list.push({
-        id: `log-${tIdx * 6 + 5}`,
-        traceId: `trc_00${tIdx + 1}e_${Math.abs((tIdx + 5) * 17320).toString(16)}`,
-        dateTime: new Date(now.getTime() - (tIdx * 80 + 175) * 60000).toISOString().replace('T', ' ').slice(0, 19),
-        userName: 'Leila Farhat',
-        userRole: 'Magasinière PDR',
-        companyName: cName,
-        action: 'Alerte Seuil Minimum Pièce SKF-6204',
-        niveau: 'WARNING',
-        categorie: 'GMAO',
-        status: 'Avertissement',
-        ipAddress: `192.168.10.${18 + tIdx}`,
-        browser: 'Zebra TC26 Android Scanner (Mobile)',
-        endpoint: '/api/v1/inventory/items/SKF-6204/decrement',
-        httpMethod: 'POST',
-        statusCode: 200,
-        latencyMs: 22,
-        details: 'Stock physique descendu à 2 unités. Déclenchement alerte réapprovisionnement.',
-        payloadJson: JSON.stringify({
-          traceId: `trc_00${tIdx + 1}e`,
-          event: 'STOCK_THRESHOLD_ALERT',
-          actor: { user: 'Leila Farhat', role: 'Magasinier' },
-          tenant: cName,
-          stock: { item: 'Roulement SKF 6204', qtyBefore: 14, qtyAfter: 2, minSafety: 5 },
-          http: { method: 'POST', route: '/api/v1/inventory/items/SKF-6204/decrement', status: 200, latencyMs: 22 }
-        }, null, 2)
-      });
-    });
-
-    return list;
-  };
-
   const [logsList, setLogsList] = useState<EnterpriseLogEntry[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const fetchLogs = async (showNotification = false) => {
     setIsSyncing(true);
+    setLoadError(null);
     try {
-      const fallback = generateDynamicEnterpriseLogs();
-      const data = await superAdminApi.getLogs(undefined, fallback);
+      const data = await superAdminApi.getLogs();
       if (data && data.length > 0) {
         const mapped: EnterpriseLogEntry[] = data.map((j: any, idx: number) => ({
           id: String(j.id || `log-${idx + 1}`),
-          traceId: j.traceId || `trc_${idx + 1}04_${Math.abs(idx * 7919).toString(16)}`,
-          dateTime: j.dateTime || (j.dateHeure ? new Date(j.dateHeure).toISOString().replace('T', ' ').slice(0, 19) : new Date().toISOString().replace('T', ' ').slice(0, 19)),
-          userName: j.userName || j.userNom || 'Super Administrateur',
-          userRole: j.userRole || 'SuperAdmin',
+          traceId: j.traceId || `audit-${j.id || idx + 1}`,
+          dateTime: j.dateTime || (j.dateHeure ? new Date(j.dateHeure).toISOString().replace('T', ' ').slice(0, 19) : 'Non renseigné'),
+          userName: j.userName || j.userNom || 'Système',
+          userRole: j.userRole || 'Non renseigné',
           companyName: j.companyName || j.societeNom || 'Plateforme Centrale',
           action: j.action || 'Opération Système',
           niveau: (j.niveau || (j.statut === 'Échec' ? 'SECURITY' : 'INFO')) as any,
           categorie: (j.categorie || 'Système') as any,
           status: (j.status || j.statut || 'Succès') as any,
-          ipAddress: j.ipAddress || j.adresseIp || '197.203.10.45',
-          browser: j.browser || j.navigateur || 'Chrome 122 (Windows)',
-          endpoint: j.endpoint || '/api/v1/admin/operation',
-          httpMethod: (j.httpMethod || 'POST') as any,
-          statusCode: j.statusCode || (j.statut === 'Échec' ? 403 : 200),
-          latencyMs: j.latencyMs || (18 + (idx % 25)),
-          details: j.details || 'Journal de traçabilité opérationnel.',
+          ipAddress: j.ipAddress || j.adresseIp || null,
+          browser: j.browser || j.navigateur || null,
+          endpoint: j.endpoint || null,
+          httpMethod: (j.httpMethod || null) as any,
+          statusCode: j.statusCode ?? (j.statut === 'Échec' ? 403 : 200),
+          latencyMs: typeof j.latencyMs === 'number' ? j.latencyMs : null,
+          details: j.details || '',
           payloadJson: j.payloadJson || JSON.stringify(j, null, 2)
         }));
         setLogsList(mapped);
       } else {
-        setLogsList(fallback);
+        setLogsList([]);
       }
-      if (showNotification) showToast('Journaux d’audit sécurisés synchronisés avec PostgreSQL');
+      if (showNotification) showToast('Journaux d’audit synchronisés avec PostgreSQL');
     } catch {
-      setLogsList(generateDynamicEnterpriseLogs());
+      setLogsList([]);
+      setLoadError('Impossible de charger les journaux d’audit depuis le backend.');
     } finally {
       setIsSyncing(false);
     }
@@ -293,13 +137,15 @@ export const SuperAdminLogs: React.FC<SuperAdminLogsProps> = ({ selectedTenantId
   // Filtered logs
   const filteredLogs = useMemo(() => {
     return logsList.filter(log => {
+      const q = searchTerm.toLowerCase();
       const matchSearch =
-        log.traceId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.details.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.endpoint.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.ipAddress.toLowerCase().includes(searchTerm.toLowerCase());
+        !q ||
+        log.traceId.toLowerCase().includes(q) ||
+        log.userName.toLowerCase().includes(q) ||
+        log.details.toLowerCase().includes(q) ||
+        log.companyName.toLowerCase().includes(q) ||
+        (log.endpoint || '').toLowerCase().includes(q) ||
+        (log.ipAddress || '').toLowerCase().includes(q);
 
       const matchCompany =
         companyFilter === 'ALL' ||
@@ -486,6 +332,13 @@ export const SuperAdminLogs: React.FC<SuperAdminLogsProps> = ({ selectedTenantId
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+              {paginatedLogs.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="py-10 px-4 text-center text-slate-400">
+                    {loadError || 'Aucun journal d’audit disponible pour les filtres sélectionnés.'}
+                  </td>
+                </tr>
+              )}
               {paginatedLogs.map((log) => {
                 const isFailed = log.status === 'Échec' || log.statusCode >= 400;
 
@@ -536,21 +389,27 @@ export const SuperAdminLogs: React.FC<SuperAdminLogsProps> = ({ selectedTenantId
                     <td className="py-3 px-3.5">
                       <div className="font-mono font-bold text-slate-700 dark:text-slate-300 text-[11px] flex items-center gap-1">
                         <Globe className="w-3 h-3 text-slate-400" />
-                        <span>{log.ipAddress}</span>
+                        <span>{log.ipAddress || 'Non disponible'}</span>
                       </div>
-                      <div className="text-[10px] text-slate-400 truncate max-w-[170px] mt-0.5" title={log.browser}>
-                        {log.browser}
+                      <div className="text-[10px] text-slate-400 truncate max-w-[170px] mt-0.5" title={log.browser || 'Non disponible'}>
+                        {log.browser || 'Non disponible'}
                       </div>
                     </td>
 
                     {/* Endpoint & HTTP Method */}
                     <td className="py-3 px-3.5 font-mono text-[11px]">
                       <div className="flex items-center gap-1.5">
-                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-black border ${getMethodBadge(log.httpMethod)}`}>
-                          {log.httpMethod}
-                        </span>
-                        <span className="text-slate-800 dark:text-slate-200 truncate max-w-[190px]" title={log.endpoint}>
-                          {log.endpoint}
+                        {log.httpMethod ? (
+                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-black border ${getMethodBadge(log.httpMethod)}`}>
+                            {log.httpMethod}
+                          </span>
+                        ) : (
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold border border-slate-200 dark:border-slate-700 text-slate-400">
+                            AUDIT
+                          </span>
+                        )}
+                        <span className="text-slate-800 dark:text-slate-200 truncate max-w-[190px]" title={log.endpoint || 'Non disponible'}>
+                          {log.endpoint || 'Non disponible'}
                         </span>
                       </div>
                       <div className="text-[10px] text-slate-400 truncate max-w-[210px] mt-0.5 font-sans" title={log.details}>
@@ -570,7 +429,7 @@ export const SuperAdminLogs: React.FC<SuperAdminLogsProps> = ({ selectedTenantId
                         </span>
                       </div>
                       <div className="text-[10px] font-mono text-slate-400 mt-0.5">
-                        {log.latencyMs} ms
+                        {log.latencyMs != null ? `${log.latencyMs} ms` : 'Latence N/D'}
                       </div>
                     </td>
 
@@ -661,14 +520,18 @@ export const SuperAdminLogs: React.FC<SuperAdminLogsProps> = ({ selectedTenantId
 
               <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
                 <div className="text-[10px] text-slate-400 uppercase font-sans">Réseau & IP</div>
-                <div className="font-bold text-slate-800 dark:text-slate-200 mt-0.5">{inspectedLog.ipAddress}</div>
-                <div className="text-[10px] text-slate-400 truncate">{inspectedLog.browser}</div>
+                <div className="font-bold text-slate-800 dark:text-slate-200 mt-0.5">{inspectedLog.ipAddress || 'Non disponible'}</div>
+                <div className="text-[10px] text-slate-400 truncate">{inspectedLog.browser || 'Non disponible'}</div>
               </div>
 
               <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
                 <div className="text-[10px] text-slate-400 uppercase font-sans">HTTP / Temps</div>
-                <div className="font-bold text-slate-800 dark:text-slate-200 mt-0.5">{inspectedLog.httpMethod} {inspectedLog.statusCode}</div>
-                <div className="text-[10px] text-emerald-600 font-bold">{inspectedLog.latencyMs} ms</div>
+                <div className="font-bold text-slate-800 dark:text-slate-200 mt-0.5">
+                  {inspectedLog.httpMethod || 'AUDIT'} {inspectedLog.statusCode}
+                </div>
+                <div className="text-[10px] text-emerald-600 font-bold">
+                  {inspectedLog.latencyMs != null ? `${inspectedLog.latencyMs} ms` : 'Non disponible'}
+                </div>
               </div>
             </div>
 

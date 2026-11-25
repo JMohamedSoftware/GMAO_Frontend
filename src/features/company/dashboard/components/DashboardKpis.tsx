@@ -9,12 +9,15 @@ import {
   ShieldCheck, 
   Coins 
 } from 'lucide-react';
-import { Equipment, WorkOrder, Incident } from '@/shared/types/gmao';
+import { Equipment, WorkOrder, Incident, SparePart, Technician } from '@/shared/types/gmao';
+import { calculateUnifiedMaintenanceKpis } from '@/shared/services/kpiCalculator';
 
 interface DashboardKpisProps {
   equipments: Equipment[];
   workOrders?: WorkOrder[];
   incidents?: Incident[];
+  parts?: SparePart[];
+  technicians?: Technician[];
   totalLaborCost?: number;
   totalPartsCost?: number;
   totalMaintCost?: number;
@@ -29,58 +32,36 @@ export const DashboardKpis: React.FC<DashboardKpisProps> = ({
   equipments,
   workOrders = [],
   incidents = [],
-  totalMaintCost = 0,
+  parts = [],
+  technicians = [],
+  totalMaintCost,
   canViewEquipments = true,
   canViewWorkOrders = true,
   canViewIncidents = true,
   canViewReports = true,
   isProduction = false
 }) => {
-  const total = equipments.length;
-  const userPanneEqIds = new Set(incidents.map(i => i.equipmentId));
-  const enPanne = isProduction
-    ? (userPanneEqIds.size > 0 
-        ? equipments.filter(e => userPanneEqIds.has(e.id) && (e.status === 'En panne' || e.status === 'Hors service')).length
-        : incidents.filter(i => i.status !== 'Clos' && i.status !== 'Rejeté').length)
-    : equipments.filter(e => e.status === 'En panne' || e.status === 'Hors service').length;
-
-  const enService = equipments.filter(e => e.status === 'En service').length;
-  const enMaint = equipments.filter(e => e.status === 'En maintenance').length;
-
-  const percentService = total > 0 ? Math.round((enService / total) * 100) : 0;
-  const percentMaint = total > 0 ? Math.round((enMaint / total) * 100) : 0;
-  const percentPanne = total > 0 ? Math.round((enPanne / total) * 100) : 0;
-
-  // Dynamic Industrial Norms (Cahier des Charges § 12 & 14)
-  // null = no data yet (don't show a fake 100%)
-  const dispoRate = total > 0 ? Math.round(((total - enPanne) / total) * 1000) / 10 : null;
-
-  // MTBF: Total operating hours / Total failures (only if we have real failure events)
-  // Use hoursCount from equipment if available, else skip (no fake fallback)
-  const totalOperatingHoursReal = equipments.reduce((sum, e) => sum + (e.hoursCount || 0), 0);
-  const failureCount = incidents.length + workOrders.filter(w => w.type === 'Correctif').length;
-  const hasMtbfData = totalOperatingHoursReal > 0 && failureCount > 0;
-  const mtbf = hasMtbfData
-    ? Math.round(totalOperatingHoursReal / failureCount)
-    : null; // null = données insuffisantes
-
-  // MTTR: Average repair duration for completed OTs.
-  // Priority: use startDate/endDate diff; fallback to durationMinutes if available
-  const completedOts = workOrders.filter(w => w.status === 'Terminé' || w.status === 'Clôturé');
-  const otsWithDuration = completedOts.filter(w => {
-    if (w.startDate && w.endDate) return true;
-    if (w.durationMinutes && w.durationMinutes > 0) return true;
-    return false;
+  const kpis = calculateUnifiedMaintenanceKpis({
+    equipments,
+    workOrders,
+    incidents,
+    parts,
+    technicians,
+    isProduction
   });
-  const totalRepairHours = otsWithDuration.reduce((sum, w) => {
-    if (w.startDate && w.endDate) {
-      const diffMs = new Date(w.endDate).getTime() - new Date(w.startDate).getTime();
-      return sum + Math.max(0, diffMs / 3600000);
-    }
-    return sum + ((w.durationMinutes || 0) / 60);
-  }, 0);
-  const hasMttrData = otsWithDuration.length > 0;
-  const mttrVal = hasMttrData ? (totalRepairHours / otsWithDuration.length) : null;
+
+  const total = kpis.totalEquipments;
+  const enPanne = kpis.enPanne;
+  const enService = kpis.enService;
+  const enMaint = kpis.enMaint;
+  const percentService = kpis.percentService;
+  const percentMaint = kpis.percentMaint;
+  const percentPanne = kpis.percentPanne;
+  const dispoRate = kpis.disponibilitePercent;
+  const mtbf = kpis.mtbfHours !== null ? Math.round(kpis.mtbfHours) : null;
+  const mttrVal = kpis.mttrHours;
+  const otsWithDurationCount = kpis.completedOtsWithDurationCount;
+  const resolvedMaintCost = totalMaintCost ?? kpis.totalMaintenanceCost;
 
   // Incident statistics (for users who don't have equipment permissions, like Responsable Production)
   const totalIncidents = incidents.length;
@@ -436,7 +417,7 @@ export const DashboardKpis: React.FC<DashboardKpisProps> = ({
                   </span>
                   {mttrVal !== null ? (
                     <span className="text-[10px] font-bold text-emerald-600">
-                      {otsWithDuration.length} OT{otsWithDuration.length > 1 ? 's' : ''}
+                      {otsWithDurationCount} OT{otsWithDurationCount > 1 ? 's' : ''}
                     </span>
                   ) : (
                     <span className="text-[10px] font-bold text-slate-400">Données insuffisantes</span>
@@ -457,15 +438,15 @@ export const DashboardKpis: React.FC<DashboardKpisProps> = ({
               </div>
               <div className="overflow-hidden">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Coût Maintenance (Mois)
+                  Coût Maintenance
                 </span>
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-lg font-black text-slate-800 dark:text-white leading-tight">
-                    {totalMaintCost.toLocaleString()} TND
+                    {resolvedMaintCost.toLocaleString()} TND
                   </span>
                 </div>
                 <span className="text-[9px] text-slate-400 block truncate">
-                  Main d'œuvre + Pièces
+                  Main d'œuvre + Pièces + Sous-traitance
                 </span>
               </div>
             </div>

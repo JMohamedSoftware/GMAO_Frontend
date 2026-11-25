@@ -1,4 +1,4 @@
-import { AppRole } from '@/shared/permissions';
+import { type AppRole } from '@/shared/permissions';
 
 
 export interface DocumentInfo {
@@ -86,6 +86,7 @@ export interface WorkOrder {
   durationMinutes: number;
   diagnostic?: string;
   solution?: string;
+  observation?: string;
   signature?: string; 
   partsUsed: PartUsage[];
   externalCost: number;
@@ -187,6 +188,7 @@ export interface User {
   tenantId?: string;
   tenantName?: string;
   company?: string;
+  equipeId?: number | null;
   permissions?: string[];
 }
 

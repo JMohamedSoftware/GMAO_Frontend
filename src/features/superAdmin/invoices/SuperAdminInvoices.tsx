@@ -180,7 +180,7 @@ export const SuperAdminInvoices: React.FC<SuperAdminInvoicesProps> = ({ selected
       if (data && data.length > 0) {
         const mapped: InvoiceItem[] = data.map((inv, idx) => ({
           id: String(inv.id),
-          invoiceNumber: inv.numeroFacture || `FAC-2026-${String(idx + 1).padStart(4, '0')}`,
+          invoiceNumber: inv.numeroFacture || `FAC-${inv.id}`,
           company: inv.societeNom || 'Société Client',
           logo: inv.societeNom.toLowerCase().includes('tomate') ? '🍅' : (inv.societeNom.toLowerCase().includes('sicam') ? '🥫' : '🏭'),
           plan: inv.plan?.includes('Enterprise') ? 'Enterprise' : (inv.plan?.includes('Starter') ? 'Basic' : 'Professional'),
@@ -207,13 +207,15 @@ export const SuperAdminInvoices: React.FC<SuperAdminInvoicesProps> = ({ selected
           email: 'finance@societe.tn',
           phone: '+216 71 000 000',
           address: 'Tunisie',
-          period: inv.periode || 'Mars 2026'
+          period: inv.periode || 'Non renseignée'
         }));
         setInvoices(mapped);
         if (showNotification) showToast('Factures synchronisées avec PostgreSQL .NET');
+      } else {
+        setInvoices([]);
       }
-    } catch (err) {
-      console.warn('[Invoices] Utilisation des données locales:', err);
+    } catch {
+      setInvoices([]);
     } finally {
       setIsSyncing(false);
       setIsLoading(false);

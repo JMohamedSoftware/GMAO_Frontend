@@ -123,6 +123,8 @@ export {
 import { apiClient } from '@/shared/services/apiClient';
 import { Equipment, Incident, WorkOrder, SparePart, Supplier, Technician, UserAccount } from '@/shared/types/gmao';
 import { normalizeEquipmentStatus, normalizeEquipmentCriticality } from '@/features/company/equipments/api/equipment.api';
+import { mapBackendWorkOrder } from '@/features/company/workOrders/api/workOrder.api';
+import { mapBackendMovement } from '@/features/company/inventory/api/inventory.api';
 
 export const fetchBootstrapDataApi = async (): Promise<{
   equipments: Equipment[];
@@ -232,56 +234,12 @@ export const fetchBootstrapDataApi = async (): Promise<{
     }));
 
     const workOrders: WorkOrder[] = (data.workOrders || []).map((w: any) => {
-      let mappedStatus: WorkOrder['status'] = 'Brouillon';
-      if (w.statut === 1) mappedStatus = 'Brouillon';
-      else if (w.statut === 2) mappedStatus = w.technicienId ? 'Affecté' : 'En attente';
-      else if (w.statut === 7) mappedStatus = 'Affecté Chef';
-      else if (w.statut === 3) mappedStatus = 'En cours';
-      else if (w.statut === 4) mappedStatus = 'Suspendu';
-      else if (w.statut === 5) mappedStatus = 'Terminé';
-      else if (w.statut === 6) mappedStatus = 'Clôturé';
-
-      let mappedType: WorkOrder['type'] = 'Correctif';
-      if (w.typeMaintenance === 2 || w.type === 2) mappedType = 'Préventif';
-      else if (w.typeMaintenance === 3 || w.type === 3) mappedType = 'Prédictif';
-      else if (w.typeMaintenance === 4 || w.type === 4) mappedType = 'Amélioratif';
-
-      let mappedPriority: WorkOrder['priority'] = 'Moyenne';
-      if (w.priorite === 1) mappedPriority = 'Faible';
-      else if (w.priorite === 3) mappedPriority = 'Haute';
-      else if (w.priorite === 4) mappedPriority = 'Critique';
-
-      const chefEquipeIdResolved = (w.statut === 7 && w.responsableId)
-        ? w.responsableId.toString()
-        : (w.chefEquipeId ? w.chefEquipeId.toString() : (w.responsableId ? w.responsableId.toString() : undefined));
-
+      const mapped = mapBackendWorkOrder(w);
       return {
-        id: w.id ? w.id.toString() : (w.numeroOT || `OT-${w.id}`),
-        numeroOT: w.numeroOT || `OT-${w.id}`,
+        ...mapped,
         dbId: w.id,
-        incidentId: w.demandeId != null ? w.demandeId.toString() : undefined,
-        equipmentId: w.equipementId?.toString() || '',
-        type: mappedType,
-        title: w.titre || w.description || w.numeroOT || `OT-${w.id}`,
-        description: w.instructions || w.description || '',
-        priority: mappedPriority,
-        status: mappedStatus,
-        technicianId: w.technicienId ? w.technicienId.toString() : undefined,
-        assignedTechnicianId: w.technicienId ? w.technicienId.toString() : undefined,
-        responsableId: w.responsableId,
-        assignedBy: w.statut !== 7 ? (w.responsableId ? w.responsableId.toString() : '') : '',
-        chefEquipeId: chefEquipeIdResolved,
-        createdDate: w.dateCreation || new Date().toISOString(),
-        startDate: w.dateDebutReelle || w.dateDebutPrevue || undefined,
-        endDate: w.dateFinReelle || w.dateFinPrevue || undefined,
-        durationMinutes: w.durationMinutes || (w.tempsEstimeHeures ? w.tempsEstimeHeures * 60 : 120),
-        diagnostic: w.diagnostic || undefined,
-        solution: w.solution || undefined,
-        partsUsed: [],
-        externalCost: w.coutSousTraitance || 0,
-        campaign: w.campagne?.nom || w.campagneNom || '',
-        campagneId: w.campagneId || undefined
-      };
+        assignedTechnicianId: w.technicienId ? w.technicienId.toString() : undefined
+      } as WorkOrder;
     });
 
     const campaigns = (data.campaigns || []).map((c: any) => ({
@@ -325,17 +283,11 @@ export const fetchBootstrapDataApi = async (): Promise<{
         status: u.isActive !== false ? 'Actif' : 'Inactif',
         avatar: u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(`${u.prenom}+${u.nom}`)}&background=e11d48&color=fff&size=150`,
         phone: u.telephone,
+        equipeId: u.equipeId ?? null,
         createdAt: u.createdAt
       }));
 
-    const movements = (data.movements || []).map((m: any) => ({
-      id: `MVT-${new Date(m.date || Date.now()).getFullYear()}-${(m.id || 0).toString().padStart(3, '0')}`,
-      date: m.date,
-      partRef: m.piece?.reference || m.pieceId?.toString(),
-      qty: m.quantite,
-      type: m.type === 1 ? 'in' : 'out',
-      reason: m.motif || (m.type === 1 ? 'Achat/Retour' : 'Maintenance/Sortie')
-    }));
+    const movements = (data.movements || []).map(mapBackendMovement);
 
     return {
       equipments,

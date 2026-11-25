@@ -11,7 +11,7 @@ interface CreateTenantWizardProps {
 }
 
 export const CreateTenantWizard: React.FC<CreateTenantWizardProps> = ({ show, onClose, onTenantCreated, plansConfig }) => {
-  const { registerTenant, approveTenant } = useGmao();
+  const { refreshTenants } = useGmao();
 
   const [currentStep, setCurrentStep] = useState(1);
   const [creationLoading, setCreationLoading] = useState(false);
@@ -54,7 +54,7 @@ export const CreateTenantWizard: React.FC<CreateTenantWizardProps> = ({ show, on
   const handleCompanyNameChange = (val: string) => {
     setCompanyName(val);
     setLegalName(val + " S.A.");
-    setCompanySlug(val.toLowerCase().replace(/[^a-z0-9]/g, ''));
+    setCompanySlug(val.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 50));
   };
 
   const handlePlanChange = (plan: 'Basic' | 'Premium' | 'Enterprise') => {
@@ -110,18 +110,11 @@ export const CreateTenantWizard: React.FC<CreateTenantWizardProps> = ({ show, on
       const response = await superAdminApi.createTenantWithAdmin(payload);
       const createdTenant = response?.tenant || payload;
 
-      // 2. Synchroniser avec le store Redux de l'application
+      // 2. Synchroniser le store Redux depuis la base de données sans recréer un doublon
       try {
-        await registerTenant({
-          id: createdTenant.codeTenant || cleanSlug,
-          name: companyName,
-          domain: `${cleanSlug}.platform.com`,
-          adminEmail: adminEmail?.trim().toLowerCase(),
-          subscriptionPlan: subPlan,
-          capacityTonsPerDay: 450
-        });
+        await refreshTenants(true);
       } catch (reduxErr) {
-        console.warn('Avertissement Redux registerTenant:', reduxErr);
+        console.warn('Avertissement Redux refreshTenants:', reduxErr);
       }
 
       // 3. Notifier la liste des entreprises pour rafraîchissement immédiat
@@ -211,17 +204,17 @@ export const CreateTenantWizard: React.FC<CreateTenantWizardProps> = ({ show, on
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] text-slate-400 font-bold uppercase">Nom de l'Entreprise / Usine *</label>
-                  <input type="text" required value={companyName} onChange={(e) => handleCompanyNameChange(e.target.value)} placeholder="Ex: Sicam Industrie" className="p-2 border border-slate-205 dark:border-slate-800 rounded-lg outline-none bg-transparent dark:text-white" />
+                  <input type="text" required maxLength={150} value={companyName} onChange={(e) => handleCompanyNameChange(e.target.value)} placeholder="Ex: Sicam Industrie" className="p-2 border border-slate-205 dark:border-slate-800 rounded-lg outline-none bg-transparent dark:text-white" />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] text-slate-400 font-bold uppercase">Raison Sociale *</label>
-                  <input type="text" required value={legalName} onChange={(e) => setLegalName(e.target.value)} placeholder="Ex: Sicam S.A." className="p-2 border border-slate-205 dark:border-slate-800 rounded-lg outline-none bg-transparent dark:text-white" />
+                  <input type="text" required maxLength={150} value={legalName} onChange={(e) => setLegalName(e.target.value)} placeholder="Ex: Sicam S.A." className="p-2 border border-slate-205 dark:border-slate-800 rounded-lg outline-none bg-transparent dark:text-white" />
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div className="flex flex-col gap-1 col-span-2">
                   <label className="text-[10px] text-slate-400 font-bold uppercase">Adresse Physique</label>
-                  <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Ex: Zone Industrielle, Route de Tunis" className="p-2 border border-slate-205 dark:border-slate-800 rounded-lg outline-none bg-transparent dark:text-white" />
+                  <input type="text" maxLength={250} value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Ex: Zone Industrielle, Route de Tunis" className="p-2 border border-slate-205 dark:border-slate-800 rounded-lg outline-none bg-transparent dark:text-white" />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] text-slate-400 font-bold uppercase">Matricule Fiscal *</label>
@@ -239,7 +232,7 @@ export const CreateTenantWizard: React.FC<CreateTenantWizardProps> = ({ show, on
                 </div>
                 <div className="flex flex-col gap-1 col-span-2">
                   <label className="text-[10px] text-slate-400 font-bold uppercase">Téléphone Standard</label>
-                  <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Ex: +216 72 100 200" className="p-2 border border-slate-205 dark:border-slate-800 rounded-lg outline-none bg-transparent dark:text-white" />
+                  <input type="text" maxLength={20} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Ex: +216 72 100 200" className="p-2 border border-slate-205 dark:border-slate-800 rounded-lg outline-none bg-transparent dark:text-white" />
                 </div>
               </div>
             </div>
@@ -304,7 +297,7 @@ export const CreateTenantWizard: React.FC<CreateTenantWizardProps> = ({ show, on
                 <label className="text-[10px] text-slate-400 font-bold uppercase">Adresse URL de l'Espace (Company Slug) *</label>
                 <div className="flex items-stretch border border-slate-205 dark:border-slate-800 rounded-lg overflow-hidden bg-transparent">
                   <span className="bg-slate-100 dark:bg-slate-800 px-3 py-2 text-slate-450 border-r border-slate-205 dark:border-slate-800 font-mono text-[10px] flex items-center">https://</span>
-                  <input type="text" required value={companySlug} onChange={(e) => setCompanySlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))} placeholder="nomslug" className="flex-1 p-2 outline-none bg-transparent font-mono dark:text-white" />
+                  <input type="text" required maxLength={50} value={companySlug} onChange={(e) => setCompanySlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))} placeholder="nomslug" className="flex-1 p-2 outline-none bg-transparent font-mono dark:text-white" />
                   <span className="bg-slate-100 dark:bg-slate-800 px-3 py-2 text-slate-450 border-l border-slate-205 dark:border-slate-800 font-mono text-[10px] flex items-center">.platform.com</span>
                 </div>
               </div>
@@ -354,16 +347,16 @@ export const CreateTenantWizard: React.FC<CreateTenantWizardProps> = ({ show, on
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] text-slate-400 font-bold uppercase">Prénom *</label>
-                  <input type="text" required value={adminFirstName} onChange={(e) => setAdminFirstName(e.target.value)} placeholder="Ex: Ahmed" className="p-2 border border-slate-205 dark:border-slate-800 rounded-lg outline-none bg-transparent dark:text-white" />
+                  <input type="text" required maxLength={100} value={adminFirstName} onChange={(e) => setAdminFirstName(e.target.value)} placeholder="Ex: Ahmed" className="p-2 border border-slate-205 dark:border-slate-800 rounded-lg outline-none bg-transparent dark:text-white" />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] text-slate-400 font-bold uppercase">Nom *</label>
-                  <input type="text" required value={adminLastName} onChange={(e) => setAdminLastName(e.target.value)} placeholder="Ex: Bensaid" className="p-2 border border-slate-205 dark:border-slate-800 rounded-lg outline-none bg-transparent dark:text-white" />
+                  <input type="text" required maxLength={100} value={adminLastName} onChange={(e) => setAdminLastName(e.target.value)} placeholder="Ex: Bensaid" className="p-2 border border-slate-205 dark:border-slate-800 rounded-lg outline-none bg-transparent dark:text-white" />
                 </div>
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] text-slate-400 font-bold uppercase">E-mail de Connexion Admin *</label>
-                <input type="email" required value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} placeholder="Ex: admin@sicam.com" className="p-2 border border-slate-205 dark:border-slate-800 rounded-lg outline-none bg-transparent dark:text-white" />
+                <input type="email" required maxLength={150} value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} placeholder="Ex: admin@sicam.com" className="p-2 border border-slate-205 dark:border-slate-800 rounded-lg outline-none bg-transparent dark:text-white" />
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] text-slate-400 font-bold uppercase">Mot de Passe par défaut *</label>

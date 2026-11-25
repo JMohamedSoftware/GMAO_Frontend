@@ -246,43 +246,51 @@ export const useGmao = () => {
       }
       return result;
     },
-    addPartMovement: async (ref: string, qty: number, type: 'in' | 'out', otId?: string) => {
-      const activeTenantLocal = state.tenants.find(t => t.id === state.currentTenantId);
+    addPartMovement: async (
+      ref: string,
+      qty: number,
+      type: 'in' | 'out' | 'inventaire',
+      otId?: string,
+      reason?: string,
+      typeCode?: 1 | 2 | 3 | 4 | 5
+    ) => {
+      const activeTenantLocal = state.tenants.find(t => t.id === (state.impersonatedTenantId || state.currentTenantId));
       const part = activeTenantLocal?.parts.find(p => p.ref === ref);
-      
+
       if (!part) return false;
-      if (type === 'out' && part.stockCurrent < qty) {
-        return false;
+      const resolvedCode: 1 | 2 | 3 | 4 | 5 = typeCode ?? (type === 'in' ? 1 : type === 'inventaire' ? 5 : 2);
+
+      if (resolvedCode === 5) {
+        if (qty < 0) return false;
+      } else {
+        if (qty <= 0) return false;
+        if ((resolvedCode === 2 || resolvedCode === 4) && part.stockCurrent < qty) {
+          return false;
+        }
       }
 
-      // Resolve user ID from Redux state OR from auth session (JWT)
       const userId = state.currentUser?.id || authUser?.id;
 
-      // First, update local state for the movement log
-      dispatch(actions.addPartMovement({ref, qty, type, otId}));
-      
-      // Send the movement to the backend — requires both part.id and a resolved userId
       if (part.id && userId) {
         const result = await dispatch(createMovementAsync({
           pieceId: part.id,
+          partRef: part.ref,
           qty,
           type,
+          typeCode: resolvedCode,
           otId,
+          reason,
           userId
         }));
         if (createMovementAsync.rejected.match(result)) {
           console.error('[addPartMovement] Backend call failed:', result.error);
-          // Return false so WorkOrderDetail can show an error message
           return false;
         }
-      } else {
-        console.warn('[addPartMovement] Skipping backend call — missing part.id or userId', { partId: part.id, userId });
+        return true;
       }
 
-      // Update backend stock
-      const newStock = type === 'in' ? part.stockCurrent + qty : part.stockCurrent - qty;
-      await dispatch(updatePartAsync({ ...part, stockCurrent: newStock }));
-      
+      console.warn('[addPartMovement] Local fallback — missing part.id or userId', { partId: part.id, userId });
+      dispatch(actions.addPartMovement({ ref, qty, type: type === 'inventaire' ? 'in' : type, otId }));
       return true;
     },
     updatePart: async (updated: SparePart) => {

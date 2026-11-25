@@ -117,6 +117,8 @@ export const SuperAdminBilling: React.FC<SuperAdminBillingProps> = ({ selectedTe
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [liveBilling, setLiveBilling] = useState<any>(null);
+  const [tenantInvoices, setTenantInvoices] = useState<any[]>([]);
+  const [loadingInvoices, setLoadingInvoices] = useState<boolean>(false);
 
   const fetchBilling = async (showNotification = false) => {
     setIsSyncing(true);
@@ -127,39 +129,41 @@ export const SuperAdminBilling: React.FC<SuperAdminBillingProps> = ({ selectedTe
         const mapped = data.subscriptions.map((s: any, idx: number) => ({
           id: `sub-${s.tenantId || idx + 1}`,
           backendTenantId: s.tenantId,
-          code: `ENT-${String(s.tenantId || idx + 1).padStart(3, '0')}`,
+          code: s.codeTenant || `ENT-${String(s.tenantId || idx + 1).padStart(3, '0')}`,
           company: s.tenantNom,
           logo: s.tenantNom.toLowerCase().includes('tomate') ? '🍅' : (s.tenantNom.toLowerCase().includes('sicam') ? '🥫' : '🏭'),
           category: s.category || 'Agroalimentaire',
-          manager: 'Direction Générale',
-          managerEmail: `contact@${s.tenantNom.toLowerCase().replace(/[^a-z]/g, '')}.tn`,
+          manager: s.managerNom || 'Non renseigné',
+          managerEmail: s.emailContact || 'Non renseigné',
           plan: s.plan || 'Business Pro',
           planColor: s.plan?.includes('Enterprise')
             ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-900'
             : (s.plan?.includes('Starter')
               ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-900'
               : 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-900'),
-          sites: 2,
-          maxSites: 5,
-          users: 12,
-          maxUsers: 50,
-          equipments: 120,
-          maxEquipments: 1000,
-          monthlyOt: 18,
-          amount: `${Number(s.amount).toLocaleString('fr-FR')} TND`,
-          priceValue: Number(s.amount),
-          startDate: s.startDate ? new Date(s.startDate).toLocaleDateString('fr-FR') : '01/01/2026',
-          endDate: s.renewalDate ? new Date(s.renewalDate).toLocaleDateString('fr-FR') : '01/01/2027',
-          daysLeft: 300,
+          sites: s.sitesCount ?? 0,
+          maxSites: s.maxSites ?? 0,
+          users: s.usersCount ?? 0,
+          maxUsers: s.maxUsers ?? 0,
+          equipments: s.equipementsCount ?? 0,
+          maxEquipments: s.maxEquipements ?? 0,
+          monthlyOt: s.monthlyOtCount ?? 0,
+          amount: `${Number(s.amount ?? 0).toLocaleString('fr-FR')} TND`,
+          priceValue: Number(s.amount ?? 0),
+          startDate: s.startDate ? new Date(s.startDate).toLocaleDateString('fr-FR') : 'Non renseignée',
+          endDate: s.renewalDate ? new Date(s.renewalDate).toLocaleDateString('fr-FR') : 'Non renseignée',
+          daysLeft: typeof s.daysLeft === 'number' ? s.daysLeft : null,
           status: s.status === 'Actif' ? 'Actif' : (s.status === 'En essai' ? 'En essai' : 'Suspendu'),
           statusColor: s.status === 'Actif' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400' : 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400',
           modules: ['Gestion des équipements', 'Maintenance complète', 'Stock & achats', 'Multi-sites']
         }));
         setSubscriptions(mapped);
         if (showNotification) showToast('Abonnements synchronisés avec le Backend .NET');
+      } else {
+        setSubscriptions([]);
       }
-    } catch (err) {
-      console.warn('[Billing] Utilisation des données locales:', err);
+    } catch {
+      setSubscriptions([]);
     } finally {
       setIsSyncing(false);
       setIsLoading(false);
@@ -169,6 +173,29 @@ export const SuperAdminBilling: React.FC<SuperAdminBillingProps> = ({ selectedTe
   useEffect(() => {
     fetchBilling();
   }, []);
+
+  useEffect(() => {
+    const tenantId = activeSub?.backendTenantId;
+    if (!tenantId) {
+      setTenantInvoices([]);
+      return;
+    }
+    let cancelled = false;
+    setLoadingInvoices(true);
+    superAdminApi.getInvoices(tenantId)
+      .then((list) => {
+        if (!cancelled) setTenantInvoices(list || []);
+      })
+      .catch(() => {
+        if (!cancelled) setTenantInvoices([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingInvoices(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSub?.backendTenantId]);
 
   const handleOpenEditPlan = () => {
     setEditPlanForm({ ...activeSub });
@@ -240,8 +267,8 @@ export const SuperAdminBilling: React.FC<SuperAdminBillingProps> = ({ selectedTe
               <span className="font-extrabold text-[11px] text-slate-850 dark:text-white leading-tight">
                 Aujourd'hui
               </span>
-              <span className="text-[9px] text-slate-400 font-medium">
-                29 Septembre 2026
+              <span className="text-[9px] text-slate-400 font-medium capitalize">
+                {new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
               </span>
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-1" />
@@ -784,7 +811,7 @@ export const SuperAdminBilling: React.FC<SuperAdminBillingProps> = ({ selectedTe
 
                 <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/50 flex flex-col items-center justify-center text-center">
                   <span className="text-xl font-black text-emerald-600 dark:text-emerald-400 leading-none">
-                    {activeSub.daysLeft}
+                    {activeSub.daysLeft != null ? activeSub.daysLeft : '—'}
                   </span>
                   <span className="text-[9px] text-emerald-700 dark:text-emerald-300 font-bold mt-0.5">
                     Jours restants
@@ -882,12 +909,12 @@ export const SuperAdminBilling: React.FC<SuperAdminBillingProps> = ({ selectedTe
                 <div>
                   <div className="flex justify-between text-[10px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
                     <span>Équipements</span>
-                    <span>{activeSub.equipments} / {activeSub.maxEquipments} ({Math.round((activeSub.equipments / activeSub.maxEquipments) * 100)}%)</span>
+                    <span>{activeSub.equipments} / {activeSub.maxEquipments} ({activeSub.maxEquipments > 0 ? Math.round((activeSub.equipments / activeSub.maxEquipments) * 100) : 0}%)</span>
                   </div>
                   <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
                     <div
                       className="h-full bg-purple-600 rounded-full"
-                      style={{ width: `${Math.round((activeSub.equipments / activeSub.maxEquipments) * 100)}%` }}
+                      style={{ width: `${activeSub.maxEquipments > 0 ? Math.min(100, Math.round((activeSub.equipments / activeSub.maxEquipments) * 100)) : 0}%` }}
                     />
                   </div>
                 </div>
@@ -899,20 +926,35 @@ export const SuperAdminBilling: React.FC<SuperAdminBillingProps> = ({ selectedTe
           {activeTab === 'Factures' && (
             <div className="flex flex-col gap-2.5 text-xs">
               <span className="text-slate-400 text-[11px] font-semibold">Historique de facturation</span>
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center border border-slate-100 dark:border-slate-800">
-                <div>
-                  <span className="font-bold text-slate-850 dark:text-white">Facture #FAC-2026-09</span>
-                  <p className="text-[10px] text-slate-400">29 Septembre 2026 • 199,00 TND</p>
+              {loadingInvoices ? (
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 text-center text-slate-400">
+                  Chargement des factures...
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-600">Payée</span>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center border border-slate-100 dark:border-slate-800">
-                <div>
-                  <span className="font-bold text-slate-850 dark:text-white">Facture #FAC-2026-08</span>
-                  <p className="text-[10px] text-slate-400">29 Août 2026 • 199,00 TND</p>
+              ) : tenantInvoices.length === 0 ? (
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 text-center text-slate-400 border border-dashed border-slate-200 dark:border-slate-700">
+                  Aucune facture enregistrée pour ce client.
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-600">Payée</span>
-              </div>
+              ) : (
+                tenantInvoices.map((inv: any) => (
+                  <div key={inv.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center border border-slate-100 dark:border-slate-800">
+                    <div>
+                      <span className="font-bold text-slate-850 dark:text-white">
+                        Facture #{inv.numeroFacture || inv.id}
+                      </span>
+                      <p className="text-[10px] text-slate-400">
+                        {inv.dateEmission ? new Date(inv.dateEmission).toLocaleDateString('fr-FR') : 'Date N/D'} • {Number(inv.montantTTC ?? inv.montantHT ?? 0).toLocaleString('fr-FR')} TND
+                      </p>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                      inv.statut === 'Payée'
+                        ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400'
+                        : 'bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400'
+                    }`}>
+                      {inv.statut || 'En attente'}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
           )}
 
@@ -920,8 +962,10 @@ export const SuperAdminBilling: React.FC<SuperAdminBillingProps> = ({ selectedTe
           {activeTab === 'Utilisation' && (
             <div className="flex flex-col gap-2 text-xs">
               <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
-                <span className="font-bold text-slate-800 dark:text-white">Activité mensuelle</span>
-                <p className="text-[10px] text-slate-400 mt-1">128 équipements actifs sous surveillance IoT et GMAO.</p>
+                <span className="font-bold text-slate-800 dark:text-white">Activité mensuelle réelle</span>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  {activeSub.equipments} équipement(s) suivi(s) • {activeSub.users} utilisateur(s) actif(s) • {activeSub.monthlyOt} ordre(s) de travail créés ce mois-ci.
+                </p>
               </div>
             </div>
           )}

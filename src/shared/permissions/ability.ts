@@ -1,6 +1,6 @@
 // src/shared/permissions/ability.ts
-import { AppRole, ROLES } from './roles';
-import { Permission, PERMISSIONS } from './permissions';
+import { type AppRole, ROLES } from './roles';
+import { type Permission, PERMISSIONS } from './permissions';
 
 export const ROLE_PERMISSIONS: Record<AppRole, Permission[]> = {
   [ROLES.SUPER_ADMIN]: Object.values(PERMISSIONS),

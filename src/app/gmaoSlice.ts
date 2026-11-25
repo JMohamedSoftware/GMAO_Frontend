@@ -334,8 +334,27 @@ export const updatePartAsync = createAsyncThunk(
 
 export const createMovementAsync = createAsyncThunk(
   'gmao/createMovement',
-  async (payload: { pieceId: string, qty: number, type: 'in' | 'out', otId?: string, reason?: string, userId: string }) => {
-    return await createMovementApi(payload);
+  async (payload: {
+    pieceId: string;
+    partRef?: string;
+    qty: number;
+    type: 'in' | 'out' | 'inventaire';
+    typeCode?: 1 | 2 | 3 | 4 | 5;
+    otId?: string;
+    reason?: string;
+    userId: string;
+  }) => {
+    const response = await createMovementApi(payload);
+    return {
+      response,
+      partRef: payload.partRef,
+      pieceId: payload.pieceId,
+      qty: payload.qty,
+      type: payload.type,
+      typeCode: payload.typeCode ?? (payload.type === 'in' ? 1 : payload.type === 'inventaire' ? 5 : 2),
+      otId: payload.otId,
+      reason: payload.reason
+    };
   }
 );
 
@@ -986,6 +1005,52 @@ export const gmaoSlice = createSlice({
             updates.subFamily = updates.category;
           }
           tenant.equipments[idx] = { ...tenant.equipments[idx], ...updates };
+        }
+      }
+    });
+
+    builder.addCase(createMovementAsync.fulfilled, (state, action) => {
+      const tenant = state.tenants.find(t => t.id === (state.impersonatedTenantId || state.currentTenantId));
+      if (!tenant) return;
+
+      const { response, partRef, pieceId, qty, type, typeCode, otId, reason } = action.payload;
+      const part = tenant.parts.find(p => (partRef && p.ref === partRef) || (p.id && String(p.id) === String(pieceId)));
+      if (part) {
+        if (response && typeof response.stockApres === 'number') {
+          part.stockCurrent = response.stockApres;
+        } else if (typeCode === 5 || type === 'inventaire') {
+          part.stockCurrent = qty;
+        } else if (typeCode === 1 || typeCode === 3 || type === 'in') {
+          part.stockCurrent += qty;
+        } else {
+          part.stockCurrent = Math.max(0, part.stockCurrent - qty);
+        }
+      }
+
+      if (!tenant.movementLogs) tenant.movementLogs = [];
+      const movId = response?.id ?? Date.now();
+      tenant.movementLogs.unshift({
+        id: `MVT-${new Date(response?.date || Date.now()).getFullYear()}-${String(movId).padStart(3, '0')}`,
+        partRef: part?.ref || partRef || String(pieceId),
+        qty,
+        type: (typeCode === 5 || type === 'inventaire') ? 'in' : (typeCode === 1 || typeCode === 3 ? 'in' : 'out'),
+        reason: response?.motif || reason || (otId ? `Consommation OT: ${otId}` : 'Mouvement stock'),
+        date: response?.date || new Date().toISOString(),
+        category: otId ? 'Maintenance' : (typeCode === 5 ? 'Inventaire' : 'Manuel'),
+        otId
+      });
+
+      if (otId && part) {
+        const ot = tenant.workOrders.find(o => o.id === otId);
+        if (ot) {
+          const current = ot.partsUsed || [];
+          if (typeCode === 2 || typeCode === 4 || type === 'out') {
+            const existing = current.find(p => p.partRef === part.ref);
+            if (existing) existing.quantity += qty;
+            else ot.partsUsed = [...current, { partRef: part.ref, quantity: qty }];
+          } else if (typeCode === 3 || type === 'in') {
+            ot.partsUsed = current.filter(p => p.partRef !== part.ref);
+          }
         }
       }
     });

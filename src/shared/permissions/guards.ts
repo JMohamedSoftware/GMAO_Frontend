@@ -1,6 +1,6 @@
 // src/shared/permissions/guards.ts
-import { AppRole, ROLES } from './roles';
-import { Permission } from './permissions';
+import { type AppRole, ROLES } from './roles';
+import { type Permission } from './permissions';
 import { ROLE_PERMISSIONS } from './ability';
 
 export const can = (role: string | undefined | null, permission: Permission): boolean => {

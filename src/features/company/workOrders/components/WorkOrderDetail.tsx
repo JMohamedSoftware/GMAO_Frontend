@@ -93,9 +93,27 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
     return [];
   }, [matchingPlan, activeOt]);
 
-  // État coché persistant par OT
+  // État coché persistant : priorité à l'observation serveur [CHECKLIST:...], repli brouillon local
+  const parseChecklistFromObservation = (obs?: string): number[] | null => {
+    if (!obs) return null;
+    const match = obs.match(/\[CHECKLIST:([0-9,]*)\]/);
+    if (!match) return null;
+    return match[1]
+      .split(',')
+      .map(s => parseInt(s.trim(), 10))
+      .filter(n => !Number.isNaN(n));
+  };
+
+  const buildChecklistObservation = (indices: number[], currentObs?: string): string => {
+    const cleaned = (currentObs || '').replace(/\[CHECKLIST:[0-9,]*\]\s*/g, '').trim();
+    const tag = `[CHECKLIST:${[...indices].sort((a, b) => a - b).join(',')}]`;
+    return cleaned ? `${tag} ${cleaned}` : tag;
+  };
+
   const storageKey = activeOt ? `gmao_ot_tasks_${activeOt.id}` : '';
+  const serverChecklistIndices = parseChecklistFromObservation(activeOt?.observation);
   const [checkedTaskIndices, setCheckedTaskIndices] = useState<number[]>(() => {
+    if (serverChecklistIndices !== null) return serverChecklistIndices;
     if (!activeOt) return [];
     try {
       const saved = localStorage.getItem(`gmao_ot_tasks_${activeOt.id}`);
@@ -110,14 +128,20 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
       setCheckedTaskIndices([]);
       return;
     }
+    const fromServer = parseChecklistFromObservation(activeOt.observation);
+    if (fromServer !== null) {
+      setCheckedTaskIndices(fromServer);
+      return;
+    }
     try {
       const saved = localStorage.getItem(storageKey);
       setCheckedTaskIndices(saved ? JSON.parse(saved) : []);
     } catch {
       setCheckedTaskIndices([]);
     }
-  }, [activeOt?.id, storageKey]);
+  }, [activeOt?.id, activeOt?.observation, storageKey]);
 
+  const isChecklistSyncedWithServer = serverChecklistIndices !== null;
   const isTasksLocked = activeOt?.status === 'Terminé' || activeOt?.status === 'Clôturé';
   const [showIncompleteTasksModal, setShowIncompleteTasksModal] = useState(false);
 
@@ -138,13 +162,17 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
       setShowIncompleteTasksModal(true);
       return;
     }
-    updateWorkOrderStatus(activeOt.id, 'Terminé');
+    updateWorkOrderStatus(activeOt.id, 'Terminé', otTasks.length > 0 ? {
+      observation: buildChecklistObservation(checkedTaskIndices, activeOt.observation)
+    } : undefined);
   };
 
   const handleConfirmFinishIncomplete = () => {
     if (!activeOt) return;
     setShowIncompleteTasksModal(false);
-    updateWorkOrderStatus(activeOt.id, 'Terminé');
+    updateWorkOrderStatus(activeOt.id, 'Terminé', otTasks.length > 0 ? {
+      observation: buildChecklistObservation(checkedTaskIndices, activeOt.observation)
+    } : undefined);
   };
 
   // ── Rapport d'intervention (edit mode) ──
@@ -249,6 +277,9 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
     if (diagnostic.trim()) updates.diagnostic = diagnostic.trim();
     if (solution.trim()) updates.solution = solution.trim();
     if (externalCost !== '') updates.externalCost = parseFloat(externalCost) || 0;
+    if (otTasks.length > 0) {
+      updates.observation = buildChecklistObservation(checkedTaskIndices, activeOt.observation);
+    }
     updateWorkOrderStatus(activeOt.id, activeOt.status, updates);
     setEditingReport(false);
     setSavingReport(false);
@@ -586,6 +617,16 @@ export const WorkOrderDetail: React.FC<WorkOrderDetailProps> = ({
                         Tâches à réaliser
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300">
                           {checkedTaskIndices.length} / {otTasks.length}
+                        </span>
+                        <span
+                          className={`text-[9px] font-semibold px-2 py-0.5 rounded-full border ${
+                            isChecklistSyncedWithServer
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800'
+                              : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800'
+                          }`}
+                          title={isChecklistSyncedWithServer ? 'Checklist enregistrée en base PostgreSQL' : 'Brouillon navigateur — enregistré en base lors de la sauvegarde du rapport ou clôture technique'}
+                        >
+                          {isChecklistSyncedWithServer ? 'Synchronisé serveur' : 'Brouillon local'}
                         </span>
                       </h3>
                       {matchingPlan && (

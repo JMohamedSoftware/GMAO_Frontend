@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Tag, X, Boxes, Package, ArrowDownLeft } from 'lucide-react';
 import { SparePart, Supplier } from '@/shared/types/gmao';
 
@@ -6,7 +6,7 @@ interface InventoryModalsProps {
   showMoveModal: boolean;
   setShowMoveModal: (show: boolean) => void;
   moveModalPart: SparePart | undefined;
-  moveType: 'in' | 'out';
+  moveType: 'in' | 'out' | 'inventaire';
   executeMovement: (e: React.FormEvent) => void;
   moveQty: number;
   setMoveQty: (q: number) => void;
@@ -70,7 +70,7 @@ export const InventoryModals: React.FC<InventoryModalsProps> = ({
             <div className="px-6 py-4 border-b border-slate-150 dark:border-slate-800/80 bg-white/20 dark:bg-slate-900/10 flex justify-between items-center">
               <h3 className="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-1.5">
                 <Tag className="w-4 h-4 text-primary" />
-                Mouvement : {moveType === 'in' ? 'Entrée' : 'Sortie'}
+                Mouvement : {moveType === 'in' ? 'Entrée / Retour' : moveType === 'inventaire' ? 'Inventaire physique' : 'Sortie / Casse'}
               </h3>
               <button onClick={() => setShowMoveModal(false)} className="p-1 rounded-full text-slate-400 cursor-pointer"><X className="w-5 h-5" /></button>
             </div>
@@ -91,8 +91,10 @@ export const InventoryModals: React.FC<InventoryModalsProps> = ({
                 </select>
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Quantité *</label>
-                <input type="number" min={1} required value={moveQty} onChange={e => setMoveQty(Number(e.target.value))} className={inputCls} />
+                <label className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">
+                  {moveType === 'inventaire' ? 'Stock physique compté *' : 'Quantité *'}
+                </label>
+                <input type="number" min={moveType === 'inventaire' ? 0 : 1} required value={moveQty} onChange={e => setMoveQty(Number(e.target.value))} className={inputCls} />
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Type de mouvement *</label>
@@ -102,6 +104,8 @@ export const InventoryModals: React.FC<InventoryModalsProps> = ({
                       <option value="Achat">⬇ Achat</option>
                       <option value="Retour">⬇ Retour</option>
                     </>
+                  ) : moveType === 'inventaire' ? (
+                    <option value="Inventaire">⚖ Régularisation Inventaire</option>
                   ) : (
                     <>
                       <option value="Maintenance Corrective">⬆ Maintenance Corrective</option>
@@ -112,12 +116,12 @@ export const InventoryModals: React.FC<InventoryModalsProps> = ({
                 </select>
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Justificatif / N° OT *</label>
-                <input type="text" required placeholder="Ex: OT-2026-001 ou Livraison" value={moveReason} onChange={e => setMoveReason(e.target.value)} className={inputCls} />
+                <label className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Justificatif / Référence *</label>
+                <input type="text" required placeholder={moveType === 'inventaire' ? 'Ex: Comptage physique magasin' : 'Ex: Bon BL-2026-001 ou motif'} value={moveReason} onChange={e => setMoveReason(e.target.value)} className={inputCls} />
               </div>
               <div className="flex justify-end gap-3 mt-2 pt-4 border-t border-slate-150 dark:border-slate-800/80">
                 <button type="button" onClick={() => setShowMoveModal(false)} className="px-4 py-2 border border-slate-200 text-slate-650 hover:bg-slate-100 rounded font-bold cursor-pointer">Annuler</button>
-                <button type="submit" className={`px-5 py-2 text-white rounded font-bold shadow-md cursor-pointer ${moveType === 'in' ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-rose-500 hover:bg-rose-600'}`}>Valider</button>
+                <button type="submit" className={`px-5 py-2 text-white rounded font-bold shadow-md cursor-pointer ${moveType === 'in' ? 'bg-emerald-500 hover:bg-emerald-600' : moveType === 'inventaire' ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-rose-500 hover:bg-rose-600'}`}>Valider</button>
               </div>
             </form>
           </div>

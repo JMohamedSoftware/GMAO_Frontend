@@ -51,10 +51,6 @@ export interface MonitoringTenant {
   allocatedCredits: number;
   consumedCredits: number;
   remainingCredits: number;
-  devicesUsed?: number;
-  devicesLimit?: number;
-  dbRecordsCount?: number;
-  apiCallsMonth?: number;
   status: 'Actif' | 'En limite' | 'Surconsommation';
   email: string;
   contact: string;
@@ -62,8 +58,8 @@ export interface MonitoringTenant {
   adresse?: string;
   subscriptionStartDate?: string;
   subscriptionEndDate?: string;
-  subscriptionAmount?: number;
-  capacityTonsPerDay?: number;
+  subscriptionAmount?: number | null;
+  capacityTonsPerDay?: number | null;
   sites: Array<{
     id: number;
     nom: string;
@@ -86,12 +82,6 @@ export interface MonitoringTenant {
     roleNom: string;
     isActive: boolean;
   }>;
-  trend: {
-    months: string[];
-    users: number[];
-    equipments: number[];
-    storage: number[];
-  };
 }
 
 interface SuperAdminMonitoringProps {
@@ -160,8 +150,6 @@ export const SuperAdminMonitoring: React.FC<SuperAdminMonitoringProps> = ({ sele
   const totalEquipmentsUsed = tenantsList.reduce((acc, t) => acc + (t.equipmentsUsed || 0), 0);
   const totalSitesUsed = tenantsList.reduce((acc, t) => acc + (t.sitesUsed || 0), 0);
   const totalStorageUsed = tenantsList.reduce((acc, t) => acc + (t.storageUsed || 0), 0).toFixed(1);
-  const totalDevicesUsed = tenantsList.reduce((acc, t) => acc + (t.devicesUsed || Math.min(30, Math.max(3, Math.round((t.equipmentsUsed || 10) * 0.12) + 2))), 0);
-  const totalDbRecords = tenantsList.reduce((acc, t) => acc + (t.dbRecordsCount || ((t.equipmentsUsed || 0) * 28 + (t.usersUsed || 0) * 95 + 1200)), 0);
 
   // Checkbox handlers
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -223,13 +211,13 @@ export const SuperAdminMonitoring: React.FC<SuperAdminMonitoringProps> = ({ sele
                 ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300'
                 : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300');
 
-            const sitesUsed = rt.sitesCount || (rt.sites ? rt.sites.length : 1);
+            const sitesUsed = rt.sitesCount ?? (rt.sites ? rt.sites.length : 0);
             const sitesLimit = rt.maxSites || 5;
-            const usersUsed = rt.usersCount || (rt.users ? rt.users.length : 1);
+            const usersUsed = rt.usersCount ?? (rt.users ? rt.users.length : 0);
             const usersLimit = rt.maxUsers || 20;
-            const equipmentsUsed = rt.equipementsCount || 5;
+            const equipmentsUsed = rt.equipementsCount ?? 0;
             const equipmentsLimit = rt.maxEquipements || 50;
-            const storageUsed = Number((rt.storageUsedGb || 1.2).toFixed(1));
+            const storageUsed = Number((rt.storageUsedGb ?? 0).toFixed(1));
             const storageLimit = Number((rt.maxStorageGb || 50).toFixed(0));
 
             // Calcul Crédits Cloud alloués & consommés
@@ -237,8 +225,8 @@ export const SuperAdminMonitoring: React.FC<SuperAdminMonitoringProps> = ({ sele
             const consumedCredits = usersUsed * 50 + equipmentsUsed * 12 + Math.round(storageUsed * 20) + sitesUsed * 200;
             const remainingCredits = Math.max(0, allocatedCredits - consumedCredits);
 
-            const isWarning = (storageUsed / storageLimit > 0.85) || (usersUsed / usersLimit > 0.9);
-            const isCritical = (storageUsed >= storageLimit) || (usersUsed >= usersLimit);
+            const isWarning = (storageLimit > 0 && storageUsed / storageLimit > 0.85) || (usersLimit > 0 && usersUsed / usersLimit > 0.9);
+            const isCritical = (storageLimit > 0 && storageUsed >= storageLimit) || (usersLimit > 0 && usersUsed >= usersLimit);
             const status = isCritical ? 'Surconsommation' : (isWarning ? 'En limite' : 'Actif');
 
             return {
@@ -261,27 +249,17 @@ export const SuperAdminMonitoring: React.FC<SuperAdminMonitoringProps> = ({ sele
               allocatedCredits,
               consumedCredits,
               remainingCredits,
-              devicesUsed: Math.max(3, Math.round(equipmentsUsed * 0.12) + (usersUsed > 5 ? 4 : 1)),
-              devicesLimit: Math.max(15, Math.round(equipmentsLimit * 0.15)),
-              dbRecordsCount: (equipmentsUsed * 28 + usersUsed * 95 + Math.round(storageUsed * 850) + 1240),
-              apiCallsMonth: Math.round(usersUsed * 3800 + equipmentsUsed * 450),
               status: status as any,
-              email: rt.emailContact || `contact@${rt.codeTenant || 'usine'}.tn`,
-              contact: rt.managerNom || 'Direction Technique',
-              telephone: rt.telephone || '+216 71 000 000',
-              adresse: rt.adresse ? `${rt.adresse}, ${rt.ville || ''}` : `${rt.ville || 'Tunisie'}`,
-              subscriptionStartDate: rt.subscriptionStartDate ? rt.subscriptionStartDate.slice(0, 10) : '2025-01-01',
-              subscriptionEndDate: rt.subscriptionEndDate ? rt.subscriptionEndDate.slice(0, 10) : '2026-12-31',
-              subscriptionAmount: rt.subscriptionAmount || 850,
-              capacityTonsPerDay: rt.capacityTonsPerDay || 450,
+              email: rt.emailContact || 'Non renseigné',
+              contact: rt.managerNom || 'Non renseigné',
+              telephone: rt.telephone || 'Non renseigné',
+              adresse: rt.adresse ? `${rt.adresse}${rt.ville ? `, ${rt.ville}` : ''}` : (rt.ville || 'Non renseignée'),
+              subscriptionStartDate: rt.subscriptionStartDate ? rt.subscriptionStartDate.slice(0, 10) : 'Non renseignée',
+              subscriptionEndDate: rt.subscriptionEndDate ? rt.subscriptionEndDate.slice(0, 10) : 'Non renseignée',
+              subscriptionAmount: typeof rt.subscriptionAmount === 'number' ? rt.subscriptionAmount : null,
+              capacityTonsPerDay: typeof rt.capacityTonsPerDay === 'number' ? rt.capacityTonsPerDay : null,
               sites: rt.sites || [],
-              users: rt.users || [],
-              trend: {
-                months: ['Mai', 'Juin', 'Juil', 'Août', 'Sept'],
-                users: [Math.max(1, Math.round(usersUsed * 0.5)), Math.max(1, Math.round(usersUsed * 0.8)), usersUsed, usersUsed, usersUsed],
-                equipments: [Math.max(2, Math.round(equipmentsUsed * 0.6)), Math.max(3, Math.round(equipmentsUsed * 0.85)), equipmentsUsed, equipmentsUsed, equipmentsUsed],
-                storage: [Math.max(0.5, Number((storageUsed * 0.4).toFixed(1))), Math.max(0.8, Number((storageUsed * 0.6).toFixed(1))), Math.max(1.0, Number((storageUsed * 0.8).toFixed(1))), storageUsed, storageUsed]
-              }
+              users: rt.users || []
             };
           });
           setTenantsList(mapped);
@@ -350,8 +328,8 @@ export const SuperAdminMonitoring: React.FC<SuperAdminMonitoringProps> = ({ sele
               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 Période
               </div>
-              <div className="text-xs font-extrabold text-slate-800 dark:text-slate-100">
-                Septembre 2026
+              <div className="text-xs font-extrabold text-slate-800 dark:text-slate-100 capitalize">
+                {new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
               </div>
             </div>
           </div>
@@ -1184,86 +1162,44 @@ export const SuperAdminMonitoring: React.FC<SuperAdminMonitoringProps> = ({ sele
                     </div>
                   </div>
 
-                  {/* Périphériques & IoT */}
+                  {/* Serveur API & Runtime */}
                   <div className="p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80">
-                    <div className="text-[10px] text-slate-400 font-medium">Périphériques & IoT</div>
+                    <div className="text-[10px] text-slate-400 font-medium">Serveur Backend (.NET)</div>
                     <div className="text-sm font-black text-slate-800 dark:text-white mt-0.5">
-                      {selectedTenant.devicesUsed} / {selectedTenant.devicesLimit} Appareils
+                      {liveServer?.processRamMb != null ? `${liveServer.processRamMb} MB RAM` : 'Non disponible'}
                     </div>
                     <div className="text-[10px] text-slate-400 mt-1">
-                      {Math.max(1, Math.round((selectedTenant.devicesUsed || 3) * 0.55))} Tablettes • {Math.max(1, Math.round((selectedTenant.devicesUsed || 3) * 0.3))} Douchettes
+                      CPU : {liveServer?.cpuPercent != null ? `${liveServer.cpuPercent}%` : 'N/D'} • Uptime : {liveServer?.uptime || 'N/D'}
                     </div>
                   </div>
 
-                  {/* Données & API */}
+                  {/* Base PostgreSQL Réelle */}
                   <div className="p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80">
-                    <div className="text-[10px] text-slate-400 font-medium">Lignes DB & Flux API</div>
+                    <div className="text-[10px] text-slate-400 font-medium">Base de données & Latence</div>
                     <div className="text-sm font-black text-slate-800 dark:text-white mt-0.5">
-                      {selectedTenant.dbRecordsCount?.toLocaleString('fr-FR')} Enreg.
+                      {liveServer?.apiLatencyMs != null ? `${liveServer.apiLatencyMs} ms` : 'Non disponible'}
                     </div>
                     <div className="text-[10px] text-indigo-500 font-semibold mt-1">
-                      ~{Math.round((selectedTenant.apiCallsMonth || 4000) / 1000)}k requêtes / mois
+                      Connexions : {liveServer?.activeDbConnections != null ? liveServer.activeDbConnections : 'Non disponible'}
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Tendance 6 derniers mois */}
+              {/* Tendance historique */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="text-xs font-extrabold text-slate-800 dark:text-white uppercase tracking-wider">
-                    Tendance (6 derniers mois)
+                    Tendance historique
                   </h4>
                 </div>
-                <div className="flex items-center gap-3 text-[10px] font-bold mb-3">
-                  <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                    <span>Utilisateurs</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-purple-600 dark:text-purple-400">
-                    <span className="w-2 h-2 rounded-full bg-purple-500" />
-                    <span>Équipements</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-                    <span className="w-2 h-2 rounded-full bg-amber-500" />
-                    <span>Stockage (GB)</span>
-                  </div>
-                </div>
-
-                <div className="h-28 w-full relative pt-2">
-                  <svg viewBox="0 0 250 90" className="w-full h-full overflow-visible">
-                    <line x1="0" y1="20" x2="250" y2="20" stroke="currentColor" className="text-slate-100 dark:text-slate-800" strokeDasharray="3 3" />
-                    <line x1="0" y1="45" x2="250" y2="45" stroke="currentColor" className="text-slate-100 dark:text-slate-800" strokeDasharray="3 3" />
-                    <line x1="0" y1="70" x2="250" y2="70" stroke="currentColor" className="text-slate-100 dark:text-slate-800" strokeDasharray="3 3" />
-
-                    {/* Équipements */}
-                    <polyline
-                      fill="none"
-                      stroke="#8B5CF6"
-                      strokeWidth="2"
-                      points="10,65 60,55 110,48 160,38 210,30 240,24"
-                    />
-                    {/* Utilisateurs */}
-                    <polyline
-                      fill="none"
-                      stroke="#10B981"
-                      strokeWidth="2"
-                      points="10,75 60,68 110,62 160,54 210,48 240,42"
-                    />
-                    {/* Stockage */}
-                    <polyline
-                      fill="none"
-                      stroke="#F59E0B"
-                      strokeWidth="2"
-                      points="10,82 60,80 110,78 160,75 210,72 240,70"
-                    />
-                    <text x="10" y="88" fill="#94A3B8" fontSize="8" textAnchor="middle">Avr</text>
-                    <text x="60" y="88" fill="#94A3B8" fontSize="8" textAnchor="middle">Mai</text>
-                    <text x="110" y="88" fill="#94A3B8" fontSize="8" textAnchor="middle">Juin</text>
-                    <text x="160" y="88" fill="#94A3B8" fontSize="8" textAnchor="middle">Juil</text>
-                    <text x="210" y="88" fill="#94A3B8" fontSize="8" textAnchor="middle">Août</text>
-                    <text x="240" y="88" fill="#94A3B8" fontSize="8" textAnchor="middle">Sep</text>
-                  </svg>
+                <div className="p-4 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-700 text-center">
+                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                    Historique multi-mois non disponible
+                  </p>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Les quotas ci-dessus affichent uniquement les compteurs réels extraits de PostgreSQL.
+                  </p>
                 </div>
               </div>
             </div>
@@ -1283,15 +1219,17 @@ export const SuperAdminMonitoring: React.FC<SuperAdminMonitoringProps> = ({ sele
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[10px]">Tarif Mensuel</span>
-                    <span className="font-bold">{selectedTenant.subscriptionAmount || 850} DT / mois</span>
+                    <span className="font-bold">
+                      {selectedTenant.subscriptionAmount != null ? `${selectedTenant.subscriptionAmount} DT / mois` : 'Non renseigné'}
+                    </span>
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[10px]">Date de Début</span>
-                    <span className="font-semibold">{selectedTenant.subscriptionStartDate || '2025-01-01'}</span>
+                    <span className="font-semibold">{selectedTenant.subscriptionStartDate || 'Non renseignée'}</span>
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[10px]">Prochaine Échéance</span>
-                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">{selectedTenant.subscriptionEndDate || '2026-12-31'}</span>
+                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">{selectedTenant.subscriptionEndDate || 'Non renseignée'}</span>
                   </div>
                 </div>
               </div>
@@ -1311,15 +1249,17 @@ export const SuperAdminMonitoring: React.FC<SuperAdminMonitoringProps> = ({ sele
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Téléphone:</span>
-                    <span className="font-medium">{selectedTenant.telephone || '+216 71 000 000'}</span>
+                    <span className="font-medium">{selectedTenant.telephone || 'Non renseigné'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Localisation:</span>
-                    <span className="font-medium">{selectedTenant.adresse || 'Tunisie'}</span>
+                    <span className="font-medium">{selectedTenant.adresse || 'Non renseignée'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Capacité Nominale:</span>
-                    <span className="font-bold text-slate-800 dark:text-white">{selectedTenant.capacityTonsPerDay || 450} T / jour</span>
+                    <span className="font-bold text-slate-800 dark:text-white">
+                      {selectedTenant.capacityTonsPerDay != null ? `${selectedTenant.capacityTonsPerDay} T / jour` : 'Non renseignée'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1327,8 +1267,8 @@ export const SuperAdminMonitoring: React.FC<SuperAdminMonitoringProps> = ({ sele
               <div className="p-3.5 rounded-2xl bg-blue-50/50 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-900/40 text-[11px] text-blue-800 dark:text-blue-300 flex items-start gap-2.5">
                 <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-bold block">Garantie SLA & Souveraineté Cloud</span>
-                  Disponibilité 99.98% garantie avec isolation RLS et chiffrement PostgreSQL au repos.
+                  <span className="font-bold block">Télémétrie Instance</span>
+                  Moteur : {liveServer?.database || 'Non disponible'} • Hôte : {liveServer?.hostname || 'Non disponible'} • Uptime : {liveServer?.uptime || 'Non disponible'}.
                 </div>
               </div>
             </div>

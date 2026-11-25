@@ -34,18 +34,10 @@ import {
 } from 'lucide-react';
 import {
   ResponsiveContainer,
-  BarChart,
-  Bar,
-  Line,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
   Tooltip,
   PieChart as RechartsPie,
   Pie,
-  Cell,
-  ComposedChart
+  Cell
 } from 'recharts';
 import tomateImg from '@/shared/assets/images/tomate.jpg';
 
@@ -130,13 +122,12 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
   const currentActiveTenants = liveStats?.kpis?.activeTenants ?? (activeCount || (tenants?.filter(t => t.status === 'Active').length) || 0);
   const currentMrr = liveStats?.kpis?.mrr ?? (mrr || 0);
 
-  const monthsList = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept'];
-  const growthData = monthsList.map((m, idx) => {
-    const factor = (idx + 1) / monthsList.length;
-    const active = Math.max(1, Math.round(currentActiveTenants * (0.35 + 0.65 * factor)));
-    const newCount = idx === 0 ? active : Math.max(0, Math.round(active * 0.2));
-    return { month: m, new: newCount, active };
-  });
+  // 1. Snapshot réel sans série mensuelle fabriquée
+  const snapshotGrowthStats = {
+    total: liveStats?.kpis?.totalTenants ?? (registeredCount || 0),
+    active: currentActiveTenants,
+    trials: liveStats?.kpis?.trialTenantsCount ?? (pendingCount || 0)
+  };
 
   // 2. Répartition des abonnements (100% Dynamique)
   const subscriptionBreakdown = useMemo(() => {
@@ -170,11 +161,8 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
   const totalTenantsForDonut = subscriptionBreakdown.reduce((s: number, p: any) => s + p.value, 0);
 
   // 3. Revenus (TND) (100% Dynamique)
-  const revenueChartData = monthsList.map((m, idx) => {
-    const factor = (idx + 1) / monthsList.length;
-    const rev = Math.round(currentMrr * (0.3 + 0.7 * factor));
-    return { month: m, revenue: rev };
-  });
+  // Revenus réels instantanés sans série mensuelle simulée
+  const currentArr = liveStats?.kpis?.arr ?? currentMrr * 12;
 
   // No static fallback — only show real companies from the backend
   const LOGOS = ['🏭', '🍅', '🌾', '🍲', '🥫', '🌱', '🌿', '🏗️'];
@@ -311,8 +299,8 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                 <span className="font-extrabold text-[11px] text-slate-850 dark:text-white leading-tight">
                   {selectedDate}
                 </span>
-                <span className="text-[9px] text-slate-400 font-medium">
-                  29 Septembre 2026
+                <span className="text-[9px] text-slate-400 font-medium capitalize">
+                  {new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
                 </span>
               </div>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-1" />
@@ -381,10 +369,9 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-[11px]">
-            <span className="inline-flex items-center gap-0.5 font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-1.5 py-0.5 rounded-md">
-              <TrendingUp className="w-3 h-3" /> +12%
+            <span className="text-slate-500 dark:text-slate-400 font-medium">
+              {liveStats?.kpis?.activeTenants ?? (activeCount || 0)} actives sur la plateforme
             </span>
-            <span className="text-slate-400 font-medium">vs mois dernier</span>
           </div>
         </div>
 
@@ -415,10 +402,9 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-[11px]">
-            <span className="inline-flex items-center gap-0.5 font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-1.5 py-0.5 rounded-md">
-              <TrendingUp className="w-3 h-3" /> +8%
+            <span className="text-slate-500 dark:text-slate-400 font-medium">
+              {liveStats?.kpis?.activeSites ?? 0} / {liveStats?.kpis?.totalSites ?? 0} sites actifs
             </span>
-            <span className="text-slate-400 font-medium">vs mois dernier</span>
           </div>
         </div>
 
@@ -449,10 +435,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-[11px]">
-            <span className="inline-flex items-center gap-0.5 font-bold text-rose-600 dark:text-rose-400">
-              <TrendingDown className="w-3 h-3" /> -25%
-            </span>
-            <span className="text-slate-400 font-medium">vs mois dernier</span>
+            <span className="text-slate-400 font-medium">Comptes en phase d'essai</span>
           </div>
         </div>
 
@@ -483,10 +466,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-[11px]">
-            <span className="inline-flex items-center gap-0.5 font-bold text-rose-600 dark:text-rose-400">
-              ● +1
-            </span>
-            <span className="text-slate-400 font-medium">dans 30 jours</span>
+            <span className="text-slate-400 font-medium">Échéance dans les 30 jours</span>
           </div>
         </div>
       </div>
@@ -530,38 +510,30 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               </div>
             </div>
 
-            {/* Legend */}
-            <div className="flex items-center gap-4 mt-2.5 text-[10px] text-slate-500 font-medium">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
-                <span>Nouvelles entreprises</span>
+            {/* Snapshot réel (historique mensuel non collecté en base) */}
+            <div className="grid grid-cols-3 gap-2.5 mt-4">
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-850/60 border border-slate-100 dark:border-slate-800">
+                <span className="text-[10px] font-semibold text-slate-400 block">Total inscrites</span>
+                <span className="text-xl font-black text-slate-900 dark:text-white mt-0.5 block">{snapshotGrowthStats.total}</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                <span>Entreprises actives</span>
+              <div className="p-3 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40">
+                <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 block">Actives</span>
+                <span className="text-xl font-black text-emerald-700 dark:text-emerald-300 mt-0.5 block">{snapshotGrowthStats.active}</span>
+              </div>
+              <div className="p-3 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/40">
+                <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-400 block">En essai</span>
+                <span className="text-xl font-black text-amber-700 dark:text-amber-300 mt-0.5 block">{snapshotGrowthStats.trials}</span>
               </div>
             </div>
           </div>
 
-          <div className="w-full h-48 mt-3">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={growthData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" className="dark:stroke-slate-800" />
-                <XAxis dataKey="month" stroke="#94A3B8" fontSize={9} tickLine={false} />
-                <YAxis stroke="#94A3B8" fontSize={9} tickLine={false} domain={[0, 40]} ticks={[0, 10, 20, 30, 40]} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1E293B',
-                    borderRadius: '8px',
-                    border: 'none',
-                    fontSize: '11px',
-                    color: '#fff'
-                  }}
-                />
-                <Bar dataKey="new" name="Nouvelles" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={14} />
-                <Area type="monotone" dataKey="active" name="Actives" stroke="#10B981" strokeWidth={2.5} fill="#10B981" fillOpacity={0.15} dot={{ r: 3, fill: '#10B981', strokeWidth: 1.5, stroke: '#fff' }} />
-              </ComposedChart>
-            </ResponsiveContainer>
+          <div className="w-full mt-3 p-3.5 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-700 text-center">
+            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+              Historique mensuel d'évolution non disponible
+            </p>
+            <p className="text-[10px] text-slate-400 mt-0.5">
+              Les séries historiques temporelles ne sont pas encore collectées en base de données.
+            </p>
           </div>
         </div>
 
@@ -656,44 +628,35 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               </div>
             </div>
 
-            {/* Total Revenue & Trend */}
+            {/* Total Revenue réel */}
             <div className="flex items-baseline gap-2 mt-2">
               <span className="text-xl font-black text-slate-900 dark:text-white tracking-tight font-mono">
                 {(liveStats?.kpis?.mrr ?? mrr).toLocaleString('fr-FR')} TND
               </span>
-              <span className="inline-flex items-center text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-1.5 py-0.5 rounded">
-                +18%
-              </span>
-              <span className="text-[9px] text-slate-400">vs année dernière</span>
+              <span className="text-[10px] font-semibold text-slate-400">MRR actif</span>
             </div>
           </div>
 
-          <div className="w-full h-36 mt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={revenueChartData} margin={{ top: 10, right: 5, left: -30, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" className="dark:stroke-slate-800" />
-                <XAxis dataKey="month" stroke="#94A3B8" fontSize={8} tickLine={false} />
-                <YAxis
-                  stroke="#94A3B8"
-                  fontSize={8}
-                  tickLine={false}
-                  domain={[0, 150000]}
-                  ticks={[0, 50000, 100000, 150000]}
-                  tickFormatter={(val) => (val === 0 ? '0' : `${val / 1000}K`)}
-                />
-                <Tooltip
-                  formatter={(val: any) => [`${Number(val).toLocaleString()} TND`, 'Revenu']}
-                  contentStyle={{
-                    backgroundColor: '#1E293B',
-                    borderRadius: '8px',
-                    border: 'none',
-                    fontSize: '11px',
-                    color: '#fff'
-                  }}
-                />
-                <Bar dataKey="revenue" fill="#93C5FD" radius={[3, 3, 0, 0]} barSize={10} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="flex flex-col gap-2 mt-3 text-[11px]">
+            <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-850/60 border border-slate-100 dark:border-slate-800">
+              <span className="text-slate-500 dark:text-slate-400">ARR annualisé</span>
+              <span className="font-bold font-mono text-slate-850 dark:text-white">{currentArr.toLocaleString('fr-FR')} TND</span>
+            </div>
+            <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-850/60 border border-slate-100 dark:border-slate-800">
+              <span className="text-slate-500 dark:text-slate-400">Factures payées</span>
+              <span className="font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                {(liveStats?.kpis?.totalRevenue ?? 0).toLocaleString('fr-FR')} TND
+              </span>
+            </div>
+            <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-850/60 border border-slate-100 dark:border-slate-800">
+              <span className="text-slate-500 dark:text-slate-400">Factures en attente</span>
+              <span className="font-bold font-mono text-amber-600 dark:text-amber-400">
+                {liveStats?.kpis?.pendingInvoicesCount ?? 0}
+              </span>
+            </div>
+            <p className="text-[10px] text-slate-400 text-center pt-1">
+              Ventilation mensuelle non disponible (données temps réel)
+            </p>
           </div>
         </div>
       </div>
@@ -884,43 +847,41 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               <div>
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                    {liveStats?.kpis?.totalUsers ?? 286}
+                    {liveStats?.kpis?.totalUsers ?? 0}
                   </span>
                   <span className="text-xs font-bold text-slate-500">utilisateurs</span>
                 </div>
-                <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-1.5 py-0.5 rounded-md w-fit mt-0.5">
-                  <TrendingUp className="w-3 h-3" /> +14% <span className="font-normal text-slate-400">vs mois dernier</span>
+                <div className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
+                  {liveStats?.kpis?.activeUsers ?? 0} compte(s) actif(s) sur la plateforme
                 </div>
               </div>
             </div>
 
-            {/* Segmented Progress Bar */}
-            <div className="w-full h-3 rounded-full overflow-hidden flex bg-slate-100 dark:bg-slate-800 mt-4.5 gap-0.5">
-              <div style={{ width: '52%' }} className="bg-blue-500 h-full rounded-l-full" title="Techniciens 52%" />
-              <div style={{ width: '28%' }} className="bg-emerald-500 h-full" title="Responsables 28%" />
-              <div style={{ width: '15%' }} className="bg-amber-500 h-full" title="Administrateurs 15%" />
-              <div style={{ width: '5%' }} className="bg-purple-500 h-full rounded-r-full" title="Autres 5%" />
-            </div>
+            {(() => {
+              const totalU = liveStats?.kpis?.totalUsers ?? 0;
+              const activeU = liveStats?.kpis?.activeUsers ?? 0;
+              const activePct = totalU > 0 ? Math.round((activeU / totalU) * 100) : 0;
+              const inactivePct = Math.max(0, 100 - activePct);
+              return (
+                <>
+                  <div className="w-full h-3 rounded-full overflow-hidden flex bg-slate-100 dark:bg-slate-800 mt-4.5 gap-0.5">
+                    <div style={{ width: `${activePct}%` }} className="bg-emerald-500 h-full rounded-l-full" title={`Actifs ${activePct}%`} />
+                    <div style={{ width: `${inactivePct}%` }} className="bg-slate-300 dark:bg-slate-600 h-full rounded-r-full" title={`Inactifs ${inactivePct}%`} />
+                  </div>
 
-            {/* Legend below progress */}
-            <div className="grid grid-cols-2 gap-y-2 gap-x-3 mt-3 text-[10px] font-medium text-slate-600 dark:text-slate-300">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-blue-500" />
-                <span>Techniciens 52%</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span>Responsables 28%</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-amber-500" />
-                <span>Administrateurs 15%</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-purple-500" />
-                <span>Autres 5%</span>
-              </div>
-            </div>
+                  <div className="flex items-center justify-between mt-3 text-[10px] font-medium text-slate-600 dark:text-slate-300">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <span>Actifs : {activeU} ({activePct}%)</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-slate-400" />
+                      <span>Inactifs : {Math.max(0, totalU - activeU)} ({inactivePct}%)</span>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
 
@@ -977,48 +938,70 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                 </h3>
               </div>
               <span className="text-[9px] text-slate-400">
-                Dernière mise à jour : 29/09/2026 11:50
+                Sync : {new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
 
-            {/* Banner: Tous les services opérationnels */}
-            <div className="w-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-900/40 rounded-xl py-2 px-3 flex items-center gap-2 text-emerald-700 dark:text-emerald-400 text-xs font-bold mt-3">
-              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
-              <span>Tous les services opérationnels</span>
+            {/* Banner état réel DB/API */}
+            <div className={`w-full rounded-xl py-2 px-3 flex items-center gap-2 text-xs font-bold mt-3 border ${
+              liveStats?.kpis?.dbConnected === false
+                ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-200/60 dark:border-rose-900/40 text-rose-700 dark:text-rose-400'
+                : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200/60 dark:border-emerald-900/40 text-emerald-700 dark:text-emerald-400'
+            }`}>
+              {liveStats?.kpis?.dbConnected === false ? (
+                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+              )}
+              <span>
+                {!liveStats
+                  ? 'Chargement de l’état backend...'
+                  : liveStats.kpis.dbConnected === false
+                    ? 'Base PostgreSQL inaccessible'
+                    : 'API & PostgreSQL connectés'}
+              </span>
             </div>
 
-            {/* Grid 4 services */}
+            {/* Grid 4 métriques réelles ou Non disponible */}
             <div className="grid grid-cols-2 gap-2.5 mt-3.5">
               <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-850/50 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className={`w-2 h-2 rounded-full ${liveStats ? 'bg-emerald-500' : 'bg-slate-400'}`} />
                   <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">API</span>
                 </div>
-                <span className="text-[11px] font-extrabold text-slate-850 dark:text-white font-mono">99.9%</span>
+                <span className="text-[11px] font-extrabold text-slate-850 dark:text-white font-mono">
+                  {liveStats ? 'Actif' : 'N/D'}
+                </span>
               </div>
 
               <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-850/50 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Base de données</span>
+                  <span className={`w-2 h-2 rounded-full ${liveStats?.kpis?.dbConnected ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                  <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">PostgreSQL</span>
                 </div>
-                <span className="text-[11px] font-extrabold text-slate-850 dark:text-white font-mono">99.9%</span>
+                <span className="text-[11px] font-extrabold text-slate-850 dark:text-white font-mono">
+                  {liveStats?.kpis?.avgResponseTimeMs != null ? `${liveStats.kpis.avgResponseTimeMs} ms` : 'N/D'}
+                </span>
               </div>
 
               <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-850/50 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Stockage</span>
+                  <span className="w-2 h-2 rounded-full bg-slate-400" />
+                  <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">SLA mesuré</span>
                 </div>
-                <span className="text-[11px] font-extrabold text-slate-850 dark:text-white font-mono">99.8%</span>
+                <span className="text-[10px] font-bold text-slate-400 font-mono">
+                  {liveStats?.kpis?.systemHealth != null ? `${liveStats.kpis.systemHealth}%` : 'Non mesuré'}
+                </span>
               </div>
 
               <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-850/50 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Tâches planifiées</span>
+                  <span className="w-2 h-2 rounded-full bg-blue-500" />
+                  <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Fact. attente</span>
                 </div>
-                <span className="text-[11px] font-extrabold text-slate-850 dark:text-white font-mono">99.9%</span>
+                <span className="text-[11px] font-extrabold text-slate-850 dark:text-white font-mono">
+                  {liveStats?.kpis?.pendingInvoicesCount ?? 0}
+                </span>
               </div>
             </div>
           </div>

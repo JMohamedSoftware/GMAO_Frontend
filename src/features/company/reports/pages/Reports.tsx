@@ -23,6 +23,7 @@ import {
   ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar
 } from 'recharts';
+import { calculateUnifiedMaintenanceKpis, getWorkOrderCost, getWorkOrderDurationHours } from '@/shared/services/kpiCalculator';
 
 export const Reports: React.FC = () => {
   const { 
@@ -55,7 +56,7 @@ export const Reports: React.FC = () => {
         // Feuille 1: KPIs
         const kpiData = [
           { Metrique: 'MTBF (Heures)', Valeur: mtbfH !== null ? mtbfH.toFixed(2) : 'N/A' },
-          { Metrique: 'MTTR (Minutes)', Valeur: avgMTTR.toFixed(2) },
+          { Metrique: 'MTTR (Minutes)', Valeur: avgMTTR !== null ? avgMTTR.toFixed(2) : 'N/A' },
           { Metrique: 'Disponibilité (%)', Valeur: disponibilite !== null ? disponibilite.toFixed(2) : 'N/A' },
           { Metrique: 'Coût Total (TND)', Valeur: totalCost.toFixed(3) },
           { Metrique: 'Total OTs Terminés', Valeur: completedOTs.length },
@@ -201,51 +202,35 @@ export const Reports: React.FC = () => {
     topPannesData.push({ type: 'Aucune', count: 0 });
   }
 
-  // Compute real KPIs from workOrders data
+  // Compute unified AFNOR KPIs (exactement alignés avec Dashboard / DashboardKpis)
   const completedOTs = filteredWorkOrders.filter(ot => ot.status === 'Terminé' || ot.status === 'Clôturé');
   const delayedOTs = filteredWorkOrders.filter(ot => ot.status === 'En attente' || ot.status === 'Affecté');
   const cancelledOTs = filteredWorkOrders.filter(ot => (ot.status as string) === 'Annulé');
   const prevOTs = filteredWorkOrders.filter(ot => ot.type === 'Préventif');
   const corrOTs = filteredWorkOrders.filter(ot => ot.type === 'Correctif');
 
-  const avgMTTR = completedOTs.length > 0
-    ? completedOTs.reduce((acc, ot) => acc + (ot.durationMinutes || 0), 0) / completedOTs.length
-    : 0;
+  const unifiedKpis = calculateUnifiedMaintenanceKpis({
+    equipments,
+    workOrders: filteredWorkOrders,
+    incidents: filteredIncidents,
+    parts,
+    technicians
+  });
 
-  const totalFailures = corrOTs.length;
-  const totalDowntimeH = completedOTs.reduce((acc, ot) => acc + ((ot.durationMinutes || 0) / 60), 0);
-  const operatingHoursPerDay = 16;
-  const campaignDays = 90; // 3 mois de campagne saisonnière
-  const totalOperatingH = campaignDays * operatingHoursPerDay;
-
-  // Has real industrial activity
   const hasIndustrialData = equipments.length > 0 && (filteredWorkOrders.length > 0 || filteredIncidents.length > 0);
-
-  // MTBF: if no industrial data, null (show "—")
-  const mtbfH = !hasIndustrialData 
-    ? null 
-    : totalFailures > 0 
-      ? Math.max(0, (totalOperatingH - totalDowntimeH) / totalFailures) 
-      : totalOperatingH;
-
-  // Disponibilité: if no industrial data, null (show "—")
-  const disponibilite = !hasIndustrialData 
-    ? null 
-    : totalOperatingH > 0 
-      ? Math.min(100, Math.max(0, ((totalOperatingH - totalDowntimeH) / totalOperatingH) * 100)) 
-      : 100;
-
-  const totalCost = completedOTs.reduce((acc, ot) => acc + (((ot.durationMinutes || 0) * 0.5) + (ot.externalCost || 0)), 0);
-
-  // Real critical stock from actual parts (no mock 15)
-  const stockCritique = (parts || []).filter(p => (p.stockCurrent ?? 0) <= (p.stockMin ?? 0)).length;
+  const avgMTTR = unifiedKpis.mttrMinutes;
+  const mtbfH = unifiedKpis.mtbfHours;
+  const disponibilite = unifiedKpis.disponibilitePercent;
+  const totalCost = unifiedKpis.totalMaintenanceCost;
+  const stockCritique = unifiedKpis.criticalPartsBelowMin;
 
   // Real dynamic monthly chart data
   const mainGraphData = React.useMemo(() => {
     const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
     const now = new Date();
+    const totalOperatingPerMonth = unifiedKpis.totalOperatingHours > 0 ? unifiedKpis.totalOperatingHours / 6 : 0;
     const buckets: { period: string; arret: number; nbOt: number; cout: number; dispo: number; rawMonth: number; rawYear: number }[] = [];
-    
+
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       buckets.push({
@@ -255,7 +240,7 @@ export const Reports: React.FC = () => {
         arret: 0,
         nbOt: 0,
         cout: 0,
-        dispo: hasIndustrialData ? 100 : 0
+        dispo: totalOperatingPerMonth > 0 ? 100 : (disponibilite ?? 0)
       });
     }
 
@@ -268,40 +253,78 @@ export const Reports: React.FC = () => {
       const bucket = buckets.find(b => b.rawMonth === d.getMonth() && b.rawYear === d.getFullYear());
       if (bucket) {
         bucket.nbOt += 1;
-        const durH = (ot.durationMinutes || 0) / 60;
+        const durH = getWorkOrderDurationHours(ot) ?? 0;
         bucket.arret = Math.round((bucket.arret + durH) * 10) / 10;
-        bucket.cout += Math.round(((ot.durationMinutes || 0) * 0.5) + (ot.externalCost || 0));
+        if (ot.status === 'Terminé' || ot.status === 'Clôturé') {
+          bucket.cout += Math.round(getWorkOrderCost(ot, parts, technicians).total);
+        }
       }
     });
 
-    const monthlyMaxH = 480;
-    buckets.forEach(b => {
-      if (b.arret > 0) {
-        b.dispo = Math.min(100, Math.max(0, Math.round(((monthlyMaxH - b.arret) / monthlyMaxH) * 1000) / 10));
-      }
-    });
+    if (totalOperatingPerMonth > 0) {
+      buckets.forEach(b => {
+        if (b.arret > 0) {
+          b.dispo = Math.min(100, Math.max(0, Math.round(((totalOperatingPerMonth - b.arret) / totalOperatingPerMonth) * 1000) / 10));
+        }
+      });
+    }
 
     return buckets;
-  }, [filteredWorkOrders, hasIndustrialData]);
+  }, [filteredWorkOrders, hasIndustrialData, parts, technicians, unifiedKpis.totalOperatingHours, disponibilite]);
 
-  // Real dynamic campaign failure comparisons (no hardcoded fake equipment)
+  // Comparatif réel par équipement (sans multiplicateur arbitraire 250 ni valeurs 2025 fictives)
   const campaignCompareData = React.useMemo(() => {
     if (!hasIndustrialData) return [];
+
+    const orderedCampaigns = [...(campaigns || [])].sort((a, b) =>
+      String(b.startDate || '').localeCompare(String(a.startDate || ''))
+    );
+    const prevCampaign = orderedCampaigns.length > 1 ? orderedCampaigns[1] : null;
+    const prevOrders = prevCampaign
+      ? workOrders.filter(w => String(w.campagneId || '') === String(prevCampaign.id) || w.campaign === prevCampaign.name)
+      : [];
+    const prevIncidents = prevCampaign
+      ? incidents.filter(inc => {
+          const day = (inc.reportedDate || '').split('T')[0];
+          const sDay = (prevCampaign.startDate || '').split('T')[0];
+          const eDay = (prevCampaign.endDate || '').split('T')[0];
+          return Boolean(day && sDay && day >= sDay && (!eDay || day <= eDay));
+        })
+      : [];
+
     return topEquipmentsData
       .filter(item => item.pannes > 0 && item.name !== 'Aucune panne')
       .slice(0, 5)
       .map(item => {
         const eq = equipments.find(e => e.name === item.name);
+        const eqOrders = eq
+          ? completedOTs.filter(o => o.equipmentId === eq.id)
+          : [];
+        const realCostCurrent = Math.round(
+          eqOrders.reduce((s, o) => s + getWorkOrderCost(o, parts, technicians).total, 0)
+        );
+        const pannesPrev = prevCampaign && eq
+          ? prevIncidents.filter(i => i.equipmentId === eq.id).length
+          : 0;
+        const costPrev = prevCampaign && eq
+          ? Math.round(
+              prevOrders
+                .filter(o => o.equipmentId === eq.id && (o.status === 'Terminé' || o.status === 'Clôturé'))
+                .reduce((s, o) => s + getWorkOrderCost(o, parts, technicians).total, 0)
+            )
+          : 0;
+
         return {
           id: eq?.code || eq?.id || 'EQ',
           name: item.name,
-          pannes25: 0,
+          hasPrevCampaign: !!prevCampaign,
+          pannes25: pannesPrev,
           pannes26: item.pannes,
-          cost25: 0,
-          cost26: Math.round(item.pannes * 250)
+          cost25: costPrev,
+          cost26: realCostCurrent
         };
       });
-  }, [topEquipmentsData, equipments, hasIndustrialData]);
+  }, [topEquipmentsData, equipments, hasIndustrialData, completedOTs, parts, technicians, campaigns, workOrders, incidents]);
 
   // Filter state
   const [filters, setFilters] = useState({
@@ -394,7 +417,7 @@ export const Reports: React.FC = () => {
             <Clock className="w-4 h-4 text-amber-500" />
           </div>
           <span className="text-xl font-black text-amber-600 dark:text-amber-300">
-            {hasIndustrialData && completedOTs.length > 0 ? `${avgMTTR.toFixed(0)}min` : '—'}
+            {avgMTTR !== null ? `${avgMTTR.toFixed(0)}min` : '—'}
           </span>
           <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity bottom-[-30px] left-0 bg-slate-800 text-white text-[10px] p-2 rounded z-10 whitespace-nowrap pointer-events-none shadow-lg">
             Mean Time To Repair
@@ -422,7 +445,7 @@ export const Reports: React.FC = () => {
             <FileText className="w-4 h-4 text-slate-400" />
           </div>
           <span className="text-xl font-black text-slate-700 dark:text-slate-200">
-            {workOrders.length}
+            {filteredWorkOrders.length}
           </span>
           <p className="text-[10px] text-slate-400 mt-auto">Total des ordres</p>
         </div>
@@ -459,8 +482,8 @@ export const Reports: React.FC = () => {
         <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Réalisés: {completedOTs.length}</div>
         <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span> En retard: {delayedOTs.length}</div>
         <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Annulés: {cancelledOTs.length}</div>
-        <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-primary"></span> Préventifs: {prevOTs.length} ({Math.round((prevOTs.length / workOrders.length) * 100 || 0)}%)</div>
-        <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-indigo-500"></span> Correctifs: {corrOTs.length} ({Math.round((corrOTs.length / workOrders.length) * 100 || 0)}%)</div>
+        <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-primary"></span> Préventifs: {prevOTs.length} ({Math.round((prevOTs.length / filteredWorkOrders.length) * 100 || 0)}%)</div>
+        <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-indigo-500"></span> Correctifs: {corrOTs.length} ({Math.round((corrOTs.length / filteredWorkOrders.length) * 100 || 0)}%)</div>
       </div>
 
       {/* === Filters === */}
@@ -651,7 +674,6 @@ export const Reports: React.FC = () => {
           <div className="flex flex-col gap-3">
             {campaignCompareData.map(row => {
               const isReduced = row.pannes26 < row.pannes25;
-              const costSavings = Math.round(row.cost25 - row.cost26);
 
               return (
                 <div 
@@ -668,7 +690,7 @@ export const Reports: React.FC = () => {
                     <div className="text-center">
                       <span className="text-[9px] text-slate-400 block uppercase">Pannes</span>
                       <span className="text-slate-700 dark:text-slate-350">
-                        {row.pannes25 > 0 ? (
+                        {row.hasPrevCampaign ? (
                           <>
                             {row.pannes25} <span className="text-slate-300 dark:text-slate-700">➔</span> <span className={isReduced ? 'text-emerald-500' : 'text-rose-500 font-bold'}>{row.pannes26}</span>
                           </>
@@ -678,10 +700,10 @@ export const Reports: React.FC = () => {
                       </span>
                     </div>
 
-                    {/* Budget compare (Hidden for Chef d'équipe) */}
+                    {/* Budget réel */}
                     {!isChefEquipe && (
                     <div className="text-center">
-                      <span className="text-[9px] text-slate-400 block uppercase">Coût Estimé</span>
+                      <span className="text-[9px] text-slate-400 block uppercase">Coût Réel</span>
                       <span className="text-slate-700 dark:text-slate-350 font-mono">
                         {row.cost26.toLocaleString()} TND
                       </span>

@@ -61,7 +61,7 @@ export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
   // Stock movement modal
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [movePartRef, setMovePartRef] = useState<string | null>(null);
-  const [moveType, setMoveType] = useState<'in' | 'out'>('in');
+  const [moveType, setMoveType] = useState<'in' | 'out' | 'inventaire'>('in');
   const [moveQty, setMoveQty] = useState(1);
   const [moveReason, setMoveReason] = useState('');
   const [moveCategory, setMoveCategory] = useState('Achat');
@@ -134,10 +134,12 @@ export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
   const activePart = parts.find(p => p.ref === selectedPartRef);
   const moveModalPart = parts.find(p => p.ref === movePartRef);
 
-  const handleOpenMovement = (partRef: string, type: 'in' | 'out') => {
+  const handleOpenMovement = (partRef: string, type: 'in' | 'out' | 'inventaire') => {
+    const part = parts.find(p => p.ref === partRef);
     setMovePartRef(partRef);
     setMoveType(type);
-    setMoveQty(1);
+    setMoveQty(type === 'inventaire' ? (part?.stockCurrent ?? 0) : 1);
+    setMoveCategory(type === 'in' ? 'Achat' : type === 'inventaire' ? 'Inventaire' : 'Maintenance Corrective');
     setMoveReason('');
     setShowMoveModal(true);
   };
@@ -145,12 +147,17 @@ export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
   const executeMovement = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!movePartRef) return;
-    const success = await addPartMovement(movePartRef, moveQty, moveType, moveReason || undefined);
+    const typeCode: 1 | 2 | 3 | 4 | 5 =
+      moveType === 'inventaire' ? 5 :
+      moveCategory === 'Retour' ? 3 :
+      moveCategory === 'Casse' ? 4 :
+      moveType === 'in' ? 1 : 2;
+    const reasonLabel = moveReason ? `${moveCategory} : ${moveReason}` : moveCategory;
+    const success = await addPartMovement(movePartRef, moveQty, moveType, undefined, reasonLabel, typeCode);
     if (success) {
-      // Stock movement is now fully handled in Redux and Backend
       setShowMoveModal(false);
     } else {
-      alert("Erreur: Quantité en stock insuffisante pour effectuer cette sortie.");
+      alert("Erreur : Quantité en stock insuffisante ou mouvement refusé par le serveur.");
     }
   };
 
@@ -259,6 +266,14 @@ export const Inventory: React.FC<InventoryProps> = ({ onNavigate }) => {
           >
             <ArrowUpFromLine className="w-4 h-4 text-rose-500" />
             <span>Sortie stock</span>
+          </button>
+
+          <button
+            onClick={() => handleOpenMovement(selectedPartRef || parts[0]?.ref, 'inventaire')}
+            className="flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-bold text-xs rounded-lg shadow-sm cursor-pointer transition-colors"
+          >
+            <ArrowRightLeft className="w-4 h-4 text-indigo-500" />
+            <span>Inventaire</span>
           </button>
           
 

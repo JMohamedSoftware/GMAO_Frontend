@@ -20,7 +20,7 @@ interface CampaignItem {
   societeCode: string;
   otCount: number;
   incidentsCount: number;
-  tonnagePrevu?: number;
+  tonnagePrevu?: number | null;
 }
 
 interface SuperAdminCampaignsProps {
@@ -71,100 +71,25 @@ export const SuperAdminCampaigns: React.FC<SuperAdminCampaignsProps> = ({ select
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const generateDynamicCampaigns = (): CampaignItem[] => {
-    const sourceTenants = allTenantsList.length > 0 ? allTenantsList : (tenants || []).map((t, i) => ({ id: i + 1, code: t.id, name: t.name }));
-    if (!sourceTenants || sourceTenants.length === 0) return [];
-
-    const list: CampaignItem[] = [];
-    sourceTenants.forEach((t, idx) => {
-      const sId = Number(t.id) || idx + 1;
-      const sName = t.name;
-      const sCode = t.code || `tenant-${sId}`;
-      const isHuilerie = sName.toLowerCase().includes('huilerie') || sName.toLowerCase().includes('sahel');
-      const isBeverage = sName.toLowerCase().includes('boissons') || sName.toLowerCase().includes('sfbt');
-      const isGrains = sName.toLowerCase().includes('grains') || sName.toLowerCase().includes('céréales');
-      const isFromagerie = sName.toLowerCase().includes('fromagerie') || sName.toLowerCase().includes('domaines');
-
-      // Campagne active en cours
-      const activeName = isHuilerie 
-        ? 'Campagne Oléicole 2025/2026'
-        : (isBeverage 
-          ? 'Campagne Haute Saison Boissons 2026'
-          : (isGrains 
-            ? 'Campagne Céréalière & Moisson 2026'
-            : (isFromagerie 
-              ? 'Campagne Laitière de Printemps 2026'
-              : 'Campagne Tomates 2026')));
-
-      const activeDesc = isHuilerie
-        ? `Extraction et pressage d'huile d'olive extra-vierge pour ${sName}.`
-        : (isBeverage
-          ? `Lignes d'embouteillage continu à haute cadence pour ${sName}.`
-          : (isGrains
-            ? `Moisson, ensilage et contrôle des silos de blé pour ${sName}.`
-            : (isFromagerie
-              ? `Collecte et affinage fromager de printemps pour ${sName}.`
-              : `Transformation concentré double et concassé estival pour ${sName}.`)));
-
-      list.push({
-        id: idx * 2 + 1,
-        nom: activeName,
-        description: activeDesc,
-        dateDebut: isHuilerie ? '2025-11-01' : (isFromagerie ? '2026-03-01' : (isBeverage ? '2026-05-01' : '2026-07-01')),
-        dateFin: isHuilerie ? '2026-03-31' : (isFromagerie ? '2026-07-31' : (isBeverage ? '2026-09-30' : '2026-10-31')),
-        etat: 'EnCours',
-        societeId: sId,
-        societeNom: sName,
-        societeCode: sCode,
-        otCount: 10 + (idx % 8) * 3,
-        incidentsCount: 2 + (idx % 4),
-        tonnagePrevu: 40000 + (idx % 5) * 8000
-      });
-
-      // Campagne archivée 2025
-      const closedName = isHuilerie 
-        ? 'Campagne Oléicole 2024/2025 (Archive)'
-        : (isBeverage 
-          ? 'Campagne Jus & Agrumes 2025 (Archive)'
-          : (isGrains 
-            ? 'Campagne Silos & Stockage 2025 (Archive)'
-            : (isFromagerie 
-              ? 'Campagne Fromages Affinés 2025 (Archive)'
-              : 'Campagne Tomates 2025 (Archive)')));
-
-      list.push({
-        id: idx * 2 + 2,
-        nom: closedName,
-        description: `Bilan technique de campagne précédente clôturé et archivé pour ${sName}.`,
-        dateDebut: '2025-07-01',
-        dateFin: '2025-09-30',
-        etat: 'Cloturee',
-        societeId: sId,
-        societeNom: sName,
-        societeCode: sCode,
-        otCount: 22 + (idx % 6) * 4,
-        incidentsCount: 8 + (idx % 5),
-        tonnagePrevu: 36000 + (idx % 4) * 5000
-      });
-    });
-    return list;
-  };
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const fetchCampaigns = async () => {
     setLoading(true);
+    setLoadError(null);
     try {
-      const fallback = generateDynamicCampaigns();
-      const data = await superAdminApi.getCampaigns(fallback);
+      const data = await superAdminApi.getCampaigns();
       if (data && data.length > 0) {
         setCampaigns(data.map((c: any) => ({
           ...c,
+          tonnagePrevu: typeof c.tonnagePrevu === 'number' ? c.tonnagePrevu : null,
           etat: c.etat === 'EnCours' || c.etat === '1' ? 'EnCours' : (c.etat === 'Cloturee' || c.etat === '2' || c.etat === 'Terminee' || c.etat === '3' ? 'Cloturee' : 'Planifiee')
         })));
       } else {
-        setCampaigns(fallback);
+        setCampaigns([]);
       }
     } catch {
-      setCampaigns(generateDynamicCampaigns());
+      setCampaigns([]);
+      setLoadError('Impossible de charger les campagnes depuis le backend.');
     } finally {
       setLoading(false);
     }
@@ -196,7 +121,9 @@ export const SuperAdminCampaigns: React.FC<SuperAdminCampaignsProps> = ({ select
   const activeCount = campaigns.filter(c => c.etat === 'EnCours').length;
   const closedCount = campaigns.filter(c => c.etat === 'Cloturee').length;
   const totalOts = campaigns.reduce((acc, c) => acc + (c.otCount || 0), 0);
-  const totalTonnage = campaigns.reduce((acc, c) => acc + (c.tonnagePrevu || 0), 0);
+  const tonnageEntries = campaigns.filter(c => typeof c.tonnagePrevu === 'number');
+  const totalTonnage = tonnageEntries.reduce((acc, c) => acc + (c.tonnagePrevu || 0), 0);
+  const hasTonnageData = tonnageEntries.length > 0;
 
   const getStatusBadge = (etat: CampaignItem['etat']) => {
     switch (etat) {
@@ -264,7 +191,7 @@ export const SuperAdminCampaigns: React.FC<SuperAdminCampaignsProps> = ({ select
         <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Campagnes Actives (2026)
+              Campagnes Actives ({new Date().getFullYear()})
             </span>
             <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
               <Sparkles className="w-4 h-4" />
@@ -322,7 +249,13 @@ export const SuperAdminCampaigns: React.FC<SuperAdminCampaignsProps> = ({ select
             </div>
           </div>
           <div className="text-2xl font-black text-slate-800 dark:text-white mt-2">
-            {(totalTonnage / 1000).toFixed(0)}k <span className="text-xs font-semibold text-slate-400">Tonnes</span>
+            {hasTonnageData ? (
+              <>
+                {(totalTonnage / 1000).toFixed(0)}k <span className="text-xs font-semibold text-slate-400">Tonnes</span>
+              </>
+            ) : (
+              <span className="text-base font-bold text-slate-400">Non disponible</span>
+            )}
           </div>
           <p className="text-[11px] text-purple-600 dark:text-purple-400 font-semibold mt-1">
             Capacité globale du parc
@@ -390,6 +323,13 @@ export const SuperAdminCampaigns: React.FC<SuperAdminCampaignsProps> = ({ select
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+              {filteredCampaigns.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="py-10 px-4 text-center text-slate-400">
+                    {loadError || 'Aucune campagne enregistrée en base pour les filtres actuels.'}
+                  </td>
+                </tr>
+              )}
               {filteredCampaigns.map((camp) => {
                 const statusBadge = getStatusBadge(camp.etat);
 

@@ -7,8 +7,8 @@
  */
 
 import { apiClient } from '@/shared/services/apiClient';
-import { WorkOrder } from '@/shared/types/gmao';
-import { CreateWorkOrderDto, UpdateWorkOrderDto } from '../types/workOrder.types';
+import { type PartUsage, type WorkOrder } from '@/shared/types/gmao';
+import { type CreateWorkOrderDto, type UpdateWorkOrderDto } from '../types/workOrder.types';
 
 export interface CreateWorkOrderPayload {
   title: string;
@@ -40,51 +40,108 @@ export const mapWorkOrderPriorityToInt = (priority: string): number => {
   }
 };
 
+function computePartsUsed(w: any): PartUsage[] {
+  const movements = w?.mouvementsStock || w?.MouvementsStock;
+  if (!Array.isArray(movements) || movements.length === 0) return [];
+
+  const totals = new Map<string, number>();
+  for (const m of movements) {
+    const ref = m.piece?.reference || m.Piece?.Reference || m.pieceId?.toString() || '';
+    if (!ref) continue;
+    const qty = Number(m.quantite ?? m.Quantite ?? 0);
+    const type = Number(m.type ?? m.Type ?? 0);
+    if (type === 2 || type === 4) {
+      totals.set(ref, (totals.get(ref) || 0) + qty);
+    } else if (type === 3) {
+      totals.set(ref, Math.max(0, (totals.get(ref) || 0) - qty));
+    }
+  }
+
+  return Array.from(totals.entries())
+    .filter(([, q]) => q > 0)
+    .map(([partRef, quantity]) => ({ partRef, quantity }));
+}
+
+function computeRealDurationMinutes(w: any): number {
+  const tempsPasseHours = w?.intervention?.tempsPasse ?? w?.Intervention?.TempsPasse;
+  if (tempsPasseHours != null && Number(tempsPasseHours) > 0) {
+    return Math.round(Number(tempsPasseHours) * 60);
+  }
+  const debut = w?.dateDebutReelle;
+  const fin = w?.dateFinReelle;
+  if (debut && fin) {
+    const diffMs = new Date(fin).getTime() - new Date(debut).getTime();
+    if (!Number.isNaN(diffMs) && diffMs > 0) {
+      return Math.round(diffMs / 60000);
+    }
+  }
+  if (w?.durationMinutes != null && Number(w.durationMinutes) > 0) {
+    return Number(w.durationMinutes);
+  }
+  return 0;
+}
+
+/**
+ * Mapper canonique partagé entre `/api/OrdresTravail` et `/api/Maintenance/bootstrap`
+ */
+export const mapBackendWorkOrder = (w: any): WorkOrder => {
+  let mappedStatus: WorkOrder['status'] = 'Brouillon';
+  if (w.statut === 1) mappedStatus = 'Brouillon';
+  else if (w.statut === 2) {
+    mappedStatus = w.technicienId ? 'Affecté' : 'En attente';
+  }
+  else if (w.statut === 7) mappedStatus = 'Affecté Chef';
+  else if (w.statut === 3) mappedStatus = 'En cours';
+  else if (w.statut === 4) mappedStatus = 'Suspendu';
+  else if (w.statut === 5) mappedStatus = 'Terminé';
+  else if (w.statut === 6) mappedStatus = 'Clôturé';
+
+  let mappedType: WorkOrder['type'] = 'Correctif';
+  if (w.typeMaintenance === 2) mappedType = 'Préventif';
+  else if (w.typeMaintenance === 3) mappedType = 'Prédictif';
+  else if (w.typeMaintenance === 4) mappedType = 'Amélioratif';
+
+  const chefEquipeIdResolved = (w.statut === 7 && w.responsableId)
+    ? w.responsableId.toString()
+    : (w.chefEquipeId ? w.chefEquipeId.toString() : (w.responsableId ? w.responsableId.toString() : undefined));
+
+  const intervention = w.intervention || w.Intervention;
+
+  return {
+    id: w.id?.toString() || w.numeroOT || `OT-${w.id}`,
+    numeroOT: w.numeroOT || `OT-${w.id}`,
+    incidentId: w.demandeId != null ? w.demandeId.toString() : undefined,
+    equipmentId: w.equipementId?.toString() || '',
+    title: w.titre || w.description || w.numeroOT || `OT-${w.id}`,
+    description: w.instructions || w.description || '',
+    type: mappedType,
+    priority: w.priorite === 1 ? 'Faible' : w.priorite === 2 ? 'Moyenne' : w.priorite === 3 ? 'Haute' : 'Critique',
+    status: mappedStatus,
+    createdDate: w.dateCreation || new Date().toISOString(),
+    startDate: w.dateDebutReelle || w.dateDebutPrevue || undefined,
+    endDate: w.dateFinReelle || w.dateFinPrevue || undefined,
+    technicianId: w.technicienId?.toString() || undefined,
+    responsableId: w.responsableId,
+    assignedBy: w.statut !== 7 ? (w.responsableId?.toString() || '') : '',
+    chefEquipeId: chefEquipeIdResolved,
+    durationMinutes: computeRealDurationMinutes(w),
+    diagnostic: intervention?.diagnostic ?? w.diagnostic ?? undefined,
+    solution: intervention?.solution ?? w.solution ?? undefined,
+    observation: intervention?.observation ?? w.observation ?? undefined,
+    partsUsed: computePartsUsed(w),
+    externalCost: Number(w.coutSousTraitance ?? 0),
+    campaign: w.campagne?.nom || w.campagneNom || '',
+    campagneId: w.campagneId || undefined
+  };
+};
+
 /**
  * Récupère tous les ordres de travail pour l'état Redux
  * GET /api/OrdresTravail
  */
 export const fetchWorkOrders = async (): Promise<WorkOrder[]> => {
   const response = await apiClient.get('/api/OrdresTravail');
-  return response.data.map((w: any) => {
-    let mappedStatus: WorkOrder['status'] = 'Brouillon';
-    if (w.statut === 1) mappedStatus = 'Brouillon';
-    else if (w.statut === 2) {
-      mappedStatus = w.technicienId ? 'Affecté' : 'En attente';
-    }
-    else if (w.statut === 7) mappedStatus = 'Affecté Chef';
-    else if (w.statut === 3) mappedStatus = 'En cours';
-    else if (w.statut === 4) mappedStatus = 'Suspendu';
-    else if (w.statut === 5) mappedStatus = 'Terminé';
-    else if (w.statut === 6) mappedStatus = 'Clôturé';
-
-    return {
-      id: w.id?.toString(),
-      numeroOT: w.numeroOT || `OT-${w.id}`,
-      incidentId: w.demandeId != null ? w.demandeId.toString() : undefined,
-      equipmentId: w.equipementId?.toString() || '',
-      title: w.description || w.numeroOT || `OT-${w.id}`,
-      description: w.instructions || w.description || '',
-      type: w.typeMaintenance === 2 ? 'Préventif' : w.typeMaintenance === 4 ? 'Amélioratif' : 'Correctif',
-      priority: w.priorite === 1 ? 'Faible' : w.priorite === 2 ? 'Moyenne' : w.priorite === 3 ? 'Haute' : 'Critique',
-      status: mappedStatus,
-      createdDate: w.dateCreation || new Date().toISOString(),
-      startDate: w.dateDebutReelle || w.dateDebutPrevue || undefined,
-      endDate: w.dateFinReelle || w.dateFinPrevue || undefined,
-      technicianId: w.technicienId?.toString() || undefined,
-      assignedBy: w.statut !== 7 ? (w.responsableId?.toString() || '') : '',
-      chefEquipeId: (w.statut === 7 && w.responsableId)
-        ? w.responsableId.toString()
-        : (w.chefEquipeId ? w.chefEquipeId.toString() : (w.responsableId ? w.responsableId.toString() : undefined)),
-      durationMinutes: w.durationMinutes || 120,
-      diagnostic: w.diagnostic || undefined,
-      solution: w.solution || undefined,
-      partsUsed: [],
-      externalCost: w.coutSousTraitance || 0,
-      campaign: w.campagne?.nom || w.campagneNom || '',
-      campagneId: w.campagneId || undefined
-    };
-  });
+  return (response.data || []).map(mapBackendWorkOrder);
 };
 
 /**
@@ -125,25 +182,11 @@ export const createWorkOrderApi = async (payload: CreateWorkOrderPayload): Promi
   try {
     const response = await apiClient.post('/api/OrdresTravail', body);
     const w = response.data;
-    return {
-      id: w.id?.toString(),
-      numeroOT: w.numeroOT || `OT-${w.id}`,
-      equipmentId: w.equipementId?.toString() || payload.equipmentId,
-      title: payload.title || w.description || w.numeroOT || 'Ordre de Travail',
-      description: payload.description || w.instructions || w.description || '',
-      type: payload.type,
-      priority: payload.priority,
-      status: 'Brouillon',
-      createdDate: w.dateCreation || now,
-      startDate: undefined,
-      endDate: undefined,
-      technicianId: w.technicienId?.toString() || undefined,
-      assignedBy: w.responsableId?.toString() || '1',
-      durationMinutes: 0,
-      partsUsed: [],
-      externalCost: 0,
-      campaign: '',
-    };
+    return mapBackendWorkOrder({
+      ...w,
+      description: payload.title || w.description,
+      instructions: payload.description || w.instructions
+    });
   } catch (err: any) {
     let serverMsg = '';
     const resData = err?.response?.data;
@@ -176,7 +219,7 @@ export const patchWorkOrderStatusApi = async (
   updates?: Partial<WorkOrder>
 ): Promise<void> => {
   const merged = { ...fullOt, ...updates, status };
-  
+
   let statutOt = 1;
   switch (merged.status) {
     case 'En attente':    statutOt = 2; break;
@@ -194,11 +237,10 @@ export const patchWorkOrderStatusApi = async (
 
   let numericId = /^\d+$/.test(String(id)) ? parseInt(id, 10) : NaN;
   if (isNaN(numericId)) {
-    // 1. Tenter de résoudre le vrai ID numérique via le numeroOT sur le serveur (ex: OT-2026-3)
     try {
       const serverOts = await apiClient.get('/api/OrdresTravail');
-      const found = (serverOts.data || []).find((o: any) => 
-        String(o.numeroOT).toLowerCase() === String(id).toLowerCase() || 
+      const found = (serverOts.data || []).find((o: any) =>
+        String(o.numeroOT).toLowerCase() === String(id).toLowerCase() ||
         String(o.id) === String(id) ||
         (fullOt.numeroOT && String(o.numeroOT).toLowerCase() === String(fullOt.numeroOT).toLowerCase())
       );
@@ -210,7 +252,6 @@ export const patchWorkOrderStatusApi = async (
     }
   }
 
-  // 2. Si toujours non numérique, l'OT n'existe pas encore en base : le synchroniser maintenant via POST
   if (isNaN(numericId)) {
     try {
       const toIntLocal = (v: any) => {
@@ -246,6 +287,12 @@ export const patchWorkOrderStatusApi = async (
     return isNaN(n) ? null : n;
   };
 
+  const hasInterventionData =
+    merged.diagnostic !== undefined ||
+    merged.solution !== undefined ||
+    merged.observation !== undefined ||
+    (merged.durationMinutes ?? 0) > 0;
+
   const body = {
     id: numericId,
     numeroOT: merged.numeroOT || `OT-${numericId}`,
@@ -262,13 +309,20 @@ export const patchWorkOrderStatusApi = async (
     dateDebutReelle: merged.startDate || null,
     dateFinReelle: merged.endDate || null,
     description: merged.title || merged.description || null,
-    instructions: merged.solution || merged.description || null,
+    instructions: merged.description || null,
     coutMainOeuvre: null,
-    coutPieces: merged.externalCost || null,
-    coutSousTraitance: null,
+    coutPieces: null,
+    coutSousTraitance: merged.externalCost != null ? Number(merged.externalCost) : null,
     campagneId: merged.campagneId ?? null,
+    intervention: hasInterventionData ? {
+      oTId: numericId,
+      diagnostic: merged.diagnostic ?? null,
+      solution: merged.solution ?? null,
+      observation: merged.observation ?? null,
+      tempsPasse: merged.durationMinutes > 0 ? Number((merged.durationMinutes / 60).toFixed(2)) : null
+    } : null
   };
-  
+
   await apiClient.put(`/api/OrdresTravail/${numericId}`, body);
 };
 

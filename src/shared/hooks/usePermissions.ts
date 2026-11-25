@@ -36,15 +36,17 @@ export function usePermissions() {
 
     // If dynamic permissions are loaded from backend, use them!
     const userPermissions = authUser?.permissions || currentUser?.permissions;
-    
+    const resolvedUserId = authUser?.id || currentUser?.id ? Number(authUser?.id || currentUser?.id) : undefined;
+    const resolvedEquipeId = authUser?.equipeId ?? currentUser?.equipeId ?? undefined;
+
     if (userPermissions && userPermissions.length > 0) {
       return hasScopedPermission(
         userPermissions, 
         permission, 
         resourceOwnerIds, 
-        authUser?.id || currentUser?.id ? Number(authUser?.id || currentUser?.id) : undefined,
+        resolvedUserId,
         resourceEquipeIds,
-        undefined // equipeId removed from User type
+        resolvedEquipeId
       );
     }
     

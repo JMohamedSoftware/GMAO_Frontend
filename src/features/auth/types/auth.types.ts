@@ -36,6 +36,7 @@ export interface AuthUser {
   role: AppRole;
   tenantId?: string;       // null si SuperAdmin
   tenantName?: string;
+  equipeId?: number | null;
   avatar?: string;
   isActive: boolean;
   lastLogin?: string;      // ISO date string
